@@ -2,6 +2,7 @@
 
 from calisthenics_api.routes import (
     auth,
+    feed,
     health,
     nodes,
     onboarding,
@@ -16,6 +17,7 @@ from calisthenics_api.routes import (
 
 __all__ = [
     "auth",
+    "feed",
     "health",
     "nodes",
     "onboarding",

@@ -290,6 +290,46 @@ class TendonStrainScore(Base):
     __table_args__ = (Index("ix_tendon_user_pathway_time", "user_id", "joint_pathway", "recorded_at"),)
 
 
+class UnlockEvent(Base):
+    """A promotion or regression on a single tree — the unit the social
+    feed is built from.
+
+    Written when /api/v1/workouts/sync returns state_updates.promotions /
+    .regressions. One row per StateUpdate so the feed can list every
+    milestone separately.
+    """
+
+    __tablename__ = "unlock_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    tree_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("progression_trees.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    new_node_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("progression_nodes.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    trigger: Mapped[str] = mapped_column(String(20), nullable=False)
+    """ One of: 'CRITICAL_FAIL' | 'PROMOTION' | 'ON_SYNC' — matches the
+    workout-sync wire enum. """
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    occurred_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        Index("ix_unlock_events_user_time", "user_id", "occurred_at"),
+    )
+
+
 __all__ = [
     "Base",
     "EdgeType",
@@ -301,6 +341,7 @@ __all__ = [
     "ProgressionTree",
     "SetLog",
     "TendonStrainScore",
+    "UnlockEvent",
     "User",
     "UserNodeState",
     "Workout",

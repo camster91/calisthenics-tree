@@ -28,6 +28,7 @@ from calisthenics_api.db.models import (
     ProgressionEdge,
     ProgressionNode,
     SetLog,
+    UnlockEvent,
     UserNodeState,
     Workout,
 )
@@ -147,16 +148,26 @@ async def sync_workouts(
                         if reg is not None:
                             # Update user_node_state to the regression target
                             await _set_current_node(session, auth.user_id, tree_uuid, reg.to_node_id)
-                            regressions.append(
-                                StateUpdate(
-                                    tree_id=to_tree_wire(tree_uuid),
-                                    old_node_id=to_node_wire(parsed_node_id),
-                                    new_node_id=to_node_wire(reg.to_node_id),
+                            regression_event = StateUpdate(
+                                tree_id=to_tree_wire(tree_uuid),
+                                old_node_id=to_node_wire(parsed_node_id),
+                                new_node_id=to_node_wire(reg.to_node_id),
+                                trigger="CRITICAL_FAIL",
+                                reason=(
+                                    f"Set {s.set_number} hold of {s.hold_secs or 0}s "
+                                    f"fell below the critical fail threshold of {min_hold}s."
+                                ),
+                            )
+                            regressions.append(regression_event)
+                            # Persist as an unlock event for the social feed.
+                            session.add(
+                                UnlockEvent(
+                                    user_id=auth.user_id,
+                                    tree_id=tree_uuid,
+                                    new_node_id=reg.to_node_id,
                                     trigger="CRITICAL_FAIL",
-                                    reason=(
-                                        f"Set {s.set_number} hold of {s.hold_secs or 0}s "
-                                        f"fell below the critical fail threshold of {min_hold}s."
-                                    ),
+                                    note=regression_event.reason,
+                                    occurred_at=wk.completed_at,
                                 )
                             )
                             regressed = True
@@ -176,16 +187,26 @@ async def sync_workouts(
                         reg = reg_row.scalar_one_or_none()
                         if reg is not None:
                             await _set_current_node(session, auth.user_id, tree_uuid, reg.to_node_id)
-                            regressions.append(
-                                StateUpdate(
-                                    tree_id=to_tree_wire(tree_uuid),
-                                    old_node_id=to_node_wire(parsed_node_id),
-                                    new_node_id=to_node_wire(reg.to_node_id),
+                            regression_event = StateUpdate(
+                                tree_id=to_tree_wire(tree_uuid),
+                                old_node_id=to_node_wire(parsed_node_id),
+                                new_node_id=to_node_wire(reg.to_node_id),
+                                trigger="CRITICAL_FAIL",
+                                reason=(
+                                    f"Set {s.set_number} reps of {s.reps or 0} "
+                                    f"fell below the critical fail threshold of {min_reps}."
+                                ),
+                            )
+                            regressions.append(regression_event)
+                            # Persist as an unlock event for the social feed.
+                            session.add(
+                                UnlockEvent(
+                                    user_id=auth.user_id,
+                                    tree_id=tree_uuid,
+                                    new_node_id=reg.to_node_id,
                                     trigger="CRITICAL_FAIL",
-                                    reason=(
-                                        f"Set {s.set_number} reps of {s.reps or 0} "
-                                        f"fell below the critical fail threshold of {min_reps}."
-                                    ),
+                                    note=regression_event.reason,
+                                    occurred_at=wk.completed_at,
                                 )
                             )
                             regressed = True
@@ -213,13 +234,23 @@ async def sync_workouts(
             is_unlocked, next_node_id, _required, _completed, _metrics = row
             if is_unlocked and next_node_id is not None:
                 await _set_current_node(session, auth.user_id, tree_uuid, next_node_id)
-                promotions.append(
-                    StateUpdate(
-                        tree_id=to_tree_wire(tree_uuid),
-                        old_node_id=to_node_wire(touched_uuid),
-                        new_node_id=to_node_wire(next_node_id),
+                promotion_event = StateUpdate(
+                    tree_id=to_tree_wire(tree_uuid),
+                    old_node_id=to_node_wire(touched_uuid),
+                    new_node_id=to_node_wire(next_node_id),
+                    trigger="PROMOTION",
+                    reason="All target sets met on latest workout session.",
+                )
+                promotions.append(promotion_event)
+                # Persist as an unlock event for the social feed.
+                session.add(
+                    UnlockEvent(
+                        user_id=auth.user_id,
+                        tree_id=tree_uuid,
+                        new_node_id=next_node_id,
                         trigger="PROMOTION",
-                        reason="All target sets met on latest workout session.",
+                        note=promotion_event.reason,
+                        occurred_at=wk.completed_at,
                     )
                 )
 

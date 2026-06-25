@@ -219,6 +219,35 @@ export const requestExport = () =>
   );
 
 /* ------------------------------------------------------------------ */
+/* Feed (GET /api/v1/feed)                                              */
+/* ------------------------------------------------------------------ */
+
+export interface FeedUser {
+  id: string;
+  email: string;
+}
+
+export interface FeedItem {
+  id: string;
+  user: FeedUser;
+  tree_id: string;
+  tree_name: string;
+  new_node_id: string;
+  new_node_name: string;
+  trigger: 'CRITICAL_FAIL' | 'PROMOTION' | 'ON_SYNC';
+  note: string | null;
+  occurred_at: string;
+}
+
+export interface FeedResponse {
+  items: FeedItem[];
+}
+
+/** GET /api/v1/feed — recent unlock events for the authed user. */
+export const getFeed = (limit = 20) =>
+  api<FeedResponse>(`/feed?limit=${limit}`);
+
+/* ------------------------------------------------------------------ */
 /* Workout sync (POST /api/v1/workouts/sync)                            */
 /* ------------------------------------------------------------------ */
 
