@@ -17,6 +17,61 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 # -----------------------------------------------------------------------------#
+# Auth (Phase 2 — magic-link + JWT)
+# -----------------------------------------------------------------------------#
+
+
+class MagicLinkRequest(BaseModel):
+    email: EmailStr
+
+
+class MagicLinkResponse(BaseModel):
+    """Returned by POST /api/v1/auth/magic-link.
+
+    `dev_token` is populated ONLY when POSTMARK_TOKEN is unset (dev mode).
+    Production clients always get a bare 202 with no token.
+    """
+
+    status: Literal["sent", "dev"] = "sent"
+    expires_at: datetime
+    dev_token: str | None = None
+
+
+class UserPublic(BaseModel):
+    """User shape returned to the client after auth. Mirrors the User model
+    but exposes only safe, public fields."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    email: str
+    created_at: datetime
+
+
+class VerifyResponse(BaseModel):
+    """Returned by GET /api/v1/auth/verify after a magic link is consumed."""
+
+    access_token: str
+    access_expires_at: datetime
+    refresh_token: str
+    refresh_expires_at: datetime
+    user: UserPublic
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
+class RefreshResponse(BaseModel):
+    """Returned by POST /api/v1/auth/refresh."""
+
+    access_token: str
+    access_expires_at: datetime
+    refresh_token: str
+    refresh_expires_at: datetime
+
+
+# -----------------------------------------------------------------------------#
 # ID prefix helpers — wire format only, never the canonical form in DB
 # -----------------------------------------------------------------------------#
 
@@ -186,16 +241,22 @@ __all__ = [
     "AuthContext",
     "CurrentNode",
     "HealthResponse",
+    "MagicLinkRequest",
+    "MagicLinkResponse",
     "OnboardingAnswers",
     "OnboardingPlaceRequest",
     "OnboardingPlaceResponse",
     "ProgressionsResponse",
+    "RefreshRequest",
+    "RefreshResponse",
     "StateUpdate",
     "StateUpdates",
     "SyncedLog",
     "SyncedSet",
     "SyncedWorkout",
     "TreePlacement",
+    "UserPublic",
+    "VerifyResponse",
     "WorkoutsSyncRequest",
     "WorkoutsSyncResponse",
     "node_id",

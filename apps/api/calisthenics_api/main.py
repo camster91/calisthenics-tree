@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse
 from calisthenics_api import __version__
 from calisthenics_api.config import get_settings
 from calisthenics_api.db import dispose_engine
-from calisthenics_api.routes import health, onboarding, progressions, share, workouts
+from calisthenics_api.routes import auth, health, onboarding, progressions, share, workouts
 
 logger = logging.getLogger("calisthenics_api")
 logger.setLevel(logging.INFO)
@@ -59,6 +59,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
 
     # /api/v1
+    app.include_router(auth.router, prefix=settings.api_v1_prefix)
     app.include_router(onboarding.router, prefix=settings.api_v1_prefix)
     app.include_router(progressions.router, prefix=settings.api_v1_prefix)
     app.include_router(workouts.router, prefix=settings.api_v1_prefix)

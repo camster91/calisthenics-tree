@@ -25,7 +25,39 @@ class Settings(BaseSettings):
     # Auth
     bearer_token: str = Field(
         default="dev-bearer-token-replace-me",
-        description="Bearer token required on all routes except /healthz",
+        description="Static bearer token for dev/CI. Production uses JWTs issued by /auth/magic-link + /auth/verify.",
+    )
+    # JWT signing — required in production. Dev falls back to bearer_token above.
+    jwt_secret: str = Field(
+        default="dev-jwt-secret-change-me-in-production-use-secrets-token-urlsafe-64",
+        description="HMAC secret for JWT signature (PyJWT HS256).",
+    )
+    jwt_algorithm: str = Field(default="HS256")
+    jwt_access_ttl_secs: int = Field(default=3600, ge=60, description="Access token TTL (default 1h).")
+    jwt_refresh_ttl_secs: int = Field(
+        default=60 * 60 * 24 * 30,  # 30 days
+        ge=3600,
+        description="Refresh token TTL (default 30 days).",
+    )
+    # Magic-link signing — required for production. Dev falls back to jwt_secret.
+    magic_link_secret: str = Field(
+        default="dev-magic-link-secret-change-me-in-production",
+        description="HMAC secret for magic-link token signature (itsdangerous).",
+    )
+    magic_link_ttl_secs: int = Field(default=900, ge=60, description="Magic-link TTL (default 15min).")
+    # Email — when POSTMARK_TOKEN is set, magic-link emails are sent via Postmark.
+    postmark_token: str | None = Field(
+        default=None,
+        description="Postmark server token. When unset, magic-link tokens are logged to stdout (dev only).",
+    )
+    postmark_from_email: str = Field(
+        default="hello@calisthenics-tree.com",
+        description="From-address used when sending magic-link emails via Postmark.",
+    )
+    # Web app base URL — used to build magic-link URLs (https://app.../auth/verify?token=...).
+    web_base_url: str = Field(
+        default="http://localhost:5173",
+        description="Origin of the web SPA. Magic-link emails link back here.",
     )
 
     # App
