@@ -102,8 +102,8 @@ StoreKit paywall, App Store submission, Reddit launch. Cannot start until P4 shi
 - (Bonus) Fix `uv sync` footgun from Sprint 1 follow-ups
 
 **Sprint 2 follow-ups flagged by the swarm:**
-- **`theme.css` postinstall**: `apps/web/src/.generated/theme.css` is git-ignored but required by `index.css`. Fresh clones need `npm run theme:build` before Vite boots. Fix: add `"postinstall": "npm run theme:build"` to `apps/web/package.json`. Tiny one-liner, do in Sprint 3 setup.
-- **PEP 735 deprecation**: uv emits a deprecation warning on every run because `[tool.uv].dev-dependencies` is deprecated in favor of PEP 735 `[dependency-groups] dev = [...]`. Task in Sprint 3+ cleanup (cosmetic, no behavior change).
+- **`theme.css` postinstall**: ✅ done — `"postinstall": "npm run theme:build"` is in `apps/web/package.json` (Sprint 2).
+- **PEP 735 deprecation**: ✅ done — `[tool.uv].dev-dependencies` → `[dependency-groups] dev` in `apps/api/pyproject.toml` (Sprint 14). No warning emitted by `uv sync`.
 - **`docker-compose.prod.yml`** still not in repo (deploy-time artifact). Sprint 7+ polish.
 
 ### Sprint 3 — P2 web app (~2-3 weeks)
