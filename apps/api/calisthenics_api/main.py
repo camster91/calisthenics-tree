@@ -21,6 +21,7 @@ from calisthenics_api.routes import (
     nodes,
     onboarding,
     progressions,
+    seo,
     share,
     tendon_strain,
     trees,
@@ -77,6 +78,16 @@ def create_app() -> FastAPI:
     app.include_router(workouts.router, prefix=settings.api_v1_prefix)
     app.include_router(tendon_strain.router, prefix=settings.api_v1_prefix)
     app.include_router(share.router, prefix=settings.api_v1_prefix)
+
+    # SEO endpoints (sitemap.xml + robots.txt) — mounted at ROOT (not
+    # under /api/v1) so they're at the canonical /sitemap.xml and
+    # /robots.txt URLs that Google + Bing expect. The Caddyfile in
+    # apps/web/Caddyfile reverse-proxies /api/* but NOT these paths.
+    # Note: this means they're served by the api container directly,
+    # not via the web reverse-proxy. In production with Caddy fronting
+    # the api, you'll need a path in /opt/traefik/dynamic/routers.yml
+    # to route /sitemap.xml and /robots.txt to the api service.
+    app.include_router(seo.router)
 
     return app
 

@@ -19,6 +19,7 @@ import OnboardingResultPage from './pages/OnboardingResultPage';
 import LandingPage from './pages/LandingPage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
+import NodeLandingPage from './pages/NodeLandingPage';
 import Layout from './components/layout/Layout';
 import { RequireAuth } from './components/RequireAuth';
 import { RequireOnboarded } from './components/RequireOnboarded';
@@ -95,6 +96,11 @@ export default function App() {
         <Route path="welcome" element={<LandingPage />} />
         <Route path="privacy" element={<PrivacyPage />} />
         <Route path="terms" element={<TermsPage />} />
+
+        {/* SEO — one public landing page per skill node. Slug format:
+            {tree_slug}-r{rank}-{name-slug}. Drives organic traffic per
+            PLAN.md Phase 3. */}
+        <Route path="learn/:slug" element={<NodeLandingPage />} />
 
         {/* Onboarding — also no Layout chrome; uses OnboardingLayout internally
             for its own progress + back/next affordances. */}
