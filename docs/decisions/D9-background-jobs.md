@@ -21,7 +21,7 @@ Status: **DRAFT — needs decision before Phase 1**
 ## Architecture
 
 ```
-api/app/jobs/
+apps/api/app/jobs/
   tendon.py        # arq worker function
   email.py
   push.py

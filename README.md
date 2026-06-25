@@ -25,20 +25,21 @@ Calisthenics skill-tree progression tracker. Train smarter — not just harder.
 
 ```
 calisthenics-tree/
-├── api/                           # FastAPI backend (Phase 1)
-│   ├── calisthenics_api/          # routes, schemas, models, db, auth
-│   ├── alembic/                   # DB migrations (seeds 30 nodes, 3 trees)
-│   ├── tests/                     # pytest + httpx
-│   └── Dockerfile
-├── apps/web/                      # Vite + React frontend (Phase 1.5+)
-│   ├── src/
-│   │   ├── tokens.ts              # design tokens (single source of truth)
-│   │   ├── index.css              # Tailwind v4 @theme + base + utilities
-│   │   ├── lib/                   # cn, api client, theme provider
-│   │   ├── components/            # layout/, ui/, workout/, dag/
-│   │   └── pages/                 # route components (HomePage, etc.)
-│   ├── wireframes/                # Playwright screenshots of low-fi wireframes
-│   └── public/                    # static assets (icons, favicon, share cards)
+├── apps/
+│   ├── api/                       # FastAPI backend (Phase 1)
+│   │   ├── calisthenics_api/      # routes, schemas, models, db, auth
+│   │   ├── alembic/               # DB migrations (seeds 30 nodes, 3 trees)
+│   │   ├── tests/                 # pytest + httpx
+│   │   └── Dockerfile
+│   └── web/                       # Vite + React frontend (Phase 1.5+)
+│       ├── src/
+│       │   ├── tokens.ts          # design tokens (single source of truth)
+│       │   ├── index.css          # Tailwind v4 @theme + base + utilities
+│       │   ├── lib/               # cn, api client, theme provider
+│       │   ├── components/        # layout/, ui/, workout/, dag/
+│       │   └── pages/             # route components (HomePage, etc.)
+│       ├── wireframes/            # Playwright screenshots of low-fi wireframes
+│       └── public/                # static assets (icons, favicon, share cards)
 ├── docs/
 │   ├── PLAN.md                    # master build plan — read this first
 │   ├── decisions/                 # 20 pre-Phase-1 decisions (D1-D20)
@@ -47,11 +48,6 @@ calisthenics-tree/
 ├── docker-compose.yml             # local dev (postgres + api)
 └── .gitignore
 ```
-
-> **Known layout issue:** the README and the original Phase 1.5 commit
-> describe `apps/api/` but the backend code actually lives at top-level
-> `api/`. The next Phase 1 task (T1 from the kanban board) should move
-> the backend to `apps/api/` and update `docker-compose.yml` accordingly.
 
 ## Local development
 

@@ -16,7 +16,7 @@ Status: **DRAFT — needs decision before Phase 1**
 ## File structure
 
 ```
-api/
+apps/api/
   alembic/
     env.py
     versions/
