@@ -6,6 +6,8 @@ import HomePage from './pages/HomePage';
 import SettingsPage from './pages/SettingsPage';
 import ComponentsPage from './pages/ComponentsPage';
 import ShareRenderPage from './pages/ShareRenderPage';
+import LoginPage from './pages/LoginPage';
+import AuthVerifyPage from './pages/AuthVerifyPage';
 import Layout from './components/layout/Layout';
 import Screenshots from './pages/marketing/Screenshots';
 import OnboardingDemo from './pages/marketing/OnboardingDemo';
@@ -70,6 +72,10 @@ export default function App() {
             15-30s mp4 via ffmpeg. */}
         <Route path="marketing/onboarding" element={<OnboardingDemo />} />
         <Route path="marketing/onboarding/:step" element={<OnboardingDemo />} />
+
+        {/* Auth — public routes, no Layout chrome (no nav while not signed in) */}
+        <Route path="login" element={<LoginPage />} />
+        <Route path="auth/verify" element={<AuthVerifyPage />} />
 
         <Route element={<Layout />}>
           <Route index element={<HomePage />} />
