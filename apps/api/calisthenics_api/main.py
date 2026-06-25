@@ -32,6 +32,19 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     settings = get_settings()
+
+    # Sentry error tracking — only initialised when DSN is set, so cold-start
+    # stays fast in environments without observability (local dev, tests).
+    if settings.sentry_dsn:
+        import sentry_sdk
+
+        sentry_sdk.init(
+            dsn=settings.sentry_dsn,
+            environment=settings.environment,
+            release=f"calisthenics-api@{__version__}",
+            traces_sample_rate=0.1,  # 10% of requests traced; bump later
+        )
+
     app = FastAPI(
         title="Calisthenics Platform API",
         version=__version__,

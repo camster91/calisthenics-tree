@@ -51,3 +51,6 @@ apps/web/public/share/*.png
 Thumbs.db
 apps/web/test-results/
 apps/web/playwright-report/
+
+# Mavis team plan artifacts (local workflow files, not source)
+.mavis/

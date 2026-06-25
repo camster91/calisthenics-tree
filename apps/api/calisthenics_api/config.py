@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     environment: str = Field(default="development")
     api_v1_prefix: str = "/api/v1"
 
+    # Observability
+    # Sentry DSN. Optional — when empty/None, Sentry is disabled at startup.
+    sentry_dsn: str | None = None
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
