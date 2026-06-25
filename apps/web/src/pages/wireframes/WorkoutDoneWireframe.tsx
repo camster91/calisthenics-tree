@@ -3,11 +3,18 @@
  *
  * Production route: `/workout/:node_id/done`. Authed. Priority P0.
  * Confirms what was logged, shows next-step suggestion, offers share.
+ *
+ * T39 — the Share button is now wired to useShareUnlock, which fetches
+ * `/share/<unlockId>.png` and opens the native share sheet (mobile) or
+ * falls back to clipboard / download (desktop).
  */
 import { ArrowRight, Share2, Mountain } from 'lucide-react';
 import { PageHeader, Section, StatChip } from './_primitives';
+import { useShareUnlock } from '../../lib/useShareUnlock';
 
 export default function WorkoutDoneWireframe() {
+  const { share, isSharing, error } = useShareUnlock();
+
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-8 py-6">
       <PageHeader
@@ -15,8 +22,20 @@ export default function WorkoutDoneWireframe() {
         title="Logged. Nice work."
         description="Pike push-up · 3 sets · 23 reps · 12 min"
         actions={
-          <button className="btn-ghost" type="button">
-            <Share2 aria-hidden className="h-4 w-4" /> Share
+          <button
+            className="btn-ghost"
+            type="button"
+            disabled={isSharing}
+            onClick={() =>
+              share({
+                unlockId: 'tuck-front-lever-001',
+                title: 'I just unlocked Tuck Front Lever!',
+                text: '15 second hold — just unlocked on Calisthenics Tree.',
+              })
+            }
+            title={error ?? 'Share your unlock'}
+          >
+            <Share2 aria-hidden className="h-4 w-4" /> {isSharing ? 'Sharing…' : 'Share'}
           </button>
         }
       />

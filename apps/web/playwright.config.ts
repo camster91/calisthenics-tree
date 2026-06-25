@@ -15,7 +15,8 @@ const PORT = Number(process.env.PORT ?? 5173);
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${PORT}`;
 
 export default defineConfig({
-  testDir: './tests/a11y',
+  testDir: './tests',
+  testMatch: /.*\.spec\.ts$/,
   fullyParallel: false,
   workers: 1,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
