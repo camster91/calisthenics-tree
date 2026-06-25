@@ -5,7 +5,7 @@
  * reviewer can confirm the contrast change is visible. Run with:
  *   PLAYWRIGHT_BASE_URL=http://localhost:4173 npx playwright test tests/a11y/visual.spec.ts
  */
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 test('settings: default vs gym-glare screenshots', async ({ page }) => {
   await page.addInitScript(() => {
@@ -23,8 +23,14 @@ test('settings: default vs gym-glare screenshots', async ({ page }) => {
     fullPage: true,
   });
 
-  // Flip the gym-glare switch on
-  await page.locator('[role="switch"]').first().click();
+  // Flip the theme to gym-glare via the radiogroup's "Gym glare" option.
+  const gymGlareRadio = page
+    .getByRole('radiogroup', { name: /theme/i })
+    .getByRole('radio', { name: /gym glare \(high contrast\)/i });
+  await expect(gymGlareRadio).toHaveAttribute('aria-checked', 'false');
+  await gymGlareRadio.click();
+  await expect(gymGlareRadio).toHaveAttribute('aria-checked', 'true');
+
   // Give CSS variables a tick to apply
   await page.waitForTimeout(200);
   await page.screenshot({

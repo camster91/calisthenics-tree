@@ -1,0 +1,65 @@
+{
+  "nav": {
+    "home": "Home",
+    "workout": "Workout",
+    "feed": "Feed",
+    "insights": "Insights",
+    "settings": "Settings"
+  },
+  "auth": {
+    "login": "Sign in",
+    "logout": "Sign out",
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@example.com",
+    "sendMagicLink": "Send magic link",
+    "magicLinkSent": "Check your email for a sign-in link.",
+    "magicLinkError": "Could not send magic link. Try again."
+  },
+  "onboarding": {
+    "q1": "Can you do a pull-up?",
+    "q1Yes": "Yes, 1-3 reps",
+    "q1Somewhat": "A few, struggle with form",
+    "q1No": "No, not yet",
+    "q2": "How long can you hold a plank?",
+    "q3": "How many push-ups can you do in one set?",
+    "test": "Push-up to near-failure",
+    "testInstructions": "Do push-ups until you feel you could do 2 more, then stop.",
+    "result": "Your starting nodes",
+    "continueToApp": "Continue"
+  },
+  "common": {
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "retry": "Try again",
+    "save": "Save",
+    "cancel": "Cancel",
+    "back": "Back",
+    "next": "Next"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Tune the app for how and where you train.",
+    "theme": "Theme",
+    "themeDefault": "Default (dark)",
+    "themeGymGlare": "Gym glare (high contrast)",
+    "language": "Language",
+    "account": "Account",
+    "display": "Display",
+    "displayNameLabel": "Display name",
+    "displayNameHint": "1–32 characters. Shown on your share cards.",
+    "displayNameErrorRequired": "Display name is required.",
+    "displayNameErrorTooLong": "Display name must be 32 characters or fewer.",
+    "saved": "Saved.",
+    "iconOnlyControls": "Icon-only controls",
+    "iconOnlyControlsHint": "These buttons are icon-only and labelled for screen readers via aria-label.",
+    "switchToLight": "Switch to light mode",
+    "switchToDark": "Switch to dark mode"
+  },
+  "paywall": {
+    "title": "Unlock the full skill tree",
+    "monthly": "$5.99 / month",
+    "annual": "$29.99 / year",
+    "lifetime": "$99 once",
+    "cta": "Start 7-day trial"
+  }
+}

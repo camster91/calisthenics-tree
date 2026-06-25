@@ -1,5 +1,7 @@
-import { Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { useTheme } from './lib/theme';
+import { capturePageview } from './lib/analytics';
 import HomePage from './pages/HomePage';
 import SettingsPage from './pages/SettingsPage';
 import ComponentsPage from './pages/ComponentsPage';
@@ -40,6 +42,14 @@ import EmptyStatesWireframe from './pages/wireframes/EmptyStatesWireframe';
  */
 export default function App() {
   useTheme();
+  const location = useLocation();
+
+  // Phase 2 — PLAN.md Gap 4. Manual pageview capture (PostHog's auto
+  // pageview fires before the router resolves on initial load). No-op when
+  // PostHog isn't initialized.
+  useEffect(() => {
+    capturePageview(location.pathname);
+  }, [location.pathname]);
 
   return (
     <>

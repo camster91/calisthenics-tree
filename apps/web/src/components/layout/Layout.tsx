@@ -1,4 +1,5 @@
 import { Outlet, NavLink } from 'react-router-dom';
+import { useT } from '../../lib/i18n';
 
 /**
  * Layout — shared chrome (header + main + footer).
@@ -6,8 +7,14 @@ import { Outlet, NavLink } from 'react-router-dom';
  * Header has theme toggle (default ⇄ gym-glare). Tabs nav is for the
  * authenticated app shell (DAG browse / workout / feed / settings).
  * Onboarding & marketing screens override this with their own layout.
+ *
+ * Nav labels are translated via useT() per PLAN.md Gap 3. The dev-only
+ * "Showcase" and "Wireframes" links stay in English (developer surface,
+ * not user-facing).
  */
 export default function Layout() {
+  const t = useT();
+
   return (
     <div className="flex min-h-full flex-col">
       <header className="sticky top-0 z-sticky border-b border-surface-border bg-surface/95 backdrop-blur">
@@ -29,7 +36,7 @@ export default function Layout() {
                 `btn-ghost ${isActive ? 'bg-surface-muted' : ''}`
               }
             >
-              Browse
+              {t('nav.home')}
             </NavLink>
             <NavLink
               to="/workout"
@@ -37,7 +44,7 @@ export default function Layout() {
                 `btn-ghost ${isActive ? 'bg-surface-muted' : ''}`
               }
             >
-              Workout
+              {t('nav.workout')}
             </NavLink>
             <NavLink
               to="/feed"
@@ -45,7 +52,7 @@ export default function Layout() {
                 `btn-ghost ${isActive ? 'bg-surface-muted' : ''}`
               }
             >
-              Feed
+              {t('nav.feed')}
             </NavLink>
             <NavLink
               to="/settings"
@@ -53,7 +60,7 @@ export default function Layout() {
                 `btn-ghost ${isActive ? 'bg-surface-muted' : ''}`
               }
             >
-              Settings
+              {t('nav.settings')}
             </NavLink>
             <NavLink
               to="/components"

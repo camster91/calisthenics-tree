@@ -1,17 +1,37 @@
 /**
  * SettingsPage — Display, account, and preferences.
  *
- * Houses the gym-glare toggle (T38). Shows the current source of the
- * theme (auto-detect vs manual override) so the user can tell why the
- * mode is on.
+ * Houses the gym-glare theme control (Sprint 3A task 3). The control is
+ * implemented as a WAI-ARIA radiogroup — each option is a real <button>
+ * with role="radio" + aria-checked, the container is role="radiogroup"
+ * with aria-label. Keyboard follows the WAI-ARIA APG radiogroup pattern:
  *
- * Includes a Display name form to exercise the aria-live form-error
- * pattern (T38 deliverable: form errors announced via aria-live='polite').
+ *   - Tab enters / leaves the group (one tab stop, roving tabindex)
+ *   - Arrow keys move focus AND change selection
+ *   - Home / End jump to first / last
+ *   - Space / Enter re-affirm the focused radio (no form submit)
+ *
+ * Visual: a small swatch pair below the radio shows what each theme
+ * actually looks like, using the values in src/tokens.ts (the single
+ * source of truth — keeps the preview in sync if a designer ever
+ * shifts the colors).
+ *
+ * Also exercises the aria-live form-error pattern via the Display name
+ * input below — errors are announced through role="alert" +
+ * aria-live="assertive".
  */
-import { useState, useEffect, useRef } from 'react';
-import { useTheme } from '../lib/theme';
-import Toggle from '../components/ui/Toggle';
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  type KeyboardEvent,
+} from 'react';
+import { useTheme, type ThemeName } from '../lib/theme';
+import { useT } from '../lib/i18n';
 import { Sun, Moon, Eye, MonitorSmartphone, Check } from 'lucide-react';
+import { tokens } from '../tokens';
+import { cn } from '../lib/cn';
 
 const STORAGE_KEY = 'ct:theme';
 
@@ -34,7 +54,224 @@ function hasManualOverride(): boolean {
   return stored === 'gym-glare' || stored === 'default';
 }
 
+// ---------------------------------------------------------------------
+// Theme toggle — radiogroup of two cards.
+// ---------------------------------------------------------------------
+
+interface ThemeOptionMeta {
+  value: ThemeName;
+  icon: typeof Moon;
+}
+
+/** Theme option order is the visual order in the radiogroup. */
+const THEME_OPTIONS: ThemeOptionMeta[] = [
+  { value: 'default', icon: Moon },
+  { value: 'gym-glare', icon: Sun },
+];
+
+/**
+ * ThemeToggleGroup — radiogroup with two card-style buttons.
+ *
+ * A11y:
+ *   - role="radiogroup" + aria-label
+ *   - each option role="radio" + aria-checked + 48px min tap target
+ *   - roving tabindex (only the checked radio is tabIndex=0)
+ *   - arrow / Home / End / Space / Enter keyboard support
+ */
+function ThemeToggleGroup({
+  value,
+  onChange,
+  ariaLabel,
+  labels,
+  hints,
+}: {
+  value: ThemeName;
+  onChange: (v: ThemeName) => void;
+  ariaLabel: string;
+  labels: Record<ThemeName, string>;
+  hints: Record<ThemeName, string>;
+}) {
+  const refs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  /**
+   * select — activate option at `index`, then move focus to it.
+   * Used by both click and arrow-key handlers so keyboard and pointer
+   * converge on the same UX (focus follows selection).
+   *
+   * Focus is moved synchronously BEFORE onChange so the next keypress
+   * (e.g. Space) lands on the newly-checked radio even when tests
+   * drive the keyboard rapidly without yielding to a frame.
+   */
+  const select = useCallback(
+    (index: number) => {
+      const opt = THEME_OPTIONS[index];
+      if (!opt) return;
+      const el = refs.current[index];
+      if (el) el.focus();
+      onChange(opt.value);
+    },
+    [onChange],
+  );
+
+  const handleKey = useCallback(
+    (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
+      let next = index;
+      switch (e.key) {
+        case 'ArrowRight':
+        case 'ArrowDown':
+          next = (index + 1) % THEME_OPTIONS.length;
+          break;
+        case 'ArrowLeft':
+        case 'ArrowUp':
+          next = (index - 1 + THEME_OPTIONS.length) % THEME_OPTIONS.length;
+          break;
+        case 'Home':
+          next = 0;
+          break;
+        case 'End':
+          next = THEME_OPTIONS.length - 1;
+          break;
+        case ' ':
+        case 'Enter':
+          // Re-affirm current selection (don't submit a form by accident)
+          // and ensure focus stays on the focused radio.
+          e.preventDefault();
+          select(index);
+          return;
+        default:
+          return;
+      }
+      e.preventDefault();
+      select(next);
+    },
+    [select],
+  );
+
+  return (
+    <div
+      role="radiogroup"
+      aria-label={ariaLabel}
+      data-testid="theme-radiogroup"
+      className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+    >
+      {THEME_OPTIONS.map((opt, index) => {
+        const checked = opt.value === value;
+        const Icon = opt.icon;
+        return (
+          <button
+            key={opt.value}
+            ref={(el) => {
+              refs.current[index] = el;
+            }}
+            type="button"
+            role="radio"
+            aria-checked={checked}
+            tabIndex={checked ? 0 : -1}
+            onClick={() => onChange(opt.value)}
+            onKeyDown={(e) => handleKey(e, index)}
+            data-theme-option={opt.value}
+            className={cn(
+              'group flex items-start gap-3 rounded-lg border p-3 text-left transition-colors',
+              'focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2',
+              'disabled:cursor-not-allowed disabled:opacity-50',
+              checked
+                ? 'border-primary bg-primary/10 ring-1 ring-primary/40'
+                : 'border-surface-border bg-surface hover:bg-surface-muted',
+            )}
+            style={{ minHeight: 48 }}
+          >
+            <span
+              aria-hidden
+              className={cn(
+                'flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition-colors',
+                checked
+                  ? 'bg-primary text-primary-on'
+                  : 'bg-surface-muted text-surface-fg-muted group-hover:bg-surface',
+              )}
+            >
+              <Icon className="h-4 w-4" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-surface-fg">
+                {labels[opt.value]}
+              </span>
+              <span className="mt-0.5 block text-xs text-surface-fg-muted">
+                {hints[opt.value]}
+              </span>
+            </span>
+            <span
+              aria-hidden
+              className={cn(
+                'flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-colors',
+                checked
+                  ? 'bg-primary text-primary-on'
+                  : 'border border-surface-border',
+              )}
+            >
+              {checked && <Check className="h-3 w-3" strokeWidth={3} />}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * ThemeSwatches — side-by-side preview of the two themes using the
+ * exact token values from src/tokens.ts. Keeps the preview honest: if
+ * a designer changes a token, the swatch follows.
+ *
+ * `aria-hidden` because it's decorative — the radio labels already say
+ * which option is which.
+ */
+function ThemeSwatches() {
+  const defaults = tokens.color.surface;
+  const glare = tokens.color['gym-glare'];
+
+  return (
+    <div
+      aria-hidden
+      data-testid="theme-swatches"
+      className="grid grid-cols-2 gap-3"
+    >
+      <div
+        className="flex flex-col gap-1 rounded-md p-3"
+        style={{
+          background: defaults.bg,
+          color: defaults.fg,
+          border: `1px solid ${defaults.border}`,
+        }}
+      >
+        <span className="text-[10px] font-semibold uppercase tracking-wider opacity-70">
+          Default
+        </span>
+        <span className="text-2xl font-bold leading-none">Aa</span>
+        <span className="text-[10px] opacity-70">AA · 4.5:1</span>
+      </div>
+      <div
+        className="flex flex-col gap-1 rounded-md p-3"
+        style={{
+          background: glare.bg,
+          color: glare.fg,
+        }}
+      >
+        <span className="text-[10px] font-semibold uppercase tracking-wider opacity-70">
+          Gym glare
+        </span>
+        <span className="text-2xl font-bold leading-none">Aa</span>
+        <span className="text-[10px] opacity-70">AAA · 7:1</span>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------
+// Display-name form — exercises aria-live error announcement.
+// ---------------------------------------------------------------------
+
 export default function SettingsPage() {
+  const t = useT();
   const [theme, setTheme] = useTheme();
   const [autoContrast, setAutoContrast] = useState(detectAutoContrast);
   const [hasOverride, setHasOverride] = useState(hasManualOverride);
@@ -70,16 +307,32 @@ export default function SettingsPage() {
   const themeSource: 'auto' | 'manual' =
     isGymGlare && autoContrast && !hasOverride ? 'auto' : 'manual';
 
+  // TODO(i18n): once the i18n-scaffold task lands a second locale, move
+  // the radio option copy into en.json (settings.themeDefault,
+  // settings.themeGymGlare already exist) and the long-form hints into
+  // settings.themeDefaultHint / settings.themeGymGlareHint. Today the
+  // hints are inlined in English so the page never shows blank
+  // descriptions.
+  const themeOptionLabels: Record<ThemeName, string> = {
+    default: t('settings.themeDefault'),
+    'gym-glare': t('settings.themeGymGlare'),
+  };
+  const themeOptionHints: Record<ThemeName, string> = {
+    default: 'Standard dark theme — for everyday training.',
+    'gym-glare':
+      'High-contrast for outdoor / sweaty use (WCAG AAA, 7:1).',
+  };
+
   function handleNameSave(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = displayName.trim();
     if (trimmed.length === 0) {
-      setNameError('Display name is required.');
+      setNameError(t('settings.displayNameErrorRequired'));
       setNameSaved(false);
       return;
     }
     if (trimmed.length > 32) {
-      setNameError('Display name must be 32 characters or fewer.');
+      setNameError(t('settings.displayNameErrorTooLong'));
       setNameSaved(false);
       return;
     }
@@ -91,47 +344,52 @@ export default function SettingsPage() {
   return (
     <div className="space-y-12 max-w-2xl">
       <header className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">
+          {t('settings.title')}
+        </h1>
         <p className="text-surface-fg-muted">
-          Tune the app for how and where you train.
+          {t('settings.subtitle')}
         </p>
       </header>
 
-      {/* ====================== DISPLAY ====================== */}
+      {/* ====================== THEME ====================== */}
       <section
-        aria-labelledby="display-heading"
-        className="card space-y-1 divide-y divide-surface-border"
+        aria-labelledby="theme-heading"
+        className="card space-y-4"
       >
-        <div className="pb-3 flex items-center gap-3">
+        <div className="flex items-center gap-3">
           <MonitorSmartphone
             className="h-5 w-5 text-primary"
             aria-hidden
           />
           <h2
-            id="display-heading"
+            id="theme-heading"
             className="text-xl font-semibold"
           >
-            Display
+            {t('settings.theme')}
           </h2>
         </div>
 
-        <Toggle
-          label="Gym-glare mode"
-          description={
-            isGymGlare && autoContrast
-              ? 'On — matched your OS contrast preference (more). Tap to override.'
-              : isGymGlare
-                ? 'On — high-contrast theme for outdoor / sweaty use.'
-                : autoContrast
-                  ? 'Off — your OS prefers more contrast, but you have not turned this on.'
-                  : 'Off — default dark theme. Turn on for outdoor / sweaty use.'
-          }
-          checked={isGymGlare}
-          onChange={(next) => setTheme(next ? 'gym-glare' : 'default')}
+        <p
+          id="theme-caption"
+          className="text-sm text-surface-fg-muted"
+        >
+          Dark by default. Gym glare boosts contrast to WCAG AAA for
+          high-light environments.
+        </p>
+
+        <ThemeToggleGroup
+          value={theme}
+          onChange={setTheme}
+          ariaLabel={t('settings.theme')}
+          labels={themeOptionLabels}
+          hints={themeOptionHints}
         />
 
+        <ThemeSwatches />
+
         <p
-          className="pt-2 text-xs text-surface-fg-subtle"
+          className="text-xs text-surface-fg-subtle"
           aria-live="polite"
         >
           Source:{' '}
@@ -156,7 +414,7 @@ export default function SettingsPage() {
             id="account-heading"
             className="text-xl font-semibold"
           >
-            Account
+            {t('settings.account')}
           </h2>
         </div>
 
@@ -170,7 +428,7 @@ export default function SettingsPage() {
               htmlFor="display-name"
               className="block text-sm font-medium text-surface-fg"
             >
-              Display name
+              {t('settings.displayNameLabel')}
             </label>
             <input
               id="display-name"
@@ -216,7 +474,7 @@ export default function SettingsPage() {
                 id="display-name-hint"
                 className="mt-1 text-xs text-surface-fg-muted"
               >
-                1–32 characters. Shown on your share cards.
+                {t('settings.displayNameHint')}
               </p>
             )}
             {nameSaved && (
@@ -229,12 +487,12 @@ export default function SettingsPage() {
                   className="h-4 w-4"
                   aria-hidden
                 />
-                Saved.
+                {t('settings.saved')}
               </p>
             )}
           </div>
           <button type="submit" className="btn-primary">
-            Save
+            {t('common.save')}
           </button>
         </form>
       </section>
@@ -254,20 +512,19 @@ export default function SettingsPage() {
             id="example-heading"
             className="text-xl font-semibold"
           >
-            Icon-only controls
+            {t('settings.iconOnlyControls')}
           </h2>
         </div>
         <p className="text-sm text-surface-fg-muted">
-          These buttons are icon-only and labelled for screen readers
-          via aria-label.
+          {t('settings.iconOnlyControlsHint')}
         </p>
         <div className="flex flex-wrap gap-3">
           <IconOnlyButton
-            label="Switch to light mode"
+            label={t('settings.switchToLight')}
             icon={<Sun className="h-5 w-5" aria-hidden />}
           />
           <IconOnlyButton
-            label="Switch to dark mode"
+            label={t('settings.switchToDark')}
             icon={<Moon className="h-5 w-5" aria-hidden />}
           />
         </div>

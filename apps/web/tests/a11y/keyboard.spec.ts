@@ -5,7 +5,9 @@
  *  - Skip-to-content link is the first focusable element
  *  - Tab order traverses all interactive controls on /settings
  *  - Focus ring is visible (2px primary outline, 2px offset)
- *  - Switches (role=switch) toggle with Space and Enter
+ *  - Theme radiogroup (role=radiogroup / role=radio) follows the
+ *    WAI-ARIA APG pattern: roving tabindex, arrow keys move + select,
+ *    Space/Enter re-affirm the focused radio.
  *  - Form input receives focus and shows visible focus state
  */
 import { test, expect } from '@playwright/test';
@@ -74,15 +76,17 @@ test.describe('Keyboard navigation', () => {
     }
 
     // Spot-check that the key controls were all reached. The "Display name"
-    // text is the <label> for the input; we look up the input by id and
-    // verify it has the expected aria-describedby. The toggle's
-    // aria-label includes "Gym-glare mode", and the save button has
-    // text "Save".
-    const seenLower = Array.from(seen).join('|').toLowerCase();
-    expect(seenLower).toContain('browse');
-    expect(seenLower).toContain('settings');
-    expect(seenLower).toContain('gym-glare mode');
-    expect(seenLower).toContain('save');
+// text is the <label> for the input; we look up the input by id and
+// verify it has the expected aria-describedby. The theme radiogroup
+// uses roving tabindex (only the checked radio is in the Tab order),
+// so we expect to see "Default (dark)" (the initially-checked option)
+// in `seen`. Reachability of "Gym glare" is covered by the dedicated
+// radiogroup keyboard test below.
+const seenLower = Array.from(seen).join('|').toLowerCase();
+expect(seenLower).toContain('home'); // Layout nav — was "Browse" pre-i18n
+expect(seenLower).toContain('settings'); // both the nav link and the page heading
+expect(seenLower).toContain('default (dark)');
+expect(seenLower).toContain('save');
 
     // Verify the display-name input is focusable and labeled. Pull its
     // accessible name via the label it is associated with.
@@ -99,21 +103,71 @@ test.describe('Keyboard navigation', () => {
     expect(inputAccessibleName.toLowerCase()).toContain('display name');
   });
 
-  test('switch toggles with Space and Enter', async ({ page }) => {
+  test('theme radiogroup: roving tabindex + arrow nav + Space/Enter', async ({
+    page,
+  }) => {
     await page.goto('/settings');
     await page.waitForLoadState('networkidle');
 
-    // Find the gym-glare switch via its labelledby
-    const toggle = page.locator('[role="switch"]').first();
-    await toggle.focus();
-    const beforeAria = await toggle.getAttribute('aria-checked');
-    expect(beforeAria).toBe('false');
+    const radiogroup = page.getByRole('radiogroup', { name: /theme/i });
+    const defaultRadio = radiogroup.getByRole('radio', {
+      name: /default \(dark\)/i,
+    });
+    const gymGlareRadio = radiogroup.getByRole('radio', {
+      name: /gym glare \(high contrast\)/i,
+    });
 
+    // localStorage is cleared in beforeEach — so the default theme is
+    // active and 'default' should be the checked radio, tabIndex=0.
+    await expect(defaultRadio).toHaveAttribute('aria-checked', 'true');
+    await expect(defaultRadio).toHaveAttribute('tabindex', '0');
+    await expect(gymGlareRadio).toHaveAttribute('aria-checked', 'false');
+    await expect(gymGlareRadio).toHaveAttribute('tabindex', '-1');
+
+    // Focus the checked radio, then arrow-right to move + select.
+    await defaultRadio.focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(gymGlareRadio).toHaveAttribute('aria-checked', 'true');
+    await expect(defaultRadio).toHaveAttribute('aria-checked', 'false');
+    // Roving tabindex swapped — gym-glare now has tabIndex=0.
+    await expect(gymGlareRadio).toHaveAttribute('tabindex', '0');
+    await expect(defaultRadio).toHaveAttribute('tabindex', '-1');
+
+    // Arrow-left returns to default.
+    await page.keyboard.press('ArrowLeft');
+    await expect(defaultRadio).toHaveAttribute('aria-checked', 'true');
+    await expect(gymGlareRadio).toHaveAttribute('aria-checked', 'false');
+
+    // Space re-affirms current selection (does NOT submit the form).
     await page.keyboard.press('Space');
-    await expect(toggle).toHaveAttribute('aria-checked', 'true');
+    await expect(defaultRadio).toHaveAttribute('aria-checked', 'true');
 
-    await page.keyboard.press('Enter');
-    await expect(toggle).toHaveAttribute('aria-checked', 'false');
+    // End jumps to last radio (gym-glare).
+    await page.keyboard.press('End');
+    await expect(gymGlareRadio).toHaveAttribute('aria-checked', 'true');
+
+    // Home jumps back to first.
+    await page.keyboard.press('Home');
+    await expect(defaultRadio).toHaveAttribute('aria-checked', 'true');
+  });
+
+  test('theme radiogroup: 48px minimum tap target', async ({ page }) => {
+    await page.goto('/settings');
+    await page.waitForLoadState('networkidle');
+
+    const radiogroup = page.getByRole('radiogroup', { name: /theme/i });
+    const radios = radiogroup.getByRole('radio');
+    const count = await radios.count();
+    expect(count).toBeGreaterThanOrEqual(2);
+
+    for (let i = 0; i < count; i++) {
+      const radio = radios.nth(i);
+      const box = await radio.boundingBox();
+      expect(box, `radio #${i} bounding box`).not.toBeNull();
+      // WCAG 2.5.5 — interactive controls ≥ 24px CSS, but the workout-
+      // floor rule for this app is 48px. See tokens.tapTarget.base.
+      expect(box!.height).toBeGreaterThanOrEqual(48);
+    }
   });
 
   test('focus ring is visible (primary color, 2px outline, 2px offset)', async ({
@@ -122,12 +176,15 @@ test.describe('Keyboard navigation', () => {
     await page.goto('/settings');
     await page.waitForLoadState('networkidle');
 
-    // Use the gym-glare switch as the test subject — it has the full
-    // focus-visible class set.
-    const toggle = page.locator('[role="switch"]').first();
-    await toggle.focus();
+    // Use the focused radio inside the theme radiogroup as the test
+    // subject — it has the full focus-visible class set.
+    const radio = page
+      .getByRole('radiogroup', { name: /theme/i })
+      .getByRole('radio')
+      .first();
+    await radio.focus();
 
-    const outline = await toggle.evaluate((el) => {
+    const outline = await radio.evaluate((el) => {
       const cs = window.getComputedStyle(el);
       return {
         outlineWidth: cs.outlineWidth,
