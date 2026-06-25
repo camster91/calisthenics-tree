@@ -16,6 +16,7 @@ from typing import Any
 from sqlalchemy import (
     JSON,
     Boolean,
+    CheckConstraint,
     DateTime,
     ForeignKey,
     Index,
@@ -237,6 +238,36 @@ class SetLog(Base):
     __table_args__ = (Index("ix_set_logs_workout_node", "workout_id", "node_id"),)
 
 
+class Friendship(Base):
+    """A directed follow edge between two users.
+
+    Following is one-way (A → B) but we store both directions implicitly:
+    listing 'who I follow' queries where follower_id = me; listing
+    'who follows me' queries where followee_id = me. v1 has no mutual /
+    accepted friendship concept — follow is instant.
+    """
+
+    __tablename__ = "friendships"
+
+    follower_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    followee_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        CheckConstraint("follower_id <> followee_id", name="ck_friendships_not_self"),
+    )
+
+
 class UserNodeState(Base):
     """Where the user currently is in each tree."""
 
@@ -334,6 +365,7 @@ __all__ = [
     "Base",
     "EdgeType",
     "Exercise",
+    "Friendship",
     "JointPathway",
     "MovementType",
     "ProgressionEdge",

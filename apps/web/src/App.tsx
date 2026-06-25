@@ -21,6 +21,7 @@ import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
 import NodeLandingPage from './pages/NodeLandingPage';
 import FeedPage from './pages/FeedPage';
+import ProfilePage from './pages/ProfilePage';
 import Layout from './components/layout/Layout';
 import { RequireAuth } from './components/RequireAuth';
 import { RequireOnboarded } from './components/RequireOnboarded';
@@ -136,6 +137,7 @@ export default function App() {
 
               {/* Sprint 11 — social feed (Path B differentiation). */}
               <Route path="feed" element={<FeedPage />} />
+              <Route path="u/:userId" element={<ProfilePage />} />
 
               <Route path="*" element={<HomePage />} />
             </Route>

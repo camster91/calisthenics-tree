@@ -35,28 +35,50 @@ async def get_feed(
     auth: AuthContext = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> dict:
-    """Return the most recent unlock events for the authed user,
-    newest first. Each entry joins in tree + node + exercise for display."""
+    """Return the most recent unlock events for the authed user AND
+    everyone they follow, merged by timestamp, newest first.
+
+    One round-trip via UNION-like subquery — pulls a window of the
+    most recent N from each side and merges in Python.
+    """
+    from calisthenics_api.db.models import Friendship, User as UserModel
+
+    # Build the set of user_ids whose unlocks we want: self + everyone we follow.
+    follow_rows = (
+        await session.execute(
+            select(Friendship.followee_id).where(
+                Friendship.follower_id == auth.user_id
+            )
+        )
+    ).all()
+    target_user_ids = [auth.user_id] + [r[0] for r in follow_rows]
+
+    if not target_user_ids:
+        return {"items": []}
+
+    # Pull the most recent `limit` unlock events for these users, joined.
     rows = (
         await session.execute(
-            select(UnlockEvent, ProgressionTree, ProgressionNode, Exercise)
+            select(UnlockEvent, ProgressionTree, ProgressionNode, Exercise, UserModel)
             .join(ProgressionTree, ProgressionTree.id == UnlockEvent.tree_id)
             .join(ProgressionNode, ProgressionNode.id == UnlockEvent.new_node_id)
             .join(Exercise, Exercise.id == ProgressionNode.exercise_id)
-            .where(UnlockEvent.user_id == auth.user_id)
+            .join(UserModel, UserModel.id == UnlockEvent.user_id)
+            .where(UnlockEvent.user_id.in_(target_user_ids))
             .order_by(UnlockEvent.occurred_at.desc())
             .limit(limit)
         )
     ).all()
 
     items: list[dict] = []
-    for ev, tree, node, exercise in rows:
+    for ev, tree, node, exercise, user in rows:
         items.append(
             {
                 "id": f"unlock_{ev.id}",
                 "user": {
-                    "id": f"usr_{auth.user_id}",
-                    "email": auth.email,
+                    "id": f"usr_{user.id}",
+                    "email": user.email,
+                    "display_name": user.display_name,
                 },
                 "tree_id": f"tree_{tree.id}",
                 "tree_name": tree.name,

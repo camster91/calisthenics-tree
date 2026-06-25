@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 
 import { ApiError, getFeed, type FeedItem } from '../lib/api';
+import { useAuth } from '../lib/auth';
 
 type Status = 'loading' | 'ready' | 'error';
 
@@ -38,6 +39,7 @@ function timeAgo(iso: string): string {
 }
 
 export default function FeedPage() {
+  const { user: me } = useAuth();
   const [status, setStatus] = useState<Status>('loading');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [items, setItems] = useState<FeedItem[]>([]);
@@ -163,7 +165,16 @@ export default function FeedPage() {
                 <p className="text-sm">
                   {item.trigger === 'PROMOTION' ? (
                     <>
-                      Unlocked{' '}
+                      {item.user.id === me?.id ? 'You' : (
+                        <Link
+                          to={`/u/${encodeURIComponent(item.user.id)}`}
+                          className="font-semibold underline"
+                        >
+                          {item.user.display_name ??
+                            item.user.email.split('@')[0]}
+                        </Link>
+                      )}{' '}
+                      unlocked{' '}
                       <span className="font-semibold">{item.new_node_name}</span>
                       {' '}on{' '}
                       <span className="text-surface-fg-muted">
@@ -173,7 +184,16 @@ export default function FeedPage() {
                     </>
                   ) : (
                     <>
-                      Regressed to{' '}
+                      {item.user.id === me?.id ? 'You' : (
+                        <Link
+                          to={`/u/${encodeURIComponent(item.user.id)}`}
+                          className="font-semibold underline"
+                        >
+                          {item.user.display_name ??
+                            item.user.email.split('@')[0]}
+                        </Link>
+                      )}{' '}
+                      regressed to{' '}
                       <span className="font-semibold">{item.new_node_name}</span>
                       {' '}on{' '}
                       <span className="text-surface-fg-muted">

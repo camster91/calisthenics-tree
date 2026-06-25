@@ -225,6 +225,7 @@ export const requestExport = () =>
 export interface FeedUser {
   id: string;
   email: string;
+  display_name?: string | null;
 }
 
 export interface FeedItem {
@@ -243,9 +244,62 @@ export interface FeedResponse {
   items: FeedItem[];
 }
 
-/** GET /api/v1/feed — recent unlock events for the authed user. */
+/** GET /api/v1/feed — recent unlock events for the authed user + friends. */
 export const getFeed = (limit = 20) =>
   api<FeedResponse>(`/feed?limit=${limit}`);
+
+/* ------------------------------------------------------------------ */
+/* Friends + public profile                                            */
+/* ------------------------------------------------------------------ */
+
+export interface FriendSummary {
+  user_id: string;
+  email: string;
+  display_name: string | null;
+  followed_at: string;
+}
+
+export interface FriendsResponse {
+  items: FriendSummary[];
+}
+
+export interface CurrentNodePublic {
+  tree_id: string;
+  tree_name: string;
+  node_id: string;
+  node_name: string;
+}
+
+export interface PublicProfile {
+  user_id: string;
+  email: string;
+  display_name: string | null;
+  current_nodes: CurrentNodePublic[];
+}
+
+/** POST /api/v1/friends — follow a user by email or user_id. */
+export const followUser = (payload: { email?: string; user_id?: string }) =>
+  api<{ status: string; followee_id: string }>('/friends', {
+    method: 'POST',
+    body: payload,
+  });
+
+/** DELETE /api/v1/friends/{user_id} — unfollow. */
+export const unfollowUser = (userId: string) =>
+  api<void>(`/friends/${encodeURIComponent(userId)}`, {
+    method: 'DELETE',
+  });
+
+/** GET /api/v1/friends — list who I follow. */
+export const getFriends = () => api<FriendsResponse>('/friends');
+
+/** GET /api/v1/users/{user_id} — public profile. */
+export const getPublicProfile = (userId: string) =>
+  api<PublicProfile>(`/users/${encodeURIComponent(userId)}`);
+
+/** GET /api/v1/users/{user_id}/unlocks — their recent unlock events. */
+export const getUserUnlocks = (userId: string, limit = 20) =>
+  api<FeedResponse>(`/users/${encodeURIComponent(userId)}/unlocks?limit=${limit}`);
 
 /* ------------------------------------------------------------------ */
 /* Workout sync (POST /api/v1/workouts/sync)                            */

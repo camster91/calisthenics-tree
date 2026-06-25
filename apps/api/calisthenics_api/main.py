@@ -18,6 +18,7 @@ from calisthenics_api.db import dispose_engine
 from calisthenics_api.routes import (
     auth,
     feed,
+    friends,
     health,
     nodes,
     onboarding,
@@ -81,6 +82,7 @@ def create_app() -> FastAPI:
     app.include_router(workouts.router, prefix=settings.api_v1_prefix)
     app.include_router(tendon_strain.router, prefix=settings.api_v1_prefix)
     app.include_router(feed.router, prefix=settings.api_v1_prefix)
+    app.include_router(friends.router, prefix=settings.api_v1_prefix)
     app.include_router(share.router, prefix=settings.api_v1_prefix)
 
     # SEO endpoints (sitemap.xml + robots.txt) — mounted at ROOT (not
