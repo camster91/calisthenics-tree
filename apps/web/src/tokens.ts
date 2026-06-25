@@ -26,7 +26,7 @@ export const tokens = {
       muted: '#1F2937', // hover / pressed
       fg: '#F8FAFC', // primary text
       'fg-muted': '#94A3B8', // secondary text
-      'fg-subtle': '#64748B', // tertiary text / disabled
+      'fg-subtle': '#7B8AA3', // tertiary text — passes WCAG AA on bg (5.36:1)
       border: '#1E293B', // hairline borders
     },
     // Brand primary — orange (doc2)

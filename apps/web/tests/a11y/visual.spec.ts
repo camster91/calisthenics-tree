@@ -1,0 +1,34 @@
+/**
+ * Vision-check helper for the gym-glare toggle.
+ *
+ * Captures /settings in both default and gym-glare modes so the
+ * reviewer can confirm the contrast change is visible. Run with:
+ *   PLAYWRIGHT_BASE_URL=http://localhost:4173 npx playwright test tests/a11y/visual.spec.ts
+ */
+import { test } from '@playwright/test';
+
+test('settings: default vs gym-glare screenshots', async ({ page }) => {
+  await page.addInitScript(() => {
+    try {
+      window.localStorage.clear();
+    } catch {
+      /* private mode */
+    }
+  });
+  await page.goto('/settings');
+  await page.waitForLoadState('networkidle');
+  await page.getByRole('heading', { name: 'Settings' }).waitFor();
+  await page.screenshot({
+    path: 'test-results/settings-default.png',
+    fullPage: true,
+  });
+
+  // Flip the gym-glare switch on
+  await page.locator('[role="switch"]').first().click();
+  // Give CSS variables a tick to apply
+  await page.waitForTimeout(200);
+  await page.screenshot({
+    path: 'test-results/settings-gym-glare.png',
+    fullPage: true,
+  });
+});

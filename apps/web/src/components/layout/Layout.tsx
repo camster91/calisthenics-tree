@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, NavLink } from 'react-router-dom';
 
 /**
  * Layout — shared chrome (header + main + footer).
@@ -22,15 +22,66 @@ export default function Layout() {
             </span>
           </a>
           <nav aria-label="Primary" className="hidden gap-1 sm:flex">
-            <a className="btn-ghost" href="/">Browse</a>
-            <a className="btn-ghost" href="/workout">Workout</a>
-            <a className="btn-ghost" href="/feed">Feed</a>
-            <a className="btn-ghost" href="/settings">Settings</a>
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) =>
+                `btn-ghost ${isActive ? 'bg-surface-muted' : ''}`
+              }
+            >
+              Browse
+            </NavLink>
+            <NavLink
+              to="/workout"
+              className={({ isActive }) =>
+                `btn-ghost ${isActive ? 'bg-surface-muted' : ''}`
+              }
+            >
+              Workout
+            </NavLink>
+            <NavLink
+              to="/feed"
+              className={({ isActive }) =>
+                `btn-ghost ${isActive ? 'bg-surface-muted' : ''}`
+              }
+            >
+              Feed
+            </NavLink>
+            <NavLink
+              to="/settings"
+              className={({ isActive }) =>
+                `btn-ghost ${isActive ? 'bg-surface-muted' : ''}`
+              }
+            >
+              Settings
+            </NavLink>
+            <NavLink
+              to="/components"
+              className={({ isActive }) =>
+                `btn-ghost ${isActive ? 'bg-surface-muted' : ''} text-primary`
+              }
+              title="T35 component showcase"
+            >
+              Showcase
+            </NavLink>
+            <NavLink
+              to="/wireframes"
+              className={({ isActive }) =>
+                `btn-ghost ${isActive ? 'bg-surface-muted' : ''} text-primary`
+              }
+              title="T37 wireframe review surface"
+            >
+              Wireframes
+            </NavLink>
           </nav>
         </div>
       </header>
 
-      <main id="main" className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
+      <main
+        id="main"
+        className="mx-auto w-full max-w-5xl flex-1 px-4 py-8"
+        tabIndex={-1}
+      >
         <Outlet />
       </main>
 
