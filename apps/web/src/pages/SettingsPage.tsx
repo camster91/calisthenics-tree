@@ -30,9 +30,21 @@ import {
 import { useTheme, type ThemeName } from '../lib/theme';
 import { useT } from '../lib/i18n';
 import { useAuth } from '../lib/auth';
-import { Sun, Moon, Eye, MonitorSmartphone, Check, LogOut } from 'lucide-react';
+import {
+  updateMe,
+  ApiError,
+} from '../lib/api';
+import {
+  Sun,
+  Moon,
+  Eye,
+  MonitorSmartphone,
+  Check,
+  LogOut,
+} from 'lucide-react';
 import { tokens } from '../tokens';
 import { cn } from '../lib/cn';
+import { DangerZone } from './SettingsPage.DangerZone';
 
 const STORAGE_KEY = 'ct:theme';
 
@@ -277,9 +289,10 @@ export default function SettingsPage() {
   const [theme, setTheme] = useTheme();
   const [autoContrast, setAutoContrast] = useState(detectAutoContrast);
   const [hasOverride, setHasOverride] = useState(hasManualOverride);
-  const [displayName, setDisplayName] = useState('');
+  const [displayName, setDisplayName] = useState(user?.email?.split('@')[0] ?? '');
   const [nameError, setNameError] = useState<string | null>(null);
   const [nameSaved, setNameSaved] = useState(false);
+  const [nameSaving, setNameSaving] = useState(false);
   const errorRef = useRef<HTMLParagraphElement>(null);
 
   // Track OS-level contrast preference so the UI can show "auto-detected".
@@ -325,7 +338,7 @@ export default function SettingsPage() {
       'High-contrast for outdoor / sweaty use (WCAG AAA, 7:1).',
   };
 
-  function handleNameSave(e: React.FormEvent) {
+  async function handleNameSave(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = displayName.trim();
     if (trimmed.length === 0) {
@@ -339,8 +352,22 @@ export default function SettingsPage() {
       return;
     }
     setNameError(null);
-    setNameSaved(true);
-    setTimeout(() => setNameSaved(false), 3000);
+    setNameSaving(true);
+    try {
+      await updateMe({ display_name: trimmed });
+      setNameSaved(true);
+      setTimeout(() => setNameSaved(false), 3000);
+    } catch (err) {
+      setNameError(
+        err instanceof ApiError
+          ? `${err.status} ${err.message}`
+          : err instanceof Error
+            ? err.message
+            : 'Unknown error',
+      );
+    } finally {
+      setNameSaving(false);
+    }
   }
 
   return (
@@ -502,10 +529,12 @@ export default function SettingsPage() {
               </p>
             )}
           </div>
-          <button type="submit" className="btn-primary">
-            {t('common.save')}
+          <button type="submit" className="btn-primary" disabled={nameSaving}>
+            {nameSaving ? 'Saving…' : t('common.save')}
           </button>
         </form>
+
+        <DangerZone />
 
         <button
           type="button"

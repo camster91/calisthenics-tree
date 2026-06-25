@@ -190,6 +190,35 @@ export interface TendonStrainResponse {
 export const getTendonStrain = () => api<TendonStrainResponse>('/tendon-strain');
 
 /* ------------------------------------------------------------------ */
+/* User account (PATCH/DELETE/POST /api/v1/users/me)                   */
+/* ------------------------------------------------------------------ */
+
+export interface MeResponse {
+  id: string;
+  email: string;
+  display_name: string | null;
+  created_at: string;
+}
+
+/** PATCH /api/v1/users/me — update display_name. */
+export const updateMe = (payload: { display_name: string }) =>
+  api<MeResponse>('/users/me', {
+    method: 'PATCH',
+    body: payload,
+  });
+
+/** DELETE /api/v1/users/me — wipe account (irreversible). */
+export const deleteMe = () =>
+  api<void>('/users/me', { method: 'DELETE' });
+
+/** POST /api/v1/users/me/export — kick off data export job. */
+export const requestExport = () =>
+  api<{ status: string; job_id: string; requested_at: string }>(
+    '/users/me/export',
+    { method: 'POST' },
+  );
+
+/* ------------------------------------------------------------------ */
 /* Workout sync (POST /api/v1/workouts/sync)                            */
 /* ------------------------------------------------------------------ */
 
