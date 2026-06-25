@@ -1,18 +1,23 @@
 /**
  * API client — typed fetch wrapper for the FastAPI backend.
  *
- * Backend lives in apps/api/ (FastAPI + Postgres). Routes:
- *   GET  /healthz                                  → HealthResponse
- *   GET  /api/v1/users/me/progressions             → ProgressionsResponse
- *   POST /api/v1/onboarding/place                  → OnboardingPlaceResponse
- *   POST /api/v1/workouts/sync                     → WorkoutsSyncResponse
+ * Backend lives in apps/api/ (FastAPI + Postgres). Auth is JWT (Phase 2).
  *
- * Auth: bearer token from import.meta.env.VITE_API_TOKEN (dev) or sessionStorage (prod).
- * Base URL: import.meta.env.VITE_API_URL (defaults to /api in dev via Vite proxy).
+ * Auth flow:
+ *   - Reads access token from authStore (set by AuthProvider)
+ *   - On 401, calls authStore.handleUnauthorized() which triggers a
+ *     refresh + retry-once via the AuthProvider's registered handler.
+ *   - If refresh fails, the original 401 surfaces to the caller.
+ *
+ * Base URL: import.meta.env.VITE_API_URL (defaults to '/api' in dev via
+ * the Vite proxy, which forwards to http://localhost:8000).
  */
 
+import { authStore } from './auth-store';
+
+export * from './api-types';
+
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
-const TOKEN = import.meta.env.VITE_API_TOKEN || 'dev-bearer-token-replace-me';
 
 export class ApiError extends Error {
   public readonly status: number;
@@ -28,23 +33,44 @@ export class ApiError extends Error {
 
 interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;
-  /** Skip auth header (for /healthz etc.). */
+  /** Skip auth header (for /healthz, /auth/magic-link, /auth/verify, /auth/refresh). */
   skipAuth?: boolean;
+  /** Skip the auto-refresh-on-401 retry. Useful for the auth endpoints themselves. */
+  skipRefresh?: boolean;
+}
+
+function buildHeaders(opts: RequestOptions): HeadersInit {
+  const { skipAuth, headers } = opts;
+  const token = authStore.get().accessToken;
+  return {
+    'Content-Type': 'application/json',
+    ...(skipAuth || !token ? {} : { Authorization: `Bearer ${token}` }),
+    ...headers,
+  };
 }
 
 export async function api<T = unknown>(path: string, opts: RequestOptions = {}): Promise<T> {
-  const { body, skipAuth, headers, ...rest } = opts;
-  const init: RequestInit = {
-    ...rest,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(skipAuth ? {} : { Authorization: `Bearer ${TOKEN}` }),
-      ...headers,
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  };
+  const { body, skipAuth, skipRefresh, headers, ...rest } = opts;
 
-  const res = await fetch(`${API_BASE}${path}`, init);
+  const doFetch = (): Promise<Response> =>
+    fetch(`${API_BASE}${path}`, {
+      ...rest,
+      headers: {
+        ...buildHeaders({ skipAuth, headers }),
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+
+  let res = await doFetch();
+
+  // Auto-refresh on 401 (once), unless caller opted out (auth endpoints).
+  if (res.status === 401 && !skipAuth && !skipRefresh) {
+    const newToken = await authStore.handleUnauthorized();
+    if (newToken) {
+      // Retry the original request with the fresh token.
+      res = await doFetch();
+    }
+  }
 
   if (!res.ok) {
     let parsed: unknown;
@@ -56,9 +82,7 @@ export async function api<T = unknown>(path: string, opts: RequestOptions = {}):
     throw new ApiError(res.status, parsed, `${res.status} ${res.statusText} on ${path}`);
   }
 
-  // 204 No Content
   if (res.status === 204) return undefined as T;
-
   return (await res.json()) as T;
 }
 
