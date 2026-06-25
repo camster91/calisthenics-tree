@@ -35,6 +35,10 @@ export default function LoginPage() {
     }
   }, [authStatus, navigate]);
 
+  // Vite dev server proxies `/` to the SPA's index, so an anonymous visitor
+  // who hits / gets redirected to /login (RequireAuth). Show a quick "go to
+  // the marketing page" link so they can see the product without auth.
+
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -90,6 +94,12 @@ export default function LoginPage() {
         <p className="text-sm text-surface-fg-muted">
           {t('auth.loginSubtitle')}
         </p>
+        <Link
+          to="/welcome"
+          className="inline-block text-xs text-surface-fg-muted underline hover:text-surface-fg"
+        >
+          ← Back to the product overview
+        </Link>
       </header>
 
       {status === 'sent' ? (

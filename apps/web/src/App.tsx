@@ -16,6 +16,9 @@ import OnboardingQ1Page from './pages/OnboardingQ1Page';
 import OnboardingQ2Page from './pages/OnboardingQ2Page';
 import OnboardingTestPage from './pages/OnboardingTestPage';
 import OnboardingResultPage from './pages/OnboardingResultPage';
+import LandingPage from './pages/LandingPage';
+import PrivacyPage from './pages/PrivacyPage';
+import TermsPage from './pages/TermsPage';
 import Layout from './components/layout/Layout';
 import { RequireAuth } from './components/RequireAuth';
 import { RequireOnboarded } from './components/RequireOnboarded';
@@ -86,6 +89,12 @@ export default function App() {
         {/* Auth — public routes, no Layout chrome (no nav while not signed in) */}
         <Route path="login" element={<LoginPage />} />
         <Route path="auth/verify" element={<AuthVerifyPage />} />
+
+        {/* Marketing + legal — public, no chrome. /welcome is the public
+            landing for new visitors. */}
+        <Route path="welcome" element={<LandingPage />} />
+        <Route path="privacy" element={<PrivacyPage />} />
+        <Route path="terms" element={<TermsPage />} />
 
         {/* Onboarding — also no Layout chrome; uses OnboardingLayout internally
             for its own progress + back/next affordances. */}
