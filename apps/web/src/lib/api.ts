@@ -17,7 +17,7 @@ import { authStore } from './auth-store';
 
 export * from './api-types';
 
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
+const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
 
 export class ApiError extends Error {
   public readonly status: number;

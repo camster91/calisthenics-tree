@@ -187,6 +187,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const signOut = useCallback((): void => {
+    // Clear localStorage synchronously so the next page load (which
+    // happens immediately after signOut in the click handler) sees the
+    // anonymous state from the first hydration tick.
+    try {
+      window.localStorage.removeItem('ct:auth');
+    } catch {
+      // ignore — localStorage may be blocked
+    }
     setSnapshot({
       status: 'anonymous',
       user: null,
