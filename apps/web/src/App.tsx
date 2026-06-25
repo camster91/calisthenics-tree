@@ -3,7 +3,10 @@ import { useTheme } from './lib/theme';
 import HomePage from './pages/HomePage';
 import SettingsPage from './pages/SettingsPage';
 import ComponentsPage from './pages/ComponentsPage';
+import ShareRenderPage from './pages/ShareRenderPage';
 import Layout from './components/layout/Layout';
+import Screenshots from './pages/marketing/Screenshots';
+import OnboardingDemo from './pages/marketing/OnboardingDemo';
 
 // Wireframe review surface — T37 deliverable. Not wired into production
 // navigation; the `/wireframes/*` namespace is gated by Layout visibility
@@ -44,11 +47,30 @@ export default function App() {
         Skip to content
       </a>
       <Routes>
+        {/* T40 — App Store Connect screenshot production. Stand-alone
+            1290x2796 renders, NO Layout chrome (no nav, footer, or theme
+            toggle). Routed at the root so Layout is bypassed. Hit by
+            Playwright script (scripts/render-marketing.ts) for PNG export. */}
+        <Route path="marketing/screenshots" element={<Screenshots />} />
+        <Route path="marketing/screenshots/:slot" element={<Screenshots />} />
+
+        {/* T40 — App Store Connect preview video frames. Same model as the
+            static screenshots — 1290x2796 stand-alone renders, no Layout,
+            hit by scripts/render-onboarding-video.ts which encodes a
+            15-30s mp4 via ffmpeg. */}
+        <Route path="marketing/onboarding" element={<OnboardingDemo />} />
+        <Route path="marketing/onboarding/:step" element={<OnboardingDemo />} />
+
         <Route element={<Layout />}>
           <Route index element={<HomePage />} />
 
           {/* T38 — production /settings route (gym-glare toggle, a11y baseline). */}
           <Route path="settings" element={<SettingsPage />} />
+
+          {/* T39 — share card render page. Renders at 1080x1080 with no chrome
+              so the Playwright script can rasterize a clean PNG. Direct
+              social-bot preview also works (Slack/Twitter/iMessage). */}
+          <Route path="share/:unlockId" element={<ShareRenderPage />} />
 
           {/* T35 — visual reference for the design system. */}
           <Route path="components" element={<ComponentsPage />} />

@@ -8,6 +8,9 @@
     "build": "npm run theme:build && tsc -b && vite build",
     "theme:build": "tsx scripts/build-theme.mjs",
     "verify:tokens": "tsx scripts/verify-contrast.mjs",
+    "share:render": "tsx scripts/render-share.ts",
+    "marketing:render": "tsx scripts/render-marketing.ts",
+    "marketing:video": "tsx scripts/render-onboarding-video.ts",
     "lint": "oxlint",
     "preview": "vite preview"
   },

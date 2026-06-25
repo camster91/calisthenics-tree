@@ -1,0 +1,138 @@
+{
+  "t40": "T40 \u2014 App Store Connect screenshot + preview video production",
+  "slots": {
+    "1": "Unlock skills like a video game \u2014 Home / DAG browse",
+    "2": "Smart adjustments when you fatigue \u2014 Workout log + regression prompt",
+    "3": "Train with friends \u2014 Social feed with friend unlocks"
+  },
+  "marketing_caption_strip": {
+    "position": "bottom 380px of 1290x2796 frame",
+    "components": [
+      "eyebrow badge (slot-specific)",
+      "headline",
+      "wordmark",
+      "URL"
+    ]
+  },
+  "device_classes": {
+    "iPhone-6.7-inch": "App Store Connect required \u2014 1290x2796",
+    "iPhone-6.1-inch": "App Store Connect required \u2014 1170x2532",
+    "iPhone-5.5-inch": "App Store Connect required \u2014 1242x2208",
+    "Android-Phone": "Play Store \u2014 1080x1920 (9:16 portrait)",
+    "play-store-feature-graphic": "Play Store \u2014 1024x500 banner"
+  },
+  "screenshots": {
+    "Android-Phone": [
+      {
+        "path": "/Users/biancabienaime/Projects/calisthenics-platform/apps/web/marketing/screenshots/Android-Phone/phone-screenshot-001.png",
+        "bytes": 481896,
+        "md5": "b20edbd9",
+        "wxh": "1080x1920"
+      },
+      {
+        "path": "/Users/biancabienaime/Projects/calisthenics-platform/apps/web/marketing/screenshots/Android-Phone/phone-screenshot-002.png",
+        "bytes": 467375,
+        "md5": "8946fd34",
+        "wxh": "1080x1920"
+      },
+      {
+        "path": "/Users/biancabienaime/Projects/calisthenics-platform/apps/web/marketing/screenshots/Android-Phone/phone-screenshot-003.png",
+        "bytes": 430199,
+        "md5": "a5dd08e4",
+        "wxh": "1080x1920"
+      }
+    ],
+    "iPhone-5.5-inch": [
+      {
+        "path": "/Users/biancabienaime/Projects/calisthenics-platform/apps/web/marketing/screenshots/iPhone-5.5-inch/default_001.png",
+        "bytes": 670979,
+        "md5": "fe55a28d",
+        "wxh": "1242x2208"
+      },
+      {
+        "path": "/Users/biancabienaime/Projects/calisthenics-platform/apps/web/marketing/screenshots/iPhone-5.5-inch/default_002.png",
+        "bytes": 652862,
+        "md5": "cbc4b838",
+        "wxh": "1242x2208"
+      },
+      {
+        "path": "/Users/biancabienaime/Projects/calisthenics-platform/apps/web/marketing/screenshots/iPhone-5.5-inch/default_003.png",
+        "bytes": 607066,
+        "md5": "38048a5d",
+        "wxh": "1242x2208"
+      }
+    ],
+    "iPhone-6.1-inch": [
+      {
+        "path": "/Users/biancabienaime/Projects/calisthenics-platform/apps/web/marketing/screenshots/iPhone-6.1-inch/default_001.png",
+        "bytes": 884799,
+        "md5": "d02c2ae1",
+        "wxh": "1170x2532"
+      },
+      {
+        "path": "/Users/biancabienaime/Projects/calisthenics-platform/apps/web/marketing/screenshots/iPhone-6.1-inch/default_002.png",
+        "bytes": 860824,
+        "md5": "9db5b390",
+        "wxh": "1170x2532"
+      },
+      {
+        "path": "/Users/biancabienaime/Projects/calisthenics-platform/apps/web/marketing/screenshots/iPhone-6.1-inch/default_003.png",
+        "bytes": 807133,
+        "md5": "93699f6d",
+        "wxh": "1170x2532"
+      }
+    ],
+    "iPhone-6.7-inch": [
+      {
+        "path": "/Users/biancabienaime/Projects/calisthenics-platform/apps/web/marketing/screenshots/iPhone-6.7-inch/default_001.png",
+        "bytes": 622390,
+        "md5": "2acbc89b",
+        "wxh": "1290x2796"
+      },
+      {
+        "path": "/Users/biancabienaime/Projects/calisthenics-platform/apps/web/marketing/screenshots/iPhone-6.7-inch/default_002.png",
+        "bytes": 612407,
+        "md5": "43b1f5a9",
+        "wxh": "1290x2796"
+      },
+      {
+        "path": "/Users/biancabienaime/Projects/calisthenics-platform/apps/web/marketing/screenshots/iPhone-6.7-inch/default_003.png",
+        "bytes": 561242,
+        "md5": "fda1b2b9",
+        "wxh": "1290x2796"
+      }
+    ],
+    "play-store": [
+      {
+        "path": "/Users/biancabienaime/Projects/calisthenics-platform/apps/web/marketing/screenshots/play-store/feature-graphic.png",
+        "bytes": 295597,
+        "md5": "e82c3ee1",
+        "wxh": "1024x500"
+      }
+    ]
+  },
+  "preview_video": {
+    "path": "video/onboarding-preview.mp4",
+    "ffprobe": "codec_name=h264\nwidth=1290\nheight=2796\nduration=16.000000",
+    "frames": 6,
+    "duration_target_s": "15-30 (App Store Connect requirement)"
+  },
+  "scripts": {
+    "render-marketing": "scripts/render-marketing.ts (npm run marketing:render)",
+    "render-onboarding-video": "scripts/render-onboarding-video.ts (npm run marketing:video)"
+  },
+  "pages": {
+    "screenshots": "src/pages/marketing/Screenshots.tsx",
+    "onboarding_demo": "src/pages/marketing/OnboardingDemo.tsx"
+  },
+  "routes": {
+    "screenshots": [
+      "/marketing/screenshots",
+      "/marketing/screenshots/:slot"
+    ],
+    "onboarding": [
+      "/marketing/onboarding",
+      "/marketing/onboarding/:step"
+    ]
+  }
+}
