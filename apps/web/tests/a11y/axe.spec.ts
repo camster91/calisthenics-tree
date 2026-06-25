@@ -14,6 +14,7 @@ import AxeBuilder from '@axe-core/playwright';
 const SCREENS: Array<{ name: string; path: string }> = [
   { name: 'home', path: '/' },
   { name: 'settings', path: '/settings' },
+  { name: 'components', path: '/components' },
 ];
 
 for (const screen of SCREENS) {

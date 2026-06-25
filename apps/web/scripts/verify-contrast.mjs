@@ -91,11 +91,30 @@ const gymGlarePairs = [
 ];
 
 const all = [...defaultPairs, ...gymGlarePairs];
+
+// Pairs for filled-badge text-on-fill (T35) and the destructive button.
+// These aren't in tokens.ts because they use one-off Tailwind shades, but
+// they ship in the design system and need to stay accessible.
+const badgePairs = [
+  // T35 badge: dark text on bright fill.
+  ['badge: green-900 #052e16 on success #22C55E', '#052e16', '#22C55E', 4.5],
+  ['badge: amber-900 #451a03 on warning #F59E0B', '#451a03', '#F59E0B', 4.5],
+  // T35 badge: white on red-700.
+  ['badge: white on red-700 #B91C1C', '#ffffff', '#B91C1C', 4.5],
+  // T35 button: white on red-700 (destructive).
+  ['btn-destructive: white on red-700 #B91C1C', '#ffffff', '#B91C1C', 4.5],
+  // Locked card content — bg-surface-muted (#1F2937) holding muted text.
+  // Used so axe-core stays green on the locked NodeCard.
+  ['locked: fg-muted #94A3B8 on surface-muted #1F2937', '#94A3B8', '#1F2937', 4.5],
+  ['locked: fg-subtle #64748B on surface-muted #1F2937', '#64748B', '#1F2937', 3.0],
+];
+
+const allWithBadges = [...all, ...badgePairs];
 let failed = 0;
 
 console.log('WCAG 2.1 contrast verification — design tokens');
 console.log('─'.repeat(72));
-for (const [name, fg, bg, threshold] of all) {
+for (const [name, fg, bg, threshold] of allWithBadges) {
   const r = contrastRatio(fg, bg);
   const pass = r >= threshold;
   const verdict = pass ? 'PASS' : 'FAIL';
@@ -108,8 +127,8 @@ for (const [name, fg, bg, threshold] of all) {
 console.log('─'.repeat(72));
 
 if (failed > 0) {
-  console.error(`\n${failed}/${all.length} pair(s) failed contrast check.`);
+  console.error(`\n${failed}/${allWithBadges.length} pair(s) failed contrast check.`);
   process.exit(1);
 } else {
-  console.log(`\nAll ${all.length} pair(s) pass.`);
+  console.log(`\nAll ${allWithBadges.length} pair(s) pass.`);
 }
