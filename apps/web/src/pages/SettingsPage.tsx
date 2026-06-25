@@ -29,7 +29,8 @@ import {
 } from 'react';
 import { useTheme, type ThemeName } from '../lib/theme';
 import { useT } from '../lib/i18n';
-import { Sun, Moon, Eye, MonitorSmartphone, Check } from 'lucide-react';
+import { useAuth } from '../lib/auth';
+import { Sun, Moon, Eye, MonitorSmartphone, Check, LogOut } from 'lucide-react';
 import { tokens } from '../tokens';
 import { cn } from '../lib/cn';
 
@@ -272,6 +273,7 @@ function ThemeSwatches() {
 
 export default function SettingsPage() {
   const t = useT();
+  const { user, signOut } = useAuth();
   const [theme, setTheme] = useTheme();
   const [autoContrast, setAutoContrast] = useState(detectAutoContrast);
   const [hasOverride, setHasOverride] = useState(hasManualOverride);
@@ -418,6 +420,15 @@ export default function SettingsPage() {
           </h2>
         </div>
 
+        {user && (
+          <dl className="space-y-1 text-sm">
+            <div className="flex justify-between gap-3">
+              <dt className="text-surface-fg-muted">Email</dt>
+              <dd className="font-mono text-xs">{user.email}</dd>
+            </div>
+          </dl>
+        )}
+
         <form
           onSubmit={handleNameSave}
           noValidate
@@ -495,6 +506,21 @@ export default function SettingsPage() {
             {t('common.save')}
           </button>
         </form>
+
+        <button
+          type="button"
+          onClick={() => {
+            signOut();
+            // signOut() flips status to anonymous; RequireAuth will redirect
+            // to /login on the next render. Force a navigation for clarity.
+            window.location.href = '/login';
+          }}
+          className="btn-ghost inline-flex w-full items-center justify-center gap-2 border border-surface-border"
+          data-testid="settings-sign-out"
+        >
+          <LogOut aria-hidden className="h-4 w-4" />
+          {t('auth.logout')}
+        </button>
       </section>
 
       {/* ====================== ICON-ONLY BUTTON EXAMPLE ======================

@@ -101,43 +101,86 @@ export type Pathway =
   | 'wrist';
 export type NodeState = 'locked' | 'unlocked' | 'current';
 
-export interface ProgressionNode {
-  id: string;
-  tree_slug: string;
+/** Matches FastAPI `CurrentNode` schema. */
+export interface CurrentNode {
+  node_id: string;
   exercise_name: string;
   movement_type: MovementType;
-  rank_level: number;
   target_sets: number;
   target_reps: number | null;
   target_hold_secs: number | null;
-  intensity_factor: number;
-  joint_pathways: Pathway[];
-  video_url: string | null;
-  state: NodeState;
 }
 
-export interface ProgressionTree {
-  id: string;
-  slug: string;
-  name: string;
-  description: string;
-}
-
+/** Matches FastAPI `ActiveProgression` schema. */
 export interface ActiveProgression {
-  tree: ProgressionTree;
-  current_node: ProgressionNode | null;
-  locked_node_count: number;
-  unlocked_node_count: number;
+  tree_id: string;
+  tree_name: string;
+  current_node: CurrentNode;
 }
 
 export interface ProgressionsResponse {
   user_id: string;
-  progressions: ActiveProgression[];
+  updated_at: string;
+  active_progressions: ActiveProgression[];
 }
 
 /** GET /api/v1/users/me/progressions — current user. */
 export const getMyProgressions = () =>
   api<ProgressionsResponse>('/users/me/progressions');
+
+/** GET /api/v1/nodes/{node_id} — node display info (public read). */
+export const getNode = (nodeId: string) =>
+  api<CurrentNode>(`/nodes/${encodeURIComponent(nodeId)}`, { skipAuth: true });
+
+/* ------------------------------------------------------------------ */
+/* Workout sync (POST /api/v1/workouts/sync)                            */
+/* ------------------------------------------------------------------ */
+
+export interface SyncedSet {
+  set_number: number;
+  reps: number | null;
+  hold_secs: number | null;
+}
+
+export interface SyncedLog {
+  node_id: string;
+  sets: SyncedSet[];
+}
+
+export interface SyncedWorkout {
+  client_workout_id: string;
+  completed_at: string; // ISO 8601
+  logs: SyncedLog[];
+}
+
+export interface StateUpdate {
+  tree_id: string;
+  old_node_id: string;
+  new_node_id: string;
+  trigger: 'CRITICAL_FAIL' | 'PROMOTION' | 'ON_SYNC';
+  reason: string;
+}
+
+export interface WorkoutsSyncRequest {
+  sync_client_timestamp: string;
+  workouts: SyncedWorkout[];
+}
+
+export interface WorkoutsSyncResponse {
+  status: 'success';
+  synced_workout_count: number;
+  state_updates: {
+    promotions: StateUpdate[];
+    regressions: StateUpdate[];
+  };
+}
+
+/** POST /api/v1/workouts/sync — offline-first reconcile. */
+export const syncWorkouts = (payload: WorkoutsSyncRequest) =>
+  api<WorkoutsSyncResponse>('/workouts/sync', {
+    method: 'POST',
+    body: payload,
+  });
 
 /** GET /healthz — no auth. */
 export const getHealth = () => api<{ status: string }>('/healthz', { skipAuth: true });

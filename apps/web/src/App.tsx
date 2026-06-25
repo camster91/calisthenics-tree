@@ -6,6 +6,8 @@ import HomePage from './pages/HomePage';
 import SettingsPage from './pages/SettingsPage';
 import ComponentsPage from './pages/ComponentsPage';
 import ShareRenderPage from './pages/ShareRenderPage';
+import WorkoutLogPage from './pages/WorkoutLogPage';
+import WorkoutDonePage from './pages/WorkoutDonePage';
 import LoginPage from './pages/LoginPage';
 import AuthVerifyPage from './pages/AuthVerifyPage';
 import OnboardingQ1Page from './pages/OnboardingQ1Page';
@@ -103,6 +105,10 @@ export default function App() {
                   so the Playwright script can rasterize a clean PNG. Direct
                   social-bot preview also works (Slack/Twitter/iMessage). */}
               <Route path="share/:unlockId" element={<ShareRenderPage />} />
+
+              {/* Sprint 4 — workout log + done screens. Both authed + onboarded. */}
+              <Route path="workout/:nodeId" element={<WorkoutLogPage />} />
+              <Route path="workout/:nodeId/done" element={<WorkoutDonePage />} />
 
               <Route path="*" element={<HomePage />} />
             </Route>
