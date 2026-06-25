@@ -8,9 +8,25 @@
 import { test, expect } from '@playwright/test';
 
 test('settings: default vs gym-glare screenshots', async ({ page }) => {
+  // Seed an authed+onboarded session so /settings doesn't redirect to /login.
   await page.addInitScript(() => {
     try {
-      window.localStorage.clear();
+      window.localStorage.setItem('ct:auth', JSON.stringify({
+        status: 'authenticated',
+        user: { id: '00000000-0000-0000-0000-000000000001', email: 'a11y@example.com', created_at: new Date().toISOString() },
+        accessToken: 'test-access-token',
+        refreshToken: 'test-refresh-token',
+        accessExpiresAt: new Date(Date.now() + 3600 * 1000).toISOString(),
+      }));
+      window.localStorage.setItem('ct:onboarding', JSON.stringify({
+        answers: {
+          can_pull_up: true,
+          support_hold_15s: false,
+          active_hang_10s: null,
+          rir2_pushup_reps: 8,
+        },
+        result: null,
+      }));
     } catch {
       /* private mode */
     }

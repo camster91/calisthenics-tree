@@ -29,7 +29,20 @@ export default function AuthVerifyPage() {
   const ranRef = useRef(false);
 
   const token = searchParams.get('token');
-  const next = searchParams.get('next') ?? '/';
+  // Priority: explicit ?next= > sessionStorage 'ct:auth:next' (set by
+  // RequireAuth when redirecting to /login) > '/' default.
+  const urlNext = searchParams.get('next');
+  const storedNext =
+    typeof window !== 'undefined'
+      ? (() => {
+          try {
+            return sessionStorage.getItem('ct:auth:next');
+          } catch {
+            return null;
+          }
+        })()
+      : null;
+  const next = urlNext ?? storedNext ?? '/';
 
   useEffect(() => {
     // StrictMode-safe: only run once even if the effect re-fires in dev.
@@ -45,6 +58,12 @@ export default function AuthVerifyPage() {
     verifyMagicLink(token)
       .then(() => {
         setStatus('success');
+        // Clear the stored next so it doesn't bleed into the next session.
+        try {
+          sessionStorage.removeItem('ct:auth:next');
+        } catch {
+          // ignore — sessionStorage may be blocked
+        }
         // Brief flash so the user sees the success state, then navigate.
         // 600ms feels fast enough not to be annoying but visible enough to
         // register on slow connections.

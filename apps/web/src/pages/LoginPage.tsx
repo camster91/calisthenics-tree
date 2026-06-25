@@ -9,8 +9,8 @@
  *
  * After the link is clicked, AuthVerifyPage handles the redirect.
  */
-import { useCallback, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Mail, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
 
 import { useAuth } from '../lib/auth';
@@ -24,7 +24,16 @@ type Status = 'idle' | 'submitting' | 'sent' | 'error';
 
 export default function LoginPage() {
   const t = useT();
-  const { signIn } = useAuth();
+  const navigate = useNavigate();
+  const { signIn, status: authStatus } = useAuth();
+
+  // Already signed in? Don't show the login form — bounce to home.
+  // (Covers the "clicked an old email link while already logged in" case.)
+  useEffect(() => {
+    if (authStatus === 'authenticated') {
+      navigate('/', { replace: true });
+    }
+  }, [authStatus, navigate]);
 
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<Status>('idle');

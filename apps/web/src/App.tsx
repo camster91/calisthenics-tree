@@ -13,6 +13,8 @@ import OnboardingQ2Page from './pages/OnboardingQ2Page';
 import OnboardingTestPage from './pages/OnboardingTestPage';
 import OnboardingResultPage from './pages/OnboardingResultPage';
 import Layout from './components/layout/Layout';
+import { RequireAuth } from './components/RequireAuth';
+import { RequireOnboarded } from './components/RequireOnboarded';
 import Screenshots from './pages/marketing/Screenshots';
 import OnboardingDemo from './pages/marketing/OnboardingDemo';
 
@@ -88,41 +90,49 @@ export default function App() {
         <Route path="onboarding/test" element={<OnboardingTestPage />} />
         <Route path="onboarding/result" element={<OnboardingResultPage />} />
 
-        <Route element={<Layout />}>
-          <Route index element={<HomePage />} />
+        <Route element={<RequireAuth />}>
+          {/* Fully-onboarded app — auth + placement required */}
+          <Route element={<RequireOnboarded />}>
+            <Route element={<Layout />}>
+              <Route index element={<HomePage />} />
 
-          {/* T38 — production /settings route (gym-glare toggle, a11y baseline). */}
-          <Route path="settings" element={<SettingsPage />} />
+              {/* T38 — production /settings route (gym-glare toggle, a11y baseline). */}
+              <Route path="settings" element={<SettingsPage />} />
 
-          {/* T39 — share card render page. Renders at 1080x1080 with no chrome
-              so the Playwright script can rasterize a clean PNG. Direct
-              social-bot preview also works (Slack/Twitter/iMessage). */}
-          <Route path="share/:unlockId" element={<ShareRenderPage />} />
+              {/* T39 — share card render page. Renders at 1080x1080 with no chrome
+                  so the Playwright script can rasterize a clean PNG. Direct
+                  social-bot preview also works (Slack/Twitter/iMessage). */}
+              <Route path="share/:unlockId" element={<ShareRenderPage />} />
 
-          {/* T35 — visual reference for the design system. */}
-          <Route path="components" element={<ComponentsPage />} />
+              <Route path="*" element={<HomePage />} />
+            </Route>
+          </Route>
 
-          {/* T37 wireframes — review only, do NOT replace production routes */}
-          <Route path="wireframes" element={<WireframesIndex />} />
-          <Route path="wireframes/landing" element={<LandingWireframe />} />
-          <Route path="wireframes/login" element={<LoginWireframe />} />
-          <Route path="wireframes/onboarding-q1" element={<OnboardingQ1Wireframe />} />
-          <Route path="wireframes/onboarding-q2" element={<OnboardingQ2Wireframe />} />
-          <Route path="wireframes/onboarding-q3" element={<OnboardingQ3Wireframe />} />
-          <Route path="wireframes/onboarding-test" element={<OnboardingTestWireframe />} />
-          <Route path="wireframes/onboarding-result" element={<OnboardingResultWireframe />} />
-          <Route path="wireframes/home" element={<HomeWireframe />} />
-          <Route path="wireframes/workout-log" element={<WorkoutLogWireframe />} />
-          <Route path="wireframes/workout-done" element={<WorkoutDoneWireframe />} />
-          <Route path="wireframes/feed" element={<FeedWireframe />} />
-          <Route path="wireframes/friend-profile" element={<FriendProfileWireframe />} />
-          <Route path="wireframes/tendon-insight" element={<TendonInsightWireframe />} />
-          <Route path="wireframes/settings" element={<SettingsWireframe />} />
-          <Route path="wireframes/paywall" element={<PaywallWireframe />} />
-          <Route path="wireframes/subscription" element={<SubscriptionWireframe />} />
-          <Route path="wireframes/empty-states" element={<EmptyStatesWireframe />} />
+          {/* Auth-only — design review surface, no placement required */}
+          <Route element={<Layout />}>
+            {/* T35 — visual reference for the design system. */}
+            <Route path="components" element={<ComponentsPage />} />
 
-          <Route path="*" element={<HomePage />} />
+            {/* T37 wireframes — review only, do NOT replace production routes */}
+            <Route path="wireframes" element={<WireframesIndex />} />
+            <Route path="wireframes/landing" element={<LandingWireframe />} />
+            <Route path="wireframes/login" element={<LoginWireframe />} />
+            <Route path="wireframes/onboarding-q1" element={<OnboardingQ1Wireframe />} />
+            <Route path="wireframes/onboarding-q2" element={<OnboardingQ2Wireframe />} />
+            <Route path="wireframes/onboarding-q3" element={<OnboardingQ3Wireframe />} />
+            <Route path="wireframes/onboarding-test" element={<OnboardingTestWireframe />} />
+            <Route path="wireframes/onboarding-result" element={<OnboardingResultWireframe />} />
+            <Route path="wireframes/home" element={<HomeWireframe />} />
+            <Route path="wireframes/workout-log" element={<WorkoutLogWireframe />} />
+            <Route path="wireframes/workout-done" element={<WorkoutDoneWireframe />} />
+            <Route path="wireframes/feed" element={<FeedWireframe />} />
+            <Route path="wireframes/friend-profile" element={<FriendProfileWireframe />} />
+            <Route path="wireframes/tendon-insight" element={<TendonInsightWireframe />} />
+            <Route path="wireframes/settings" element={<SettingsWireframe />} />
+            <Route path="wireframes/paywall" element={<PaywallWireframe />} />
+            <Route path="wireframes/subscription" element={<SubscriptionWireframe />} />
+            <Route path="wireframes/empty-states" element={<EmptyStatesWireframe />} />
+          </Route>
         </Route>
       </Routes>
     </>
