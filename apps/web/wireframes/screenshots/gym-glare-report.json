@@ -1,0 +1,23 @@
+{
+  "baseUrl": "http://127.0.0.1:5173",
+  "path": "/wireframes/home",
+  "default": {
+    "path": "/Users/biancabienaime/.minimax/sessions/mvs_0371485f23d741109b6761277839100c/workspace/calisthenics-tree/apps/web/wireframes/screenshots/gym-glare-default.png",
+    "bytes": 148620,
+    "dataTheme": null
+  },
+  "gymGlare": {
+    "path": "/Users/biancabienaime/.minimax/sessions/mvs_0371485f23d741109b6761277839100c/workspace/calisthenics-tree/apps/web/wireframes/screenshots/gym-glare-on.png",
+    "bytes": 138660,
+    "dataTheme": "gym-glare"
+  },
+  "tokens": {
+    "surface": "#000000",
+    "fg": "#FFFFFF",
+    "primary": "#FF8A1F",
+    "border": "#FFFFFF"
+  },
+  "diffBytes": 9960,
+  "diffPct": 6.701655228098506,
+  "pass": true
+}

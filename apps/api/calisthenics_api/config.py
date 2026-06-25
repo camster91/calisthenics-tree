@@ -36,6 +36,13 @@ class Settings(BaseSettings):
     # Sentry DSN. Optional — when empty/None, Sentry is disabled at startup.
     sentry_dsn: str | None = None
 
+    # Share cards (Phase 1.5 — T39)
+    # Directory containing pre-rendered share card PNGs.
+    # Default assumes repo-root layout (apps/web/public/share/).
+    # In production, render via `cd apps/web && npm run share:render` as a
+    # deploy-time step and mount the directory as a Docker volume.
+    share_dir: str = "../web/public/share"
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

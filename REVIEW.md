@@ -99,6 +99,12 @@ StoreKit paywall, App Store submission, Reddit launch. Cannot start until P4 shi
 - Run `apps/web/tests/a11y`, fix any axe violations
 - Add `/api/v1/share/[unlock_id].png` FastAPI route
 - Smoke-test gym-glare variant toggles correctly
+- (Bonus) Fix `uv sync` footgun from Sprint 1 follow-ups
+
+**Sprint 2 follow-ups flagged by the swarm:**
+- **`theme.css` postinstall**: `apps/web/src/.generated/theme.css` is git-ignored but required by `index.css`. Fresh clones need `npm run theme:build` before Vite boots. Fix: add `"postinstall": "npm run theme:build"` to `apps/web/package.json`. Tiny one-liner, do in Sprint 3 setup.
+- **PEP 735 deprecation**: uv emits a deprecation warning on every run because `[tool.uv].dev-dependencies` is deprecated in favor of PEP 735 `[dependency-groups] dev = [...]`. Task in Sprint 3+ cleanup (cosmetic, no behavior change).
+- **`docker-compose.prod.yml`** still not in repo (deploy-time artifact). Sprint 7+ polish.
 
 ### Sprint 3 — P2 web app (~2-3 weeks)
 - Auth UI + magic-link backend
