@@ -133,6 +133,46 @@ export const getNode = (nodeId: string) =>
   api<CurrentNode>(`/nodes/${encodeURIComponent(nodeId)}`, { skipAuth: true });
 
 /* ------------------------------------------------------------------ */
+/* Trees + DAG (GET /api/v1/trees, GET /api/v1/trees/{tree_id})       */
+/* ------------------------------------------------------------------ */
+
+export type EdgeType = 'progression' | 'regression' | 'lateral';
+
+export interface DagNode {
+  node_id: string;
+  name: string;
+  movement_type: MovementType;
+  rank_level: number;
+  target_sets: number;
+  target_reps: number | null;
+  target_hold_secs: number | null;
+}
+
+export interface DagEdge {
+  from_node_id: string;
+  to_node_id: string;
+  edge_type: EdgeType;
+}
+
+export interface DagTree {
+  tree_id: string;
+  slug: string;
+  name: string;
+  description: string;
+  current_node_id: string | null;
+  nodes: DagNode[];
+  edges: DagEdge[];
+}
+
+export interface DagResponse {
+  tree: DagTree;
+}
+
+/** GET /api/v1/trees/{tree_id} — full DAG with edges + caller's current_node_id. */
+export const getTree = (treeId: string) =>
+  api<DagResponse>(`/trees/${encodeURIComponent(treeId)}`, { skipAuth: true });
+
+/* ------------------------------------------------------------------ */
 /* Workout sync (POST /api/v1/workouts/sync)                            */
 /* ------------------------------------------------------------------ */
 

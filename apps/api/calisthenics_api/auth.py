@@ -107,3 +107,29 @@ async def get_current_user(
 
     # JWT path (production).
     return await _resolve_jwt_user(creds.credentials, session)
+
+
+async def get_current_user_optional(
+    creds: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
+    session: AsyncSession = Depends(get_session),
+) -> AuthContext | None:
+    """Same as get_current_user but returns None instead of 401 when no
+    credentials are provided. Used by endpoints that personalize when
+    authed (e.g. highlighting the user's current node on the DAG) but
+    don't require auth.
+
+    Static bearer still validated when present; invalid bearer still
+    raises — we just don't *require* it.
+    """
+    if creds is None or creds.scheme.lower() != "bearer":
+        return None
+    settings = get_settings()
+    if creds.credentials == settings.bearer_token:
+        return await _resolve_dev_user(creds.credentials, session)
+    try:
+        return await _resolve_jwt_user(creds.credentials, session)
+    except HTTPException:
+        # Invalid/expired bearer on an optional-auth route → treat as anonymous.
+        # The caller can still serve the public view; the auth-required routes
+        # would reject this caller separately.
+        return None

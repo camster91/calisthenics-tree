@@ -149,6 +149,14 @@ export default function HomePage() {
                     Start workout
                     <ChevronRight aria-hidden className="h-4 w-4" />
                   </Link>
+
+                  <Link
+                    to={`/tree/${encodeURIComponent(p.tree_id)}`}
+                    className="btn-ghost text-xs inline-flex items-center justify-center"
+                    data-testid={`home-view-${p.tree_id}`}
+                  >
+                    View full tree
+                  </Link>
                 </li>
               );
             })}
