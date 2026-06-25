@@ -1,35 +1,77 @@
+# Production-shaped compose for Coolify (or `docker compose up` on the VPS).
+#
+# Three services + one shared volume. Same topology as RUNBOOK.md describes;
+# this is the executable version of that doc.
+#
+# Differences from a one-shot dev compose:
+#   - no `ports:` on db (only api talks to it over the docker network)
+#   - web builds from apps/web/Dockerfile (multi-stage node→caddy)
+#   - env comes from .env.production (gitignored; deploy reads from /opt/<app>/secrets/)
+#   - healthchecks on every service
+#   - named volumes for db data + share-card PNGs
+
 services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: calisthenics
-      POSTGRES_PASSWORD: devpassword
-      POSTGRES_DB: calisthenics
+      POSTGRES_USER: ${POSTGRES_USER:-calisthenics}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-calisthenics}
     volumes:
       - calisthenics_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U calisthenics -d calisthenics"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-calisthenics} -d ${POSTGRES_DB:-calisthenics}"]
+      interval: 10s
       timeout: 5s
       retries: 5
-    ports:
-      - "5433:5432"  # local dev only — production runs on internal Docker network
+    # No `ports:` — db is on the internal network only.
 
   api:
     build:
-      context: ./apps/api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/api/Dockerfile
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql+asyncpg://calisthenics:devpassword@db:5432/calisthenics
-      BEARER_TOKEN: dev-bearer-token-replace-me
-      ENVIRONMENT: development
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-calisthenics}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-calisthenics}
+      BEARER_TOKEN: ${BEARER_TOKEN}
+      ENVIRONMENT: production
+      JWT_SECRET: ${JWT_SECRET}
+      MAGIC_LINK_SECRET: ${MAGIC_LINK_SECRET}
+      POSTMARK_TOKEN: ${POSTMARK_TOKEN}
+      POSTMARK_FROM_EMAIL: ${POSTMARK_FROM_EMAIL:-hello@calisthenics-tree.com}
+      WEB_BASE_URL: ${WEB_BASE_URL:-https://calisthenics-tree.com}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SHARE_DIR: /srv/share
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - calisthenics_share:/srv/share
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    expose:
+      - "8000"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/healthz"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
     ports:
-      - "8000:8000"
+      - "80:80"
+      - "443:443"  # Caddy auto-TLS via ACME on first request
 
 volumes:
   calisthenics_pgdata:
+  calisthenics_share:

@@ -1,0 +1,44 @@
+# Caddy config for the Calisthenics Tree SPA.
+#
+# - /api/*          → reverse-proxy to the api container on the docker network
+# - /share/*        → same (used by social-bot previews of share cards)
+# - /auth/verify    → SPA route, must hit index.html for client-side routing
+# - /healthz        → static 200 for the container healthcheck
+# - everything else → index.html (SPA fallback)
+#
+# In production, replace `:80` with the public hostname + enable the
+# ACME email block so Caddy issues a Let's Encrypt cert.
+
+:80 {
+    # Container healthcheck
+    respond /healthz 200
+
+    # API + share reverse-proxy
+    reverse_proxy /api/*    api:8000
+    reverse_proxy /share/*  api:8000
+
+    # SPA fallback — everything else goes to index.html for client routing
+    root * /srv
+    try_files {path} /index.html
+    file_server
+}
+
+# Production example (uncomment + replace placeholder when going live):
+#
+# calisthenics-tree.com {
+#     encode zstd gzip
+#     reverse_proxy /api/*    api:8000
+#     reverse_proxy /share/*  api:8000
+#     root * /srv
+#     try_files {path} /index.html
+#     file_server
+#     tls {
+#         protocols tls1.2 tls1.3
+#     }
+#     header {
+#         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+#         X-Content-Type-Options "nosniff"
+#         X-Frame-Options "SAMEORIGIN"
+#         Referrer-Policy "strict-origin-when-cross-origin"
+#     }
+# }
