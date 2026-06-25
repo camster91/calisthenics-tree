@@ -62,6 +62,49 @@ class JointPathway:
     CORE_HIP_FLEXOR = "core_hip_flexor"  # L-sit, hanging leg raise
 
 
+class Tier:
+    """Subscription tier identifiers.
+
+    Order is meaningful: ``free < monthly == yearly < lifetime``. The
+    equality between monthly/yearly exists because both grant the same
+    feature set — only the billing cadence differs. Lifetime ranks
+    highest so any future "founder exclusive" feature can gate on it
+    without changing this enum.
+    """
+
+    FREE = "free"
+    MONTHLY = "monthly"
+    YEARLY = "yearly"
+    LIFETIME = "lifetime"
+    ALL = (FREE, MONTHLY, YEARLY, LIFETIME)
+    PAID = (MONTHLY, YEARLY, LIFETIME)
+
+
+# Numeric ordering used by ``requires_tier`` to decide if a user's
+# tier satisfies a feature gate. Lifetime > (monthly == yearly) > free.
+_TIER_RANK = {Tier.FREE: 0, Tier.MONTHLY: 10, Tier.YEARLY: 10, Tier.LIFETIME: 20}
+
+
+def tier_at_least(user_tier: str | None, required_tier: str) -> bool:
+    """Return True if ``user_tier`` satisfies a feature requiring ``required_tier``.
+
+    Semantics:
+      - ``None`` (NULL column) → treated as FREE — fail-open so users
+        with corrupt / pre-migration rows aren't accidentally locked
+        out of free-tier features.
+      - Unknown string (e.g. 'platinum' from an old test or a manual
+        DB edit) → treated as BELOW FREE (rank -1) — fail-closed so
+        an unexpected tier value can never accidentally grant paid
+        access. The user sees the standard 402 with X-Required-Tier.
+    """
+    if user_tier is None:
+        user_rank = _TIER_RANK.get(Tier.FREE, 0)
+    else:
+        user_rank = _TIER_RANK.get(user_tier, -1)  # unknown → fail closed
+    required_rank = _TIER_RANK.get(required_tier, 0)
+    return user_rank >= required_rank
+
+
 # -----------------------------------------------------------------------------#
 # Tables
 # -----------------------------------------------------------------------------#
@@ -83,6 +126,28 @@ class User(Base):
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,
+    )
+
+    # Subscription state — populated by 0005_subscriptions migration.
+    # The provider field records which payment system owns this user
+    # ('stripe' | 'storekit' | 'manual' | NULL). external_id is the
+    # provider's stable identifier (Stripe customer id, StoreKit
+    # original transaction id, etc).
+    subscription_tier: Mapped[str] = mapped_column(
+        String(16), nullable=False, server_default=Tier.FREE
+    )
+    subscription_provider: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    subscription_started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    subscription_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    subscription_cancel_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    subscription_external_id: Mapped[str | None] = mapped_column(
+        String(255), nullable=True
     )
 
     workouts: Mapped[list[Workout]] = relationship(back_populates="user", cascade="all, delete-orphan")
@@ -373,8 +438,10 @@ __all__ = [
     "ProgressionTree",
     "SetLog",
     "TendonStrainScore",
+    "Tier",
     "UnlockEvent",
     "User",
     "UserNodeState",
     "Workout",
+    "tier_at_least",
 ]

@@ -23,7 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from calisthenics_api import security
 from calisthenics_api.config import get_settings
 from calisthenics_api.db import get_session
-from calisthenics_api.db.models import User
+from calisthenics_api.db.models import Tier, User, tier_at_least
 from calisthenics_api.schemas import AuthContext
 
 _bearer_scheme = HTTPBearer(auto_error=False)
@@ -133,3 +133,58 @@ async def get_current_user_optional(
         # The caller can still serve the public view; the auth-required routes
         # would reject this caller separately.
         return None
+
+
+# -----------------------------------------------------------------------------#
+# Tier gate — drop into any route to require a paid tier
+# -----------------------------------------------------------------------------#
+
+
+def requires_tier(min_tier: str):
+    """Dependency factory: 402 the request if the user's tier < ``min_tier``.
+
+    Use it on any route that should be paywalled:
+
+        @router.get("/api/v1/insights/tendon/advanced")
+        async def advanced_insights(
+            auth: AuthContext = Depends(requires_tier(Tier.MONTHLY)),
+        ):
+            ...
+
+    Monthly, Yearly, and Lifetime all satisfy ``Tier.MONTHLY`` (the
+    ordering helper treats them as peers). Free users get HTTP 402
+    with a ``detail.required_tier`` field so the client can route to
+    ``/pricing``.
+    """
+    if min_tier not in Tier.ALL:
+        raise ValueError(
+            f"requires_tier({min_tier!r}) is not a known tier. "
+            f"Use one of {Tier.ALL}."
+        )
+
+    async def _dep(
+        auth: AuthContext = Depends(get_current_user),
+        session: AsyncSession = Depends(get_session),
+    ) -> AuthContext:
+        result = await session.execute(select(User).where(User.id == auth.user_id))
+        user = result.scalar_one_or_none()
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User no longer exists.",
+            )
+        if not tier_at_least(user.subscription_tier, min_tier):
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail=(
+                    f"This feature requires the {min_tier} tier. "
+                    f"Visit /pricing to upgrade."
+                ),
+                headers={
+                    "X-Required-Tier": min_tier,
+                    "X-Current-Tier": user.subscription_tier or Tier.FREE,
+                },
+            )
+        return auth
+
+    return _dep
