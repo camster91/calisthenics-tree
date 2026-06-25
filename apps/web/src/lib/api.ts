@@ -173,6 +173,23 @@ export const getTree = (treeId: string) =>
   api<DagResponse>(`/trees/${encodeURIComponent(treeId)}`, { skipAuth: true });
 
 /* ------------------------------------------------------------------ */
+/* Tendon strain (GET /api/v1/tendon-strain)                            */
+/* ------------------------------------------------------------------ */
+
+export interface TendonPathwayStatusWire {
+  pathway: Pathway;
+  status: 'ok' | 'watch' | 'deload';
+  sparkline: [number, number, number, number];
+}
+
+export interface TendonStrainResponse {
+  statuses: TendonPathwayStatusWire[];
+}
+
+/** GET /api/v1/tendon-strain — per-pathway 4-week sparkline + status. */
+export const getTendonStrain = () => api<TendonStrainResponse>('/tendon-strain');
+
+/* ------------------------------------------------------------------ */
 /* Workout sync (POST /api/v1/workouts/sync)                            */
 /* ------------------------------------------------------------------ */
 

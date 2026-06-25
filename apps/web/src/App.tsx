@@ -9,6 +9,7 @@ import ShareRenderPage from './pages/ShareRenderPage';
 import WorkoutLogPage from './pages/WorkoutLogPage';
 import WorkoutDonePage from './pages/WorkoutDonePage';
 import TreePage from './pages/TreePage';
+import InsightsPage from './pages/InsightsPage';
 import LoginPage from './pages/LoginPage';
 import AuthVerifyPage from './pages/AuthVerifyPage';
 import OnboardingQ1Page from './pages/OnboardingQ1Page';
@@ -113,6 +114,9 @@ export default function App() {
 
               {/* Sprint 5 — full DAG browser. Auth + onboarded required. */}
               <Route path="tree/:treeId" element={<TreePage />} />
+
+              {/* Sprint 6 — tendon strain insights. */}
+              <Route path="insights/tendon" element={<InsightsPage />} />
 
               <Route path="*" element={<HomePage />} />
             </Route>

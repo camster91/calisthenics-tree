@@ -7,6 +7,7 @@ from calisthenics_api.routes import (
     onboarding,
     progressions,
     share,
+    tendon_strain,
     trees,
     workouts,
 )
@@ -18,6 +19,7 @@ __all__ = [
     "onboarding",
     "progressions",
     "share",
+    "tendon_strain",
     "trees",
     "workouts",
 ]

@@ -22,6 +22,7 @@ from calisthenics_api.routes import (
     onboarding,
     progressions,
     share,
+    tendon_strain,
     trees,
     workouts,
 )
@@ -74,6 +75,7 @@ def create_app() -> FastAPI:
     app.include_router(trees.router, prefix=settings.api_v1_prefix)
     app.include_router(nodes.router, prefix=settings.api_v1_prefix)
     app.include_router(workouts.router, prefix=settings.api_v1_prefix)
+    app.include_router(tendon_strain.router, prefix=settings.api_v1_prefix)
     app.include_router(share.router, prefix=settings.api_v1_prefix)
 
     return app

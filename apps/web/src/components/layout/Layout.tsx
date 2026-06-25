@@ -63,6 +63,14 @@ export default function Layout() {
               {t('nav.settings')}
             </NavLink>
             <NavLink
+              to="/insights/tendon"
+              className={({ isActive }) =>
+                `btn-ghost ${isActive ? 'bg-surface-muted' : ''}`
+              }
+            >
+              {t('nav.insights')}
+            </NavLink>
+            <NavLink
               to="/components"
               className={({ isActive }) =>
                 `btn-ghost ${isActive ? 'bg-surface-muted' : ''} text-primary`
