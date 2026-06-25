@@ -6,9 +6,17 @@ Calisthenics skill-tree progression tracker. Train smarter — not just harder.
 > lever, handstand — progression that makes sense, with smart regressions
 > when you fatigue.
 
+## Start here
+
+1. **[`docs/PLAN.md`](docs/PLAN.md)** — master build plan. Locked decisions, 6 phases (P1 → P6), deploy/infra, kill criteria, research index.
+2. **[`docs/decisions/`](docs/decisions/)** — 20 pre-Phase-1 polish decisions (D1 = Postgres hosting, D20 = admin tools). Read before writing code.
+3. **[`docs/research/`](docs/research/)** — 8 research reports (competitive audit, HealthKit review, watchOS limits, pricing model, analytics stack, App Store category, name conflict, Hevy user switching).
+4. **[`SCREEN_INVENTORY.md`](SCREEN_INVENTORY.md)** — every v1 screen, states, routes.
+5. **Code, organized by phase.**
+
 ## Stack
 
-- **apps/api** — FastAPI on Python 3.12, SQLAlchemy 2.0 async + asyncpg,
+- **api/** — FastAPI on Python 3.12, SQLAlchemy 2.0 async + asyncpg,
   Postgres 16, Alembic migrations. Bearer-token auth. (Phase 1 — done.)
 - **apps/web** — React 19 + Vite 8 + Tailwind v4 + TypeScript. Phase 1.5
   design-system scaffold (this commit).
@@ -16,26 +24,34 @@ Calisthenics skill-tree progression tracker. Train smarter — not just harder.
 ## Repo layout
 
 ```
-calisthenics-platform/
-├── apps/
-│   ├── api/                       # FastAPI backend (Phase 1)
-│   │   ├── calisthenics_api/      # routes, schemas, models, db, auth
-│   │   ├── alembic/               # DB migrations (seeds 30 nodes, 3 trees)
-│   │   ├── tests/                 # pytest + httpx
-│   │   └── Dockerfile
-│   └── web/                       # Vite + React frontend (Phase 1.5+)
-│       ├── src/
-│       │   ├── tokens.ts          # design tokens (single source of truth)
-│       │   ├── index.css          # Tailwind v4 @theme + base + utilities
-│       │   ├── lib/               # cn, api client, theme provider
-│       │   ├── components/        # layout/, ui/, workout/, dag/
-│       │   └── pages/             # route components
-│       ├── index.html
-│       ├── vite.config.ts
-│       └── package.json
-├── docker-compose.yml             # postgres + api services
+calisthenics-tree/
+├── api/                           # FastAPI backend (Phase 1)
+│   ├── calisthenics_api/          # routes, schemas, models, db, auth
+│   ├── alembic/                   # DB migrations (seeds 30 nodes, 3 trees)
+│   ├── tests/                     # pytest + httpx
+│   └── Dockerfile
+├── apps/web/                      # Vite + React frontend (Phase 1.5+)
+│   ├── src/
+│   │   ├── tokens.ts              # design tokens (single source of truth)
+│   │   ├── index.css              # Tailwind v4 @theme + base + utilities
+│   │   ├── lib/                   # cn, api client, theme provider
+│   │   ├── components/            # layout/, ui/, workout/, dag/
+│   │   └── pages/                 # route components (HomePage, etc.)
+│   ├── wireframes/                # Playwright screenshots of low-fi wireframes
+│   └── public/                    # static assets (icons, favicon, share cards)
+├── docs/
+│   ├── PLAN.md                    # master build plan — read this first
+│   ├── decisions/                 # 20 pre-Phase-1 decisions (D1-D20)
+│   └── research/                  # 8 research reports
+├── scripts/                       # screenshot-wireframes.mjs
+├── docker-compose.yml             # local dev (postgres + api)
 └── .gitignore
 ```
+
+> **Known layout issue:** the README and the original Phase 1.5 commit
+> describe `apps/api/` but the backend code actually lives at top-level
+> `api/`. The next Phase 1 task (T1 from the kanban board) should move
+> the backend to `apps/api/` and update `docker-compose.yml` accordingly.
 
 ## Local development
 
@@ -85,8 +101,8 @@ VITE_API_TOKEN=dev-bearer-token-replace-me
 | **P4** Mobile | Pending | Capacitor wrap, App Store + Play Store submission |
 | **P5** Beta + launch | Pending | TestFlight, 100 signups / 14d target, paid UA |
 
-See `~/.hermes/plans/calisthenics-platform-plan-2026-06-25.md` for the
-locked decisions, research sources, and per-task breakdown.
+See [`docs/PLAN.md`](docs/PLAN.md) for the full per-task breakdown,
+deploy/infra/ops decisions, and locked scope rules.
 
 ## Design system
 
