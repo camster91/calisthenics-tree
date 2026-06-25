@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: calisthenics
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: calisthenics
+    volumes:
+      - calisthenics_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U calisthenics -d calisthenics"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5433:5432"  # local dev only — production runs on internal Docker network
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://calisthenics:devpassword@db:5432/calisthenics
+      BEARER_TOKEN: dev-bearer-token-replace-me
+      ENVIRONMENT: development
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+volumes:
+  calisthenics_pgdata:
