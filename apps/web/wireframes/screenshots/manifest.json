@@ -1,0 +1,450 @@
+[
+  {
+    "viewport": "desktop",
+    "name": "landing",
+    "route": "/wireframes/landing",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-landing.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "login",
+    "route": "/wireframes/login",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-login.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "login-error",
+    "route": "/wireframes/login?state=error",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-login-error.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "onboarding-q1",
+    "route": "/wireframes/onboarding-q1",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-onboarding-q1.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "onboarding-q2",
+    "route": "/wireframes/onboarding-q2",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-onboarding-q2.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "onboarding-q3",
+    "route": "/wireframes/onboarding-q3",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-onboarding-q3.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "onboarding-test-empty",
+    "route": "/wireframes/onboarding-test",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-onboarding-test-empty.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "onboarding-test-loading",
+    "route": "/wireframes/onboarding-test?state=loading",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-onboarding-test-loading.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "onboarding-test-success",
+    "route": "/wireframes/onboarding-test?state=success",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-onboarding-test-success.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "onboarding-result",
+    "route": "/wireframes/onboarding-result",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-onboarding-result.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "home",
+    "route": "/wireframes/home",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-home.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "home-empty",
+    "route": "/wireframes/home?state=empty",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-home-empty.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "home-loading",
+    "route": "/wireframes/home?state=loading",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-home-loading.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "home-error",
+    "route": "/wireframes/home?state=error",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-home-error.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "workout-log",
+    "route": "/wireframes/workout-log",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-workout-log.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "workout-log-empty",
+    "route": "/wireframes/workout-log?state=empty",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-workout-log-empty.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "workout-log-loading",
+    "route": "/wireframes/workout-log?state=loading",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-workout-log-loading.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "workout-done",
+    "route": "/wireframes/workout-done",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-workout-done.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "feed",
+    "route": "/wireframes/feed",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-feed.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "feed-empty",
+    "route": "/wireframes/feed?state=empty",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-feed-empty.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "friend-profile",
+    "route": "/wireframes/friend-profile",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-friend-profile.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "tendon-insight",
+    "route": "/wireframes/tendon-insight",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-tendon-insight.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "settings",
+    "route": "/wireframes/settings",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-settings.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "paywall",
+    "route": "/wireframes/paywall",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-paywall.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "subscription",
+    "route": "/wireframes/subscription",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-subscription.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "subscription-empty",
+    "route": "/wireframes/subscription?state=empty",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-subscription-empty.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "empty-states",
+    "route": "/wireframes/empty-states",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-empty-states.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "desktop",
+    "name": "index",
+    "route": "/wireframes",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/desktop-index.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "landing",
+    "route": "/wireframes/landing",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-landing.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "login",
+    "route": "/wireframes/login",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-login.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "login-error",
+    "route": "/wireframes/login?state=error",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-login-error.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "onboarding-q1",
+    "route": "/wireframes/onboarding-q1",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-onboarding-q1.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "onboarding-q2",
+    "route": "/wireframes/onboarding-q2",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-onboarding-q2.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "onboarding-q3",
+    "route": "/wireframes/onboarding-q3",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-onboarding-q3.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "onboarding-test-empty",
+    "route": "/wireframes/onboarding-test",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-onboarding-test-empty.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "onboarding-test-loading",
+    "route": "/wireframes/onboarding-test?state=loading",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-onboarding-test-loading.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "onboarding-test-success",
+    "route": "/wireframes/onboarding-test?state=success",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-onboarding-test-success.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "onboarding-result",
+    "route": "/wireframes/onboarding-result",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-onboarding-result.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "home",
+    "route": "/wireframes/home",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-home.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "home-empty",
+    "route": "/wireframes/home?state=empty",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-home-empty.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "home-loading",
+    "route": "/wireframes/home?state=loading",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-home-loading.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "home-error",
+    "route": "/wireframes/home?state=error",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-home-error.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "workout-log",
+    "route": "/wireframes/workout-log",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-workout-log.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "workout-log-empty",
+    "route": "/wireframes/workout-log?state=empty",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-workout-log-empty.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "workout-log-loading",
+    "route": "/wireframes/workout-log?state=loading",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-workout-log-loading.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "workout-done",
+    "route": "/wireframes/workout-done",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-workout-done.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "feed",
+    "route": "/wireframes/feed",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-feed.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "feed-empty",
+    "route": "/wireframes/feed?state=empty",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-feed-empty.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "friend-profile",
+    "route": "/wireframes/friend-profile",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-friend-profile.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "tendon-insight",
+    "route": "/wireframes/tendon-insight",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-tendon-insight.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "settings",
+    "route": "/wireframes/settings",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-settings.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "paywall",
+    "route": "/wireframes/paywall",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-paywall.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "subscription",
+    "route": "/wireframes/subscription",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-subscription.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "subscription-empty",
+    "route": "/wireframes/subscription?state=empty",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-subscription-empty.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "empty-states",
+    "route": "/wireframes/empty-states",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-empty-states.png",
+    "http": 200,
+    "consoleErrors": 0
+  },
+  {
+    "viewport": "mobile",
+    "name": "index",
+    "route": "/wireframes",
+    "file": "/Users/biancabienaime/projects/calisthenics-platform/apps/web/wireframes/screenshots/mobile-index.png",
+    "http": 200,
+    "consoleErrors": 0
+  }
+]

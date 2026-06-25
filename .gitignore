@@ -49,3 +49,5 @@ apps/web/public/share/*.png
 
 # OS
 Thumbs.db
+apps/web/test-results/
+apps/web/playwright-report/

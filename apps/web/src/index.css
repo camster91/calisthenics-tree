@@ -138,4 +138,9 @@
   .text-pretty {
     text-wrap: pretty;
   }
+
+  /* Wireframe review annotations — only visible in dev. Vite injects
+     `import.meta.env.DEV`; the runtime check happens in the wireframe
+     components (they wrap dev blocks in <div data-dev="true">). When the
+     page is built for production this class is gone. */
 }
