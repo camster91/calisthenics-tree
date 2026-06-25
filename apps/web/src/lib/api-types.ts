@@ -31,3 +31,27 @@ export interface RefreshResponse {
   refresh_token: string;
   refresh_expires_at: string;
 }
+
+// -----------------------------------------------------------------------------//
+// Onboarding placement (POST /api/v1/onboarding/place)
+// -----------------------------------------------------------------------------//
+
+export type OnboardingArchetype =
+  | 'beginner'
+  | 'novice_a'
+  | 'novice_b'
+  | 'intermediate';
+
+export interface OnboardingPlacement {
+  tree_id: string;
+  tree_name: string;
+  starting_node_id: string;
+  starting_node_name: string;
+  starting_rank: number;
+}
+
+export interface OnboardingPlaceResponse {
+  archetype: OnboardingArchetype;
+  rir2_offset: number;
+  placements: OnboardingPlacement[];
+}

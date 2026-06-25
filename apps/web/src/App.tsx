@@ -8,6 +8,10 @@ import ComponentsPage from './pages/ComponentsPage';
 import ShareRenderPage from './pages/ShareRenderPage';
 import LoginPage from './pages/LoginPage';
 import AuthVerifyPage from './pages/AuthVerifyPage';
+import OnboardingQ1Page from './pages/OnboardingQ1Page';
+import OnboardingQ2Page from './pages/OnboardingQ2Page';
+import OnboardingTestPage from './pages/OnboardingTestPage';
+import OnboardingResultPage from './pages/OnboardingResultPage';
 import Layout from './components/layout/Layout';
 import Screenshots from './pages/marketing/Screenshots';
 import OnboardingDemo from './pages/marketing/OnboardingDemo';
@@ -76,6 +80,13 @@ export default function App() {
         {/* Auth — public routes, no Layout chrome (no nav while not signed in) */}
         <Route path="login" element={<LoginPage />} />
         <Route path="auth/verify" element={<AuthVerifyPage />} />
+
+        {/* Onboarding — also no Layout chrome; uses OnboardingLayout internally
+            for its own progress + back/next affordances. */}
+        <Route path="onboarding/q1" element={<OnboardingQ1Page />} />
+        <Route path="onboarding/q2" element={<OnboardingQ2Page />} />
+        <Route path="onboarding/test" element={<OnboardingTestPage />} />
+        <Route path="onboarding/result" element={<OnboardingResultPage />} />
 
         <Route element={<Layout />}>
           <Route index element={<HomePage />} />
