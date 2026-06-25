@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Auto-generated theme CSS — rebuilt by `npm run theme:build` and the Vite dev server.
+src/.generated/
