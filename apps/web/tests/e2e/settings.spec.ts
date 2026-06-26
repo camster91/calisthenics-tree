@@ -50,16 +50,10 @@ test.describe('settings with persisted auth', () => {
         path: /\/api\/v1\/users\/me/,
         body: UPDATED_USER,
       },
-      {
-        method: 'POST',
-        path: /\/api\/v1\/users\/me\/export/,
-        body: {
-          status: 'queued',
-          job_id: '11111111-1111-1111-1111-111111111111',
-          requested_at: new Date().toISOString(),
-        },
-      },
     ]);
+    // POST /api/v1/users/me/export returns a JSON blob with an
+    // attachment Content-Disposition header. Per-test (since the
+    // download flow asserts on the response).
   });
 
   test('settings shows email and persists display name', async ({ page }) => {
@@ -72,10 +66,32 @@ test.describe('settings with persisted auth', () => {
     await expect(page.getByText(/^Saved\.$/)).toBeVisible();
   });
 
-  test('export button posts and shows job_id', async ({ page }) => {
+  test('export button triggers a JSON download', async ({ page }) => {
+    // Stub the export endpoint to return a JSON blob with the
+    // attachment Content-Disposition header (matching what the real
+    // backend sends — see apps/api/calisthenics_api/routes/users.py).
+    const exportBody = JSON.stringify({
+      profile: { email: 'e2e@example.com' },
+      workouts: [],
+      progressions: [],
+      unlocks: [],
+      social: { following: [], followers: [] },
+    });
+    await page.route('**/api/v1/users/me/export', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        headers: {
+          'Content-Disposition':
+            'attachment; filename="calisthenics-tree-export-e2e-2026-06-26.json"',
+        },
+        body: exportBody,
+      });
+    });
+
     await page.goto('/settings');
     await page.getByTestId('settings-export').click();
-    await expect(page.getByText(/Export queued/)).toBeVisible();
+    await expect(page.getByText(/Downloaded calisthenics-tree-export-/)).toBeVisible();
   });
 });
 

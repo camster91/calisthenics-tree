@@ -211,12 +211,38 @@ export const updateMe = (payload: { display_name: string }) =>
 export const deleteMe = () =>
   api<void>('/users/me', { method: 'DELETE' });
 
-/** POST /api/v1/users/me/export — kick off data export job. */
-export const requestExport = () =>
-  api<{ status: string; job_id: string; requested_at: string }>(
-    '/users/me/export',
-    { method: 'POST' },
-  );
+/** POST /api/v1/users/me/export — synchronous JSON dump of the caller's data.
+ *
+ * Backend returns the file directly with a
+ * `Content-Disposition: attachment` header — the browser / page
+ * fetcher saves it as a file. We call fetch() directly here
+ * (instead of going through `api()`) so we can return the raw
+ * `Blob` + suggested filename rather than parsing the response body.
+ */
+export async function requestExport(): Promise<{ blob: Blob; filename: string }> {
+  const token = authStore.get().accessToken;
+  const res = await fetch(`${API_BASE}/users/me/export`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+
+  if (!res.ok) {
+    let parsed: unknown;
+    try {
+      parsed = await res.json();
+    } catch {
+      parsed = await res.text();
+    }
+    throw new ApiError(res.status, parsed, `${res.status} ${res.statusText} on /users/me/export`);
+  }
+
+  // Extract filename from Content-Disposition, fall back to a default.
+  const disposition = res.headers.get('content-disposition') ?? '';
+  const match = disposition.match(/filename="([^"]+)"/);
+  const filename = match?.[1] ?? 'calisthenics-tree-export.json';
+
+  return { blob: await res.blob(), filename };
+}
 
 /* ------------------------------------------------------------------ */
 /* Feed (GET /api/v1/feed)                                              */

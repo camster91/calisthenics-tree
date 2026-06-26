@@ -33,8 +33,18 @@ export function DangerZone() {
     setExporting(true);
     setExportMsg(null);
     try {
-      const job = await requestExport();
-      setExportMsg(`Export queued (job ${job.job_id.slice(0, 8)}…). We'll email you when it's ready.`);
+      const { blob, filename } = await requestExport();
+      // Trigger a save-as by creating an anchor and clicking it. The
+      // Blob URL is revoked after a short delay so we don't leak it.
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setExportMsg(`Downloaded ${filename}.`);
     } catch (err) {
       setExportMsg(
         err instanceof ApiError
