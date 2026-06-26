@@ -23,6 +23,10 @@ from calisthenics_api import security
 from calisthenics_api.config import get_settings
 from calisthenics_api.db import get_session
 from calisthenics_api.db.models import User
+from calisthenics_api.emails.magic_link import (
+    render_magic_link_html,
+    render_magic_link_text,
+)
 from calisthenics_api.rate_limit import rate_limit_per_ip
 from calisthenics_api.schemas import (
     MagicLinkRequest,
@@ -78,21 +82,13 @@ async def _send_magic_link_email(to_email: str, link: str) -> None:
         ) from exc
 
     client = PostmarkClient(server_token=settings.postmark_token)
+    expiry_minutes = settings.magic_link_ttl_secs // 60
     client.send_email(
         From=settings.postmark_from_email,
         To=to_email,
         Subject="Sign in to Calisthenics Tree",
-        HtmlBody=(
-            f"<p>Click the link below to sign in. The link expires in "
-            f"{settings.magic_link_ttl_secs // 60} minutes.</p>"
-            f'<p><a href="{link}">Sign in to Calisthenics Tree</a></p>'
-            f"<p>If you didn't request this, ignore this email.</p>"
-        ),
-        TextBody=(
-            f"Sign in to Calisthenics Tree:\n{link}\n\n"
-            f"Expires in {settings.magic_link_ttl_secs // 60} minutes. "
-            f"If you didn't request this, ignore this email."
-        ),
+        HtmlBody=render_magic_link_html(link, expiry_minutes),
+        TextBody=render_magic_link_text(link, expiry_minutes),
     )
 
 
