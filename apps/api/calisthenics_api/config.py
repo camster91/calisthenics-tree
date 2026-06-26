@@ -75,6 +75,19 @@ class Settings(BaseSettings):
     # deploy-time step and mount the directory as a Docker volume.
     share_dir: str = "../web/public/share"
 
+    # Rate limiting — per-IP sliding-window limits for unauth'd /
+    # token-bearing endpoints. Conservative defaults; bump in prod
+    # once we have real traffic data. See rate_limit.py for how the
+    # limits are applied (bucket name → settings attr convention).
+    rate_limit_magic_link_per_min: int = Field(default=5, ge=1)
+    rate_limit_refresh_per_min: int = Field(default=30, ge=1)
+
+    # Trust X-Forwarded-For header for client IP resolution. Set to
+    # True in production (we're behind Cloudflare + Caddy). Set to
+    # False for direct-exposure deploys so attackers can't spoof the
+    # header to bypass rate limits.
+    trust_forwarded_for: bool = Field(default=False)
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

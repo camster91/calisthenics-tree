@@ -23,6 +23,7 @@ from calisthenics_api import security
 from calisthenics_api.config import get_settings
 from calisthenics_api.db import get_session
 from calisthenics_api.db.models import User
+from calisthenics_api.rate_limit import rate_limit_per_ip
 from calisthenics_api.schemas import (
     MagicLinkRequest,
     MagicLinkResponse,
@@ -99,6 +100,7 @@ async def _send_magic_link_email(to_email: str, link: str) -> None:
     "/magic-link",
     response_model=MagicLinkResponse,
     status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(rate_limit_per_ip("magic_link"))],
 )
 async def request_magic_link(
     payload: MagicLinkRequest,
@@ -184,7 +186,7 @@ async def verify_magic_link(
 # -----------------------------------------------------------------------------#
 
 
-@router.post("/refresh", response_model=RefreshResponse)
+@router.post("/refresh", response_model=RefreshResponse, dependencies=[Depends(rate_limit_per_ip("refresh"))])
 async def refresh_tokens(
     payload: RefreshRequest,
     session: AsyncSession = Depends(get_session),
