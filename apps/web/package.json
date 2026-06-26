@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "npm run share:render -- --dev",
     "build": "npm run theme:build && tsc -b && vite build",
     "theme:build": "tsx scripts/build-theme.mjs",
     "postinstall": "npm run theme:build",
