@@ -1,0 +1,93 @@
+# =============================================================================
+# Deploy — push to main → rsync to VPS → run scripts/deploy-to-vps.sh
+# =============================================================================
+#
+# Required GitHub Secrets (Cameron configures in repo settings → Secrets):
+#   VPS_SSH_KEY          — private SSH key for root@<VPS_HOST> (chmod 600)
+#   VPS_HOST             — e.g. root@187.77.26.99
+#   VPS_DEPLOY_DIR       — e.g. /opt/calisthenicstree
+#   VPS_SECRETS_DIR      — e.g. /root/calisthenicstree-secrets (NOT synced)
+#
+# The deploy script (scripts/deploy-to-vps.sh) is the source of truth for the
+# actual deploy steps. CI just wires up the SSH invocation + smoke test wait.
+#
+# Manual trigger (workflow_dispatch): for ad-hoc deploys without a main push.
+#
+# Disable on push if you want manual-only deploys: remove the `push:` block.
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false  # never kill an in-flight deploy mid-rollout
+
+jobs:
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    # Skip the deploy job for forks / PRs from non-trusted contexts.
+    # The OIDC trust is configured separately; for SSH-key auth this
+    # is a no-op (the secrets are just absent in forks → job fails
+    # with a clear error).
+    environment:
+      name: production
+      url: https://calisthenics-tree.com
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Verify VPS reachable
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new \
+            "${{ secrets.VPS_HOST }}" 'echo "VPS OK: $(hostname) $(uname -r)"'
+
+      - name: Sync repo to VPS
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ secrets.VPS_HOST }}" bash -s <<'EOF'
+            set -e
+            DEPLOY_DIR="${{ secrets.VPS_DEPLOY_DIR }}"
+            if [[ -d "$DEPLOY_DIR/.git" ]]; then
+              cd "$DEPLOY_DIR"
+              git fetch origin main
+              git reset --hard origin/main
+            else
+              mkdir -p "$(dirname "$DEPLOY_DIR")"
+              git clone --branch main --depth 1 \
+                https://github.com/camster91/calisthenics-tree.git "$DEPLOY_DIR"
+            fi
+          EOF
+
+      - name: Run deploy script
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ secrets.VPS_HOST }}" bash -s <<'EOF'
+            set -e
+            cd "${{ secrets.VPS_DEPLOY_DIR }}"
+            bash scripts/deploy-to-vps.sh
+          EOF
+
+      - name: Smoke test public URL
+        run: |
+          sleep 10  # Caddy ACME cert may take a moment on first request
+          for i in 1 2 3 4 5; do
+            if curl -fsS -o /dev/null -w '%{http_code}' \
+                https://calisthenics-tree.com/healthz | grep -q 200; then
+              echo "Public /healthz: 200"
+              exit 0
+            fi
+            echo "Retry $i: not 200 yet, waiting..."
+            sleep 5
+          done
+          echo "Public /healthz never returned 200"
+          exit 1

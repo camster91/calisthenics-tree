@@ -1,0 +1,180 @@
+# =============================================================================
+# CI — runs on every PR + push to main
+# =============================================================================
+#
+# Jobs:
+#   1. backend-test  — uv sync, pytest (unit tests; no DB)
+#   2. backend-lint  — ruff check
+#   3. web-build     — typecheck + production build + share-card PNG render
+#   4. web-test      — Playwright (chromium-only by default for speed; full
+#                       Firefox/WebKit via workflow_dispatch — see comment)
+#
+# DB-dependent integration tests (60+ specs that need DATABASE_URL) are NOT
+# run here — they'd need a Postgres service container. The unit-only suite
+# still gives a strong signal (rate limiter, tier ordering, export helper,
+# JWT issue/verify, placements, tendon math).
+#
+# Deploy workflow lives in deploy.yml (separate file, separate trigger).
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Cancel in-progress runs when a new commit lands on the same PR/branch.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------
+  backend-test:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "0.5.x"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Sync dependencies
+        working-directory: apps/api
+        run: uv sync --group dev
+
+      - name: Run tests
+        working-directory: apps/api
+        run: uv run --group dev pytest tests/ -q
+        # DB-needing tests are skipped by their own pytestmark.skipif;
+        # CI deliberately does NOT provide DATABASE_URL. The skipped
+        # count surfaces as a stable ~25 — that's the integration
+        # test suite that runs against the live VPS instead.
+
+  # ---------------------------------------------------------------------
+  backend-lint:
+    name: Backend lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "0.5.x"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Sync dependencies
+        working-directory: apps/api
+        run: uv sync --group dev
+
+      - name: Ruff check
+        working-directory: apps/api
+        run: uv run --group dev ruff check .
+
+  # ---------------------------------------------------------------------
+  web-build:
+    name: Web typecheck + build + share PNGs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: apps/web
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: apps/web
+        run: npx tsc -b --pretty
+
+      - name: Build (prebuild also renders share PNGs)
+        working-directory: apps/web
+        run: npm run build
+
+      - name: Upload share PNGs
+        uses: actions/upload-artifact@v4
+        with:
+          name: share-pngs
+          path: apps/web/public/share/*.png
+          retention-days: 14
+
+  # ---------------------------------------------------------------------
+  web-test:
+    name: Web E2E (Playwright · Chromium)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: apps/web
+        run: npm ci
+
+      - name: Install Playwright browsers (chromium only — fast)
+        working-directory: apps/web
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E
+        working-directory: apps/web
+        env:
+          CI: "true"
+        run: npx playwright test --project=chromium --reporter=list
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_id }}
+          path: apps/web/playwright-report/
+          retention-days: 7
+
+  # ---------------------------------------------------------------------
+  # Optional full-matrix: run from the Actions tab "Run workflow" button.
+  # All three browsers for thorough pre-release verification.
+  # Triggered manually since Firefox + WebKit double the runtime and we
+  # already verify them locally before pushing.
+  web-test-full:
+    name: Web E2E (Playwright · Chromium + Firefox + WebKit) — manual
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: apps/web
+        run: npm ci
+
+      - name: Install all Playwright browsers
+        working-directory: apps/web
+        run: npx playwright install --with-deps
+
+      - name: Run full E2E matrix
+        working-directory: apps/web
+        env:
+          CI: "true"
+        run: npx playwright test --reporter=list
