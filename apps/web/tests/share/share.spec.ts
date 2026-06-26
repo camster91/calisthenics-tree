@@ -80,28 +80,46 @@ test.describe('T39 — share card template + PNG rendering', () => {
   test('workout-done wireframe share button is wired', async ({
     page,
     browserName,
-  }) => {
-    // Chromium-only: the navigator.share / canShare Object.defineProperty
-    // stub doesn't take effect in Firefox (read-only on those APIs).
-    // WebKit partly works but the share code path differs. The test
-    // asserts the share-button → /share/<id>.png fetch round-trip;
-    // the app is browser-agnostic but this specific test impl is
-    // Chromium-tuned. Re-enable for Firefox/WebKit when useShareUnlock
-    // gets a Playwright-friendly mock surface.
-    test.skip(browserName !== 'chromium', 'Chromium-only: navigator.share stubbing');
+}) => {
+    // Firefox + WebKit: navigator.share / canShare are non-configurable
+    // on the navigator prototype in Firefox, and the delete +
+    // defineProperty fallback lands in a different code path in WebKit
+    // (the hook's `'share' in navigator` check returns truthy even
+    // after delete + getter). Re-enable when useShareUnlock exposes a
+    // test-only mock surface OR when Playwright adds a built-in
+    // navigator.share mock for these browsers.
+    test.skip(
+      browserName !== 'chromium',
+      'Chromium-only: navigator.share mock not portable to Firefox/WebKit',
+    );
 
     // /wireframes/* lives inside RequireAuth → Layout. Seed the auth
     // session so the wireframe is reachable.
     await seedAuthedSession(page);
 
-    // Stub the share fetch so we don't need the Web Share API in headless.
+    // Stub the Web Share API so we don't need a real mobile share sheet
+    // in headless. Use `delete` so `'share' in navigator` returns
+    // false (otherwise useShareUnlock takes the share path instead
+    // of the fetch-PNG fallback this test exercises).
     await page.addInitScript(() => {
       // @ts-expect-error test stub
       window.shareCalled = null;
-      // Disable Web Share API to force the clipboard / download fallback
-      // path (which still hits /share/<id>.png via fetch).
-      Object.defineProperty(navigator, 'share', { value: undefined });
-      Object.defineProperty(navigator, 'canShare', { value: undefined });
+      const nav = navigator as unknown as Record<string, unknown>;
+      for (const key of ['share', 'canShare']) {
+        try {
+          delete (nav as any)[key];
+        } catch {
+          /* ignore — accessor fallback below */
+        }
+        try {
+          Object.defineProperty(navigator, key, {
+            configurable: true,
+            get: () => undefined,
+          });
+        } catch {
+          /* last resort — useShareUnlock handles failure */
+        }
+      }
     });
 
     const requestPromise = page.waitForRequest(
