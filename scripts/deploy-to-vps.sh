@@ -91,9 +91,11 @@ set +a
 
 # Build images + restart in place. --no-deps avoids a brief outage
 # from the api container being torn down before the new one starts.
-docker compose pull --ignore-pull-failures || true
-docker compose build --pull
-docker compose up -d --no-deps --remove-orphans
+# Uses docker-compose.prod.yml (TLS, named volumes, resource limits)
+# rather than docker-compose.yml (local dev shape).
+docker compose -f docker-compose.prod.yml pull --ignore-pull-failures || true
+docker compose -f docker-compose.prod.yml build --pull
+docker compose -f docker-compose.prod.yml up -d --no-deps --remove-orphans
 docker image prune -f
 EOF
 log "Containers restarted."
@@ -102,14 +104,14 @@ hr "Smoke test"
 log "Waiting 5s for services to settle..."
 sleep 5
 
-HEALTH=$(ssh "$VPS_HOST" "docker compose -f $VPS_DEPLOY_DIR/docker-compose.yml exec -T api \
+HEALTH=$(ssh "$VPS_HOST" "docker compose -f $VPS_DEPLOY_DIR/docker-compose.prod.yml exec -T api \
     python -c \"import urllib.request; print(urllib.request.urlopen('http://localhost:8000/healthz', timeout=3).read().decode())\"")
 if echo "$HEALTH" | grep -q '"status":"ok"'; then
     log "/healthz: ok"
 else
     log "/healthz UNEXPECTED: $HEALTH"
     log "Tail api logs:"
-    ssh "$VPS_HOST" "docker compose -f $VPS_DEPLOY_DIR/docker-compose.yml logs --tail=30 api"
+    ssh "$VPS_HOST" "docker compose -f $VPS_DEPLOY_DIR/docker-compose.prod.yml logs --tail=30 api"
     exit 1
 fi
 
@@ -123,4 +125,4 @@ fi
 
 hr "Done"
 log "Deployment complete. Public URL: https://calisthenics-tree.com"
-log "If something looks off: ssh $VPS_HOST 'cd $VPS_DEPLOY_DIR && docker compose logs -f --tail=200'"
+log "If something looks off: ssh $VPS_HOST 'cd $VPS_DEPLOY_DIR && docker compose -f docker-compose.prod.yml logs -f --tail=200'"

@@ -1,14 +1,21 @@
-# Production-shaped compose for Coolify (or `docker compose up` on the VPS).
+# =============================================================================
+# Local development compose — `docker compose up`
+# =============================================================================
 #
-# Three services + one shared volume. Same topology as RUNBOOK.md describes;
-# this is the executable version of that doc.
+# For production, see `docker-compose.prod.yml`. The two files are
+# deliberately split so local dev stays friendly (db port exposed for
+# Postico / pgAdmin, bind mount for share-cards so re-renders are live,
+# plain HTTP via Caddy with no ACME), while production gets a hardened
+# shape (no db port, named volumes, TLS + security headers, resource
+# limits, explicit restart policies).
 #
-# Differences from a one-shot dev compose:
-#   - no `ports:` on db (only api talks to it over the docker network)
-#   - web builds from apps/web/Dockerfile (multi-stage node→caddy)
-#   - env comes from .env.production (gitignored; deploy reads from /opt/<app>/secrets/)
-#   - healthchecks on every service
-#   - named volumes for db data + share-card PNGs
+# Differences from `docker-compose.prod.yml`:
+#   - db exposes 5433:5432 for local Postgres tools
+#   - api mounts `./apps/web/public/share` as a bind mount (re-rendering
+#     a share card on the host immediately reflects in the container)
+#   - web binds :80 only (no ACME challenge on 443 needed locally)
+#   - no resource limits (let the dev machine breathe)
+#   - CADDY_DOMAIN unset → Caddy runs plain HTTP
 
 services:
   db:
@@ -16,16 +23,17 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-calisthenics}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
       POSTGRES_DB: ${POSTGRES_DB:-calisthenics}
     volumes:
       - calisthenics_pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"  # local Postgres tooling (Postico, pgAdmin, etc.)
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-calisthenics} -d ${POSTGRES_DB:-calisthenics}"]
       interval: 10s
       timeout: 5s
       retries: 5
-    # No `ports:` — db is on the internal network only.
 
   api:
     build:
@@ -33,21 +41,21 @@ services:
       dockerfile: apps/api/Dockerfile
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-calisthenics}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-calisthenics}
-      BEARER_TOKEN: ${BEARER_TOKEN}
-      ENVIRONMENT: production
-      JWT_SECRET: ${JWT_SECRET}
-      MAGIC_LINK_SECRET: ${MAGIC_LINK_SECRET}
-      POSTMARK_TOKEN: ${POSTMARK_TOKEN}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-calisthenics}:${POSTGRES_PASSWORD:-devpassword}@db:5432/${POSTGRES_DB:-calisthenics}
+      BEARER_TOKEN: ${BEARER_TOKEN:-dev-bearer-token-replace-me}
+      ENVIRONMENT: development
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-me-in-production-use-secrets-token-urlsafe-64}
+      MAGIC_LINK_SECRET: ${MAGIC_LINK_SECRET:-dev-magic-link-secret-change-me-in-production}
+      POSTMARK_TOKEN: ${POSTMARK_TOKEN:-}
       POSTMARK_FROM_EMAIL: ${POSTMARK_FROM_EMAIL:-hello@calisthenics-tree.com}
-      WEB_BASE_URL: ${WEB_BASE_URL:-https://calisthenics-tree.com}
+      WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost:5173}
       SENTRY_DSN: ${SENTRY_DSN:-}
       SHARE_DIR: /srv/share
     depends_on:
       db:
         condition: service_healthy
     volumes:
-      - calisthenics_share:/srv/share
+      - ./apps/web/public/share:/srv/share  # bind mount: host re-renders show up live
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz', timeout=3)"]
       interval: 30s
@@ -63,15 +71,17 @@ services:
     restart: unless-stopped
     depends_on:
       - api
+    environment:
+      # CADDY_DOMAIN unset → Caddy listens on :80 plain HTTP (dev mode).
+      # See apps/web/Caddyfile for the env-driven mode switch.
+      CADDY_DOMAIN: ${CADDY_DOMAIN:-}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:80/healthz"]
       interval: 30s
       timeout: 3s
       retries: 3
     ports:
-      - "80:80"
-      - "443:443"  # Caddy auto-TLS via ACME on first request
+      - "80:80"  # local HTTP only — no 443 (ACME) in dev
 
 volumes:
   calisthenics_pgdata:
-  calisthenics_share:

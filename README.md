@@ -14,7 +14,7 @@ Calisthenics skill-tree progression tracker. Train smarter — not just harder.
 - **Full P1.5 design system** — design tokens (default + gym-glare themes), 18+ shadcn-style UI components, 8 workout components, gym-glare toggle in Settings, App Store screenshot assets
 - **Full P2 web app** — React 19 + Vite + Tailwind v4, public landing, magic-link login, 4-screen onboarding, DAG browser, workout log with timer/rep counter, tendon strain insights, settings + sign-out
 - **Public marketing surface** — `/welcome`, `/privacy`, `/terms`
-- **Production deploy plumbing** — multi-stage Dockerfiles (api + web), prod-shaped docker-compose, Caddy reverse-proxy config
+- **Production deploy plumbing** — multi-stage Dockerfiles (api + web), local + production compose files, Caddy reverse-proxy with env-driven TLS
 
 ## Stack
 
@@ -54,7 +54,8 @@ calisthenics-tree/
 ├── RUNBOOK.md                             # deploy + rollback + backups + incident response
 ├── SEED_DATA.md                           # 3 trees × 10 nodes inventory + edge topology
 ├── SCREEN_INVENTORY.md                    # every v1 screen with states
-├── docker-compose.yml                     # local dev + production-shaped (3 services)
+├── docker-compose.yml                     # local dev (db port exposed, bind mounts, plain HTTP)
+├── docker-compose.prod.yml                # production (no db port, named volumes, TLS + resource limits)
 └── .gitignore
 ```
 
@@ -117,12 +118,17 @@ VITE_POSTHOG_API_KEY=...                      # if analytics; unset = no-op
 
 ## Deployment
 
-Production uses the `docker-compose.yml` at the repo root — three
-services (`db`, `api`, `web`) on the same Docker network, with Caddy in
-the web container handling reverse-proxy + ACME TLS.
+Production uses `docker-compose.prod.yml` — three services (`db`, `api`,
+`web`) on the same Docker network, with Caddy in the web container
+handling reverse-proxy + ACME TLS via env-driven mode switch.
+
+Local dev uses `docker-compose.yml` — same topology but with the db
+port exposed (5433) for local Postgres tools, share-cards mounted as
+a bind mount so host re-renders show up live, and Caddy in plain
+HTTP mode (no ACME).
 
 For step-by-step deploy + rollback + backups, see [`RUNBOOK.md`](RUNBOOK.md).
-For the production env shape, see [`docker-compose.yml`](docker-compose.yml).
+For the production env shape, see [`docker-compose.prod.yml`](docker-compose.prod.yml).
 
 ## Architecture
 
