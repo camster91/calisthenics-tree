@@ -1,7 +1,14 @@
-# Project State Review — 2026-06-25
+# Project State Review — 2026-06-25 (updated 2026-06-26: payment deferred)
 
 Solo-dev review of the repo against `docs/PLAN.md`. Goal: figure out what's actually
 done vs. what the plan says, and lay out a concrete execution order.
+
+**2026-06-26 update:** Phase 5 (monetization) deferred. The billing scaffold from
+Sprints 16-17 was fully torn down in Sprint 22 — payment routes, provider
+abstraction, pricing page, paywall dialog, subscription fields on User, friend
+limit, and all related tests/configs. The app is free for everyone; no paid
+tier exists. `docs/research/pricing-model.md` and `docs/decisions/D18-*` are
+kept as design history but are NOT active roadmap.
 
 ## TL;DR
 
@@ -129,6 +136,15 @@ StoreKit paywall, App Store submission, Reddit launch. Cannot start until P4 shi
 - StoreKit 2 paywall ($5.99/mo, $29.99/yr, $99 lifetime)
 - App Store submission (2 weeks early — HealthKit review is 3-7 days first time)
 - Reddit launch posts
+
+### Sprint 6 status (2026-06-26 update)
+- **Monetization deferred.** Sprint 22 fully removed the billing scaffold
+  (Stripe/StoreKit/NullProvider abstraction, 4 billing routes, pricing
+  page, paywall dialog, friend limit, all related tests + configs).
+  App is free for everyone. The pricing model in `docs/research/pricing-model.md`
+  + the StoreKit edge cases in `docs/decisions/D18-*` are kept as design
+  history but are NOT active roadmap. Re-introducing paid tiers is a
+  `git revert` of Sprint 22 + restoration of the historical research docs.
 
 ### Sprint 7 — P6 iterate (ongoing, post-launch)
 - Driven by real user data, not pre-planned

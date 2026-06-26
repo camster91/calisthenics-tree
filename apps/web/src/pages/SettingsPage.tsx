@@ -41,12 +41,10 @@ import {
   MonitorSmartphone,
   Check,
   LogOut,
-  Sparkles,
 } from 'lucide-react';
 import { tokens } from '../tokens';
 import { cn } from '../lib/cn';
 import { DangerZone } from './SettingsPage.DangerZone';
-import { useSubscription } from '../lib/useSubscription';
 
 const STORAGE_KEY = 'ct:theme';
 
@@ -285,75 +283,6 @@ function ThemeSwatches() {
 // Display-name form — exercises aria-live error announcement.
 // ---------------------------------------------------------------------
 
-// ---------------------------------------------------------------------
-// Subscription section — current tier badge + launch notice.
-// ---------------------------------------------------------------------
-//
-// During early access the app is free for everyone; this section just
-// shows the Free badge + a one-line "we'll let you know before paid
-// launches" message. No Upgrade CTA, no Cancel CTA — those return
-// when paid tiers ship (Sprints 16/17 left the billing infrastructure
-// dormant for this exact moment).
-
-function SubscriptionSection() {
-  const subscription = useSubscription();
-
-  return (
-    <section
-      aria-labelledby="subscription-heading"
-      className="card space-y-3"
-      data-testid="subscription-section"
-    >
-      <div className="flex items-center gap-3">
-        <Sparkles className="h-5 w-5 text-primary" aria-hidden />
-        <h2
-          id="subscription-heading"
-          className="text-xl font-semibold"
-        >
-          Subscription
-        </h2>
-      </div>
-
-      {subscription.status === 'loading' && (
-        <p className="text-sm text-surface-fg-muted">Loading…</p>
-      )}
-
-      {subscription.status === 'anonymous' && (
-        <p className="text-sm text-surface-fg-muted">
-          Sign in to see your plan.
-        </p>
-      )}
-
-      {subscription.status === 'error' && (
-        <p
-          role="alert"
-          className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-700"
-        >
-          Couldn't load your subscription state. Try refreshing.
-        </p>
-      )}
-
-      {subscription.status === 'ok' && (
-        <>
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm text-surface-fg-muted">Current plan</span>
-            <span
-              data-testid="settings-current-tier"
-              className="chip bg-primary/15 text-primary"
-            >
-              Free
-            </span>
-          </div>
-          <p className="text-sm text-surface-fg-muted">
-            Everything is free during early access. We'll let you know well
-            before any paid tier lands — no surprise charges.
-          </p>
-        </>
-      )}
-    </section>
-  );
-}
-
 export default function SettingsPage() {
   const t = useT();
   const { user, signOut } = useAuth();
@@ -502,9 +431,6 @@ export default function SettingsPage() {
             : 'AA contrast (4.5:1) is active.'}
         </p>
       </section>
-
-      {/* ====================== SUBSCRIPTION ====================== */}
-      <SubscriptionSection />
 
       {/* ====================== ACCOUNT ====================== */}
       <section

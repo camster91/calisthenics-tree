@@ -236,71 +236,9 @@ class HealthResponse(BaseModel):
     environment: str
 
 
-# -----------------------------------------------------------------------------#
-# Billing (P5 paywall scaffold)
-# -----------------------------------------------------------------------------#
-
-
-class BillingStatus(BaseModel):
-    """Current subscription state for the authed user."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    tier: Literal["free", "monthly", "yearly", "lifetime"] = "free"
-    provider: Literal["stripe", "storekit", "manual"] | None = None
-    started_at: datetime | None = None
-    expires_at: datetime | None = None
-    cancel_at: datetime | None = None
-    """When set, the subscription is set to cancel at ``expires_at``
-    (Stripe ``cancel_at_period_end=True`` equivalent). User keeps
-    access until then; the next webhook clears it."""
-
-
-class CheckoutRequest(BaseModel):
-    tier: Literal["monthly", "yearly", "lifetime"]
-
-
-class CheckoutResponse(BaseModel):
-    checkout_url: str
-    """Where the client should send the user. Empty when the provider
-    is not configured — the client should surface a 'coming soon'
-    paywall instead."""
-    external_session_id: str
-    provider_configured: bool
-
-
-class CancelResponse(BaseModel):
-    status: Literal["cancel_scheduled"] = "cancel_scheduled"
-    """Acknowledgement that the cancel has been recorded. Actual
-    revocation happens when the provider webhook fires
-    ``subscription_canceled``."""
-    effective_at: datetime | None
-    """When the cancellation takes effect — ``expires_at`` if a paid
-    period is active, else ``now()``."""
-
-
-class PlanInfo(BaseModel):
-    tier: Literal["monthly", "yearly", "lifetime"]
-    price_cents: int
-    interval: Literal["month", "year", "one_time"]
-    features: list[str]
-    """Marketing copy. Keep short — this is what shows on the pricing
-    card. Longer benefit prose belongs on the marketing landing
-    pages, not the API contract."""
-
-
-class PlansResponse(BaseModel):
-    currency: Literal["USD"] = "USD"
-    plans: list[PlanInfo]
-
-
 __all__ = [
     "ActiveProgression",
     "AuthContext",
-    "BillingStatus",
-    "CancelResponse",
-    "CheckoutRequest",
-    "CheckoutResponse",
     "CurrentNode",
     "HealthResponse",
     "MagicLinkRequest",
@@ -308,8 +246,6 @@ __all__ = [
     "OnboardingAnswers",
     "OnboardingPlaceRequest",
     "OnboardingPlaceResponse",
-    "PlanInfo",
-    "PlansResponse",
     "ProgressionsResponse",
     "RefreshRequest",
     "RefreshResponse",

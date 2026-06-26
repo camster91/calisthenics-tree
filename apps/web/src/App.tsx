@@ -22,7 +22,6 @@ import TermsPage from './pages/TermsPage';
 import NodeLandingPage from './pages/NodeLandingPage';
 import FeedPage from './pages/FeedPage';
 import ProfilePage from './pages/ProfilePage';
-import PricingPage from './pages/PricingPage';
 import Layout from './components/layout/Layout';
 import { RequireAuth } from './components/RequireAuth';
 import { RequireOnboarded } from './components/RequireOnboarded';
@@ -99,11 +98,6 @@ export default function App() {
         <Route path="welcome" element={<LandingPage />} />
         <Route path="privacy" element={<PrivacyPage />} />
         <Route path="terms" element={<TermsPage />} />
-
-        {/* P5 — public pricing page. Authed users see their current tier
-            badge and a Cancel CTA. No Layout chrome so the page is
-            linkable from emails + share cards. */}
-        <Route path="pricing" element={<PricingPage />} />
 
         {/* T39 — public share-card render. Social-media bots (Slack,
             Twitter, iMessage) crawl these without auth; the FastAPI

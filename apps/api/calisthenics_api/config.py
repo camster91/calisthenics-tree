@@ -75,27 +75,6 @@ class Settings(BaseSettings):
     # deploy-time step and mount the directory as a Docker volume.
     share_dir: str = "../web/public/share"
 
-    # Billing (P5 paywall scaffold)
-    # Active payment provider name. 'null' (default) ships a no-op
-    # provider that responds to every checkout call with
-    # ``provider_configured=False``. Add 'stripe' / 'storekit' / etc.
-    # once a real merchant account + webhooks are wired up.
-    payment_provider: str = Field(
-        default="null",
-        description="Active payment provider id ('null' | 'stripe' | 'storekit' | ...).",
-    )
-    # Webhook signing secret — used by real providers to verify inbound
-    # webhooks. Empty in dev.
-    billing_webhook_secret: str = Field(
-        default="",
-        description="Webhook signing secret. Empty in dev / with NullProvider.",
-    )
-    # Pricing — also exposed to the web app via /api/v1/billing/plans
-    # so the paywall UI doesn't hardcode numbers.
-    price_monthly_cents: int = Field(default=599, ge=0)
-    price_yearly_cents: int = Field(default=2999, ge=0)
-    price_lifetime_cents: int = Field(default=9900, ge=0)
-
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

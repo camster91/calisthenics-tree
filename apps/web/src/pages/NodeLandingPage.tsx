@@ -260,7 +260,7 @@ export default function NodeLandingPage() {
         </h2>
         <p className="text-sm text-surface-fg-muted">
           Log your sets, watch the strain load, and unlock the next rung.
-          Free to use — paid tiers unlock Pro trees (Planche, Front Lever, Iron Cross).
+          Free during early access.
         </p>
         <Button asChild variant="default" size="lg" data-testid="node-landing-cta">
           <Link to={ctaHref}>

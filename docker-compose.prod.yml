@@ -74,11 +74,6 @@ services:
       WEB_BASE_URL: ${WEB_BASE_URL:-https://calisthenics-tree.com}
       SENTRY_DSN: ${SENTRY_DSN:-}
       SHARE_DIR: /srv/share
-      # P5 — payment provider. 'null' = NullProvider (returns 503 on
-      # /billing/checkout). Wire to 'stripe' (or 'storekit') when the
-      # matching API keys + webhook secret are in place.
-      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-null}
-      BILLING_WEBHOOK_SECRET: ${BILLING_WEBHOOK_SECRET:-}
     depends_on:
       db:
         condition: service_healthy
