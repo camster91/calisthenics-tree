@@ -13,7 +13,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Path, status
 from pydantic import BaseModel
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,21 +24,13 @@ from calisthenics_api.db.models import (
     Friendship,
     ProgressionNode,
     ProgressionTree,
-    Tier,
     UnlockEvent,
     User,
     UserNodeState,
-    tier_at_least,
 )
 from calisthenics_api.schemas import AuthContext
 
 router = APIRouter(tags=["friends"])
-
-# Free-tier social limit: documented in SubscriptionWireframe copy
-# ("Upgrade to Pro for tendon insights and friends > 5") + PricingPage
-# ("5 friends + basic feed" under "What's free"). Tuned by hand against
-# the landing-page copy; change both spots if you change this number.
-FREE_FRIEND_LIMIT = 5
 
 
 # -----------------------------------------------------------------------------#
@@ -113,34 +105,6 @@ async def follow_user(
     ).scalar_one_or_none()
     if existing is not None:
         return FollowResponse(followee_id=f"usr_{target.id}")
-
-    # Free-tier social limit. Paid tiers (monthly/yearly/lifetime) skip
-    # the check via tier_at_least — see apps/web/src/lib/billing.ts for
-    # the matching client-side ordering.
-    me = (
-        await session.execute(select(User).where(User.id == auth.user_id))
-    ).scalar_one_or_none()
-    if me is not None and not tier_at_least(me.subscription_tier, Tier.MONTHLY):
-        friend_count = (
-            await session.execute(
-                select(func.count(Friendship.follower_id)).where(
-                    Friendship.follower_id == auth.user_id
-                )
-            )
-        ).scalar_one()
-        if friend_count >= FREE_FRIEND_LIMIT:
-            raise HTTPException(
-                status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail=(
-                    f"Free accounts can follow up to {FREE_FRIEND_LIMIT} friends. "
-                    "Upgrade to Pro for unlimited friends + the social feed."
-                ),
-                headers={
-                    "X-Required-Tier": Tier.MONTHLY,
-                    "X-Current-Tier": me.subscription_tier or Tier.FREE,
-                    "X-Friend-Limit": str(FREE_FRIEND_LIMIT),
-                },
-            )
 
     session.add(
         Friendship(follower_id=auth.user_id, followee_id=target.id)

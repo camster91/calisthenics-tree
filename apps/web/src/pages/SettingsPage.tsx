@@ -47,13 +47,6 @@ import { tokens } from '../tokens';
 import { cn } from '../lib/cn';
 import { DangerZone } from './SettingsPage.DangerZone';
 import { useSubscription } from '../lib/useSubscription';
-import { UpgradeButton } from '../components/UpgradeButton';
-import { Button } from '../components/ui/button';
-import {
-  cancelSubscription,
-  type BillingStatus,
-} from '../lib/billing';
-import { ApiError as ApiErrorClass } from '../lib/api';
 
 const STORAGE_KEY = 'ct:theme';
 
@@ -293,51 +286,22 @@ function ThemeSwatches() {
 // ---------------------------------------------------------------------
 
 // ---------------------------------------------------------------------
-// Subscription section — current tier badge + Upgrade / Cancel CTAs.
+// Subscription section — current tier badge + launch notice.
 // ---------------------------------------------------------------------
-
-const TIER_LABEL: Record<BillingStatus['tier'], string> = {
-  free: 'Free',
-  monthly: 'Pro · Monthly',
-  yearly: 'Pro · Yearly',
-  lifetime: 'Founders',
-};
+//
+// During early access the app is free for everyone; this section just
+// shows the Free badge + a one-line "we'll let you know before paid
+// launches" message. No Upgrade CTA, no Cancel CTA — those return
+// when paid tiers ship (Sprints 16/17 left the billing infrastructure
+// dormant for this exact moment).
 
 function SubscriptionSection() {
   const subscription = useSubscription();
-  const [cancelPending, setCancelPending] = useState(false);
-  const [cancelError, setCancelError] = useState<string | null>(null);
-
-  async function handleCancel() {
-    if (
-      !window.confirm(
-        'Cancel your Pro subscription? You\'ll keep access until the end of your current billing period.',
-      )
-    ) {
-      return;
-    }
-    setCancelPending(true);
-    setCancelError(null);
-    try {
-      await cancelSubscription();
-      await subscription.refetch();
-    } catch (err) {
-      setCancelError(
-        err instanceof ApiErrorClass
-          ? `${err.status} ${err.message}`
-          : err instanceof Error
-            ? err.message
-            : 'Cancellation failed',
-      );
-    } finally {
-      setCancelPending(false);
-    }
-  }
 
   return (
     <section
       aria-labelledby="subscription-heading"
-      className="card space-y-4"
+      className="card space-y-3"
       data-testid="subscription-section"
     >
       <div className="flex items-center gap-3">
@@ -356,7 +320,7 @@ function SubscriptionSection() {
 
       {subscription.status === 'anonymous' && (
         <p className="text-sm text-surface-fg-muted">
-          Sign in to manage your subscription.
+          Sign in to see your plan.
         </p>
       )}
 
@@ -371,66 +335,19 @@ function SubscriptionSection() {
 
       {subscription.status === 'ok' && (
         <>
-          <dl className="space-y-1 text-sm">
-            <div className="flex items-center justify-between gap-3">
-              <dt className="text-surface-fg-muted">Current plan</dt>
-              <dd>
-                <span
-                  data-testid="settings-current-tier"
-                  className="chip bg-primary/15 text-primary"
-                >
-                  {TIER_LABEL[subscription.data.tier]}
-                </span>
-              </dd>
-            </div>
-            {subscription.data.expires_at && (
-              <div className="flex items-center justify-between gap-3">
-                <dt className="text-surface-fg-muted">Renews</dt>
-                <dd className="font-mono text-xs">
-                  {new Date(subscription.data.expires_at).toLocaleDateString()}
-                </dd>
-              </div>
-            )}
-            {subscription.data.cancel_at && (
-              <div className="flex items-center justify-between gap-3">
-                <dt className="text-surface-fg-muted">Cancels</dt>
-                <dd className="font-mono text-xs text-amber-700">
-                  {new Date(subscription.data.cancel_at).toLocaleDateString()}
-                </dd>
-              </div>
-            )}
-          </dl>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {subscription.data.tier === 'free' && (
-              <UpgradeButton>Upgrade to Pro</UpgradeButton>
-            )}
-            {subscription.data.tier !== 'free' &&
-              !subscription.data.cancel_at && (
-                <Button
-                  variant="outline"
-                  disabled={cancelPending}
-                  onClick={handleCancel}
-                >
-                  {cancelPending ? 'Cancelling…' : 'Cancel subscription'}
-                </Button>
-              )}
-            {subscription.data.tier !== 'free' &&
-              subscription.data.cancel_at && (
-                <span className="text-xs text-surface-fg-muted">
-                  Cancellation scheduled — you'll keep access until the date above.
-                </span>
-              )}
-          </div>
-
-          {cancelError && (
-            <p
-              role="alert"
-              className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-700"
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm text-surface-fg-muted">Current plan</span>
+            <span
+              data-testid="settings-current-tier"
+              className="chip bg-primary/15 text-primary"
             >
-              {cancelError}
-            </p>
-          )}
+              Free
+            </span>
+          </div>
+          <p className="text-sm text-surface-fg-muted">
+            Everything is free during early access. We'll let you know well
+            before any paid tier lands — no surprise charges.
+          </p>
         </>
       )}
     </section>

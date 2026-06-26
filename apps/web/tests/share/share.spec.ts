@@ -16,6 +16,12 @@
  */
 import { test, expect } from '@playwright/test';
 
+import {
+  SAMPLE_AUTH,
+  SAMPLE_ONBOARDING,
+  seedAuthedSession,
+} from '../e2e/_helpers';
+
 const SHARE_PNGS = [
   { id: 'tuck-front-lever-001', variant: 'fresh' },
   { id: 'tuck-front-lever-010', variant: 'milestone' },
@@ -72,6 +78,10 @@ test.describe('T39 — share card template + PNG rendering', () => {
   });
 
   test('workout-done wireframe share button is wired', async ({ page }) => {
+    // /wireframes/* lives inside RequireAuth → Layout. Seed the auth
+    // session so the wireframe is reachable.
+    await seedAuthedSession(page);
+
     // Stub the share fetch so we don't need the Web Share API in headless.
     await page.addInitScript(() => {
       // @ts-expect-error test stub

@@ -1,54 +1,30 @@
 /**
- * Pricing / paywall happy path — covers P5 scaffold surface.
+ * Pricing / paywall — now a "free during early access" notice.
  *
- * Scenarios:
- *  - /pricing renders for anonymous visitors (no auth gate)
- *  - Authed free user sees their tier badge + Upgrade button
- *  - Checkout click against mocked 503 shows the "not configured" notice
- *  - Settings page renders the Subscription section with the current tier
+ * During early access /pricing just shows the launch message; there's
+ * no paid-tier surface to test. The paywall spec (deleted) used to
+ * verify the 5-friend-limit → PaywallDialog round-trip; both the limit
+ * and the dialog wiring were removed in Sprint 21.
  *
- * Uses the existing page.route mocking pattern — no live backend needed.
+ * What this spec covers:
+ *  - /pricing renders the "free" notice for anonymous visitors
+ *  - Authed free user sees their tier badge ("Free")
+ *  - No "Choose monthly" / "Choose yearly" CTAs anywhere
  */
 
 import { test, expect } from '@playwright/test';
 
 import {
   mockRoutes,
-  SAMPLE_AUTH,
-  SAMPLE_ONBOARDING,
   seedAuthedSession,
 } from './_helpers';
 
-const FREE_BILLING_STATUS = {
+const FREE_BILLING = {
   tier: 'free',
   provider: null,
   started_at: null,
   expires_at: null,
   cancel_at: null,
-};
-
-const PLANS = {
-  currency: 'USD',
-  plans: [
-    {
-      tier: 'monthly',
-      price_cents: 599,
-      interval: 'month',
-      features: ['Unlimited workouts', 'Full DAG visualization', 'Personalized placement'],
-    },
-    {
-      tier: 'yearly',
-      price_cents: 2999,
-      interval: 'year',
-      features: ['Everything in monthly', 'Two months free vs monthly'],
-    },
-    {
-      tier: 'lifetime',
-      price_cents: 9900,
-      interval: 'one_time',
-      features: ['Everything in yearly', 'One-time payment', 'Founders badge'],
-    },
-  ],
 };
 
 const ME_RESPONSE = {
@@ -58,121 +34,59 @@ const ME_RESPONSE = {
   created_at: new Date().toISOString(),
 };
 
-/** Mock every /api/v1/* call the pricing + settings flow needs. */
-async function mockBillingRoutes(
-  page: import('@playwright/test').Page,
-  billingStatus = FREE_BILLING_STATUS,
-) {
-  await mockRoutes(page, [
-    { method: 'GET', path: /\/billing\/plans$/, body: PLANS },
-    { method: 'GET', path: /\/billing\/me$/, body: billingStatus },
-    { method: 'GET', path: /\/users\/me$/, body: ME_RESPONSE },
-    { method: 'PATCH', path: /\/users\/me$/, body: ME_RESPONSE },
-    {
-      method: 'POST',
-      path: /\/billing\/checkout$/,
-      body: {
-        checkout_url: '',
-        external_session_id: '',
-        provider_configured: false,
-      },
-      // Status 503 — matches the backend's NullProvider response so the
-      // "not configured" error banner is exercised end-to-end.
-      status: 503,
-    } as any,
-  ]);
-}
+test.describe('Pricing page — free during early access', () => {
+  test('anonymous visitor sees the free notice', async ({ page }) => {
+    await page.goto('/pricing');
+    await expect(page.getByTestId('pricing-free-notice')).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: /free during early access/i }),
+    ).toBeVisible();
 
-test.describe('Pricing page (P5 scaffold)', () => {
-  test('renders anonymously and shows all three plans', async ({ page }) => {
+    // No paid-plan CTAs anywhere on the page.
+    await expect(
+      page.getByRole('button', { name: /choose monthly/i }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: /choose yearly/i }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: /choose lifetime/i }),
+    ).toHaveCount(0);
+  });
+
+  test('authed free user sees Free badge on the page', async ({ page }) => {
+    await seedAuthedSession(page);
     await mockRoutes(page, [
-      { method: 'GET', path: /\/billing\/plans$/, body: PLANS },
+      { method: 'GET', path: /\/billing\/me$/, body: FREE_BILLING },
+      { method: 'GET', path: /\/users\/me$/, body: ME_RESPONSE },
+      { method: 'PATCH', path: /\/users\/me$/, body: ME_RESPONSE },
     ]);
 
     await page.goto('/pricing');
-    await expect(
-      page.getByRole('heading', { name: /train smarter with pro/i }),
-    ).toBeVisible();
-    await expect(page.getByTestId('plan-monthly')).toBeVisible();
-    await expect(page.getByTestId('plan-yearly')).toBeVisible();
-    await expect(page.getByTestId('plan-lifetime')).toBeVisible();
-
-    // "Sign in to choose" copy for anonymous visitors on each plan card.
-    await expect(
-      page.getByTestId('plan-monthly').getByRole('button', { name: /sign in/i }),
-    ).toBeVisible();
-  });
-
-  test('shows "coming soon" banner when checkout returns 503 (NullProvider)', async ({
-    page,
-  }) => {
-    await seedAuthedSession(page);
-    await mockBillingRoutes(page);
-
-    await page.goto('/pricing');
-    await expect(page.getByTestId('plan-monthly')).toBeVisible();
-
-    // Click monthly → checkout 503 → error banner surfaces.
-    await page
-      .getByTestId('plan-monthly')
-      .getByRole('button', { name: /choose monthly/i })
-      .click();
-    await expect(page.getByTestId('checkout-error')).toBeVisible();
-    await expect(page.getByTestId('checkout-error')).toContainText(
-      /payments are not configured/i,
-    );
-  });
-
-  test('free user sees Free tier badge and Upgrade CTA on each plan', async ({
-    page,
-  }) => {
-    await seedAuthedSession(page);
-    await mockBillingRoutes(page);
-
-    await page.goto('/pricing');
+    await expect(page.getByTestId('pricing-free-notice')).toBeVisible();
     await expect(page.getByTestId('current-tier-badge')).toContainText(/free/i);
-    await expect(
-      page.getByTestId('plan-yearly').getByRole('button', { name: /choose yearly/i }),
-    ).toBeVisible();
   });
-});
 
-test.describe('Settings — subscription section', () => {
-  test('free user sees Upgrade button', async ({ page }) => {
+  test('Settings subscription section shows Free with no Upgrade CTA', async ({
+    page,
+  }) => {
     await seedAuthedSession(page);
-    await mockBillingRoutes(page);
+    await mockRoutes(page, [
+      { method: 'GET', path: /\/billing\/me$/, body: FREE_BILLING },
+      { method: 'GET', path: /\/users\/me$/, body: ME_RESPONSE },
+      { method: 'PATCH', path: /\/users\/me$/, body: ME_RESPONSE },
+    ]);
 
     await page.goto('/settings');
     await expect(page.getByTestId('subscription-section')).toBeVisible();
     await expect(page.getByTestId('settings-current-tier')).toContainText(/free/i);
-    await expect(
-      page.getByTestId('subscription-section').getByRole('button', {
-        name: /upgrade to pro/i,
-      }),
-    ).toBeVisible();
-  });
 
-  test('paid user sees Cancel button, no Upgrade', async ({ page }) => {
-    await seedAuthedSession(page);
-    await mockBillingRoutes(page, {
-      tier: 'monthly',
-      provider: 'stripe',
-      started_at: new Date(Date.now() - 30 * 86400 * 1000).toISOString(),
-      expires_at: new Date(Date.now() + 30 * 86400 * 1000).toISOString(),
-      cancel_at: null,
-    });
-
-    await page.goto('/settings');
-    await expect(page.getByTestId('settings-current-tier')).toContainText(/monthly/i);
+    // No upgrade / cancel CTAs during early access.
     await expect(
-      page.getByTestId('subscription-section').getByRole('button', {
-        name: /cancel subscription/i,
-      }),
-    ).toBeVisible();
+      page.getByRole('button', { name: /upgrade to pro/i }),
+    ).toHaveCount(0);
     await expect(
-      page.getByTestId('subscription-section').getByRole('button', {
-        name: /upgrade to pro/i,
-      }),
+      page.getByRole('button', { name: /cancel subscription/i }),
     ).toHaveCount(0);
   });
 });

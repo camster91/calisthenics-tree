@@ -105,6 +105,14 @@ export default function App() {
             linkable from emails + share cards. */}
         <Route path="pricing" element={<PricingPage />} />
 
+        {/* T39 — public share-card render. Social-media bots (Slack,
+            Twitter, iMessage) crawl these without auth; the FastAPI
+            `/api/v1/share/<id>.png` route is the eventual home for
+            this but the static SPA route is the production contract
+            until then. Mounted outside Layout so the screenshot is
+            clean (no nav/footer). */}
+        <Route path="share/:unlockId" element={<ShareRenderPage />} />
+
         {/* SEO — one public landing page per skill node. Slug format:
             {tree_slug}-r{rank}-{name-slug}. Drives organic traffic per
             PLAN.md Phase 3. */}
@@ -126,10 +134,9 @@ export default function App() {
               {/* T38 — production /settings route (gym-glare toggle, a11y baseline). */}
               <Route path="settings" element={<SettingsPage />} />
 
-              {/* T39 — share card render page. Renders at 1080x1080 with no chrome
-                  so the Playwright script can rasterize a clean PNG. Direct
-                  social-bot preview also works (Slack/Twitter/iMessage). */}
-              <Route path="share/:unlockId" element={<ShareRenderPage />} />
+              {/* T39 — share card render page moved to PUBLIC routes above
+                  (see /share/:unlockId outside RequireAuth) so social bots
+                  can crawl it without auth. */}
 
               {/* Sprint 4 — workout log + done screens. Both authed + onboarded. */}
               <Route path="workout/:nodeId" element={<WorkoutLogPage />} />
