@@ -10,6 +10,14 @@ limit, and all related tests/configs. The app is free for everyone; no paid
 tier exists. `docs/research/pricing-model.md` and `docs/decisions/D18-*` are
 kept as design history but are NOT active roadmap.
 
+**Sprint 25 verification (2026-06-26):** The T38 a11y suite
+(`apps/web/tests/a11y/`) was last flagged as "tests written, not verified" in
+the original Phase 1.5 section above. Sprint 25 ran the full 10-test suite
+(axe-core + keyboard navigation + visual contrast) on home, settings, and
+components. **All 10 pass with zero WCAG AA violations.** The radiogroup
+pattern (theme toggle), skip-link-first focusable, and 48dp tap-target
+checks all hold.
+
 ## TL;DR
 
 P1 backend is **~90% done** (4 endpoints + auth working, tests passing). P1.5 design
