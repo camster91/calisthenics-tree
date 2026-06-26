@@ -77,7 +77,19 @@ test.describe('T39 — share card template + PNG rendering', () => {
     expect(ogRes.headers()['content-type']).toContain('image/png');
   });
 
-  test('workout-done wireframe share button is wired', async ({ page }) => {
+  test('workout-done wireframe share button is wired', async ({
+    page,
+    browserName,
+  }) => {
+    // Chromium-only: the navigator.share / canShare Object.defineProperty
+    // stub doesn't take effect in Firefox (read-only on those APIs).
+    // WebKit partly works but the share code path differs. The test
+    // asserts the share-button → /share/<id>.png fetch round-trip;
+    // the app is browser-agnostic but this specific test impl is
+    // Chromium-tuned. Re-enable for Firefox/WebKit when useShareUnlock
+    // gets a Playwright-friendly mock surface.
+    test.skip(browserName !== 'chromium', 'Chromium-only: navigator.share stubbing');
+
     // /wireframes/* lives inside RequireAuth → Layout. Seed the auth
     // session so the wireframe is reachable.
     await seedAuthedSession(page);

@@ -7,9 +7,20 @@ import { defineConfig, devices } from '@playwright/test';
  * it automatically if it isn't already running. CI overrides via
  * `PLAYWRIGHT_BASE_URL`.
  *
- * Single project, single worker — these tests touch shared dev-server
+ * Three projects — Chromium (primary), Firefox (CSS-rendering sanity),
+ * WebKit (Safari / iOS preview). Each runs the full suite.
+ *
+ * Single worker per project — these tests touch shared dev-server
  * state (theme persisted in localStorage) and don't benefit from
- * parallelism. They run in <30s.
+ * cross-project parallelism. They run in <60s total across all 3.
+ *
+ * Run a single browser:
+ *   npx playwright test --project=chromium
+ *   npx playwright test --project=firefox
+ *   npx playwright test --project=webkit
+ *
+ * Run all three (the default):
+ *   npx playwright test
  */
 const PORT = Number(process.env.PORT ?? 5173);
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${PORT}`;
@@ -31,6 +42,14 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+    },
+    {
+      name: 'webkit',
+      use: { ...devices['Desktop Safari'] },
     },
   ],
   webServer: {
