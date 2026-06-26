@@ -12,7 +12,7 @@ SKIP_BUILD ?= 0
 export SKIP_BUILD
 
 .PHONY: help preflight deploy test test-api test-web build dev-api dev-web lint \
-        format lock-check migrate-up migrate-down logs-shell
+        format lock-check migrate-up migrate-down logs-shell purge-deleted
 
 help: ## Show this help
 	@printf "\nCalisthenics Tree — make targets\n"
@@ -56,3 +56,6 @@ migrate-down: ## Roll back one migration
 
 logs-shell: ## SSH into VPS and tail container logs
 	ssh root@187.77.26.99 'cd /opt/calisthenicstree && docker compose logs -f --tail=200'
+
+purge-deleted: ## Run the daily soft-delete purge (cron-friendly)
+	cd apps/api && uv run python -m calisthenics_api.maintenance.purge_deleted_accounts

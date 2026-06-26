@@ -78,6 +78,12 @@ async def _resolve_jwt_user(creds: str, session: AsyncSession) -> AuthContext:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User no longer exists.",
         )
+    # Soft-delete restore: if the user re-authenticates during the
+    # grace period, clear deleted_at so the daily purge job leaves
+    # them alone. Per D19 §deletion: "Log in to cancel."
+    if user.deleted_at is not None:
+        user.deleted_at = None
+        await session.flush()
     return AuthContext(user_id=user.id, email=user.email)
 
 

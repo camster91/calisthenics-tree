@@ -207,9 +207,21 @@ export const updateMe = (payload: { display_name: string }) =>
     body: payload,
   });
 
-/** DELETE /api/v1/users/me — wipe account (irreversible). */
+/** DELETE /api/v1/users/me — wipe account (irreversible).
+ * Per D19 §deletion, this is now a SOFT delete — sets deleted_at.
+ * The account is hard-deleted by the daily purge job after the 7-day
+ * grace period. To cancel during the grace window, call restoreMe()
+ * or just re-login (auth._resolve_jwt_user clears deleted_at).
+ */
 export const deleteMe = () =>
   api<void>('/users/me', { method: 'DELETE' });
+
+/** POST /api/v1/users/me/restore — cancel a pending soft-delete.
+ * Equivalent to re-login but exposed so the UI can show a
+ * "Cancel deletion" button without forcing a logout.
+ */
+export const restoreMe = () =>
+  api<void>('/users/me/restore', { method: 'POST' });
 
 /** POST /api/v1/users/me/export — synchronous JSON dump of the caller's data.
  *

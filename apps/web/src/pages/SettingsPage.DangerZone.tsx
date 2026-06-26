@@ -5,15 +5,21 @@
  * separate file for clarity so the big SettingsPage stays readable.
  *
  * Per docs/decisions/D19-data-export-deletion.md:
- *   - Export returns a job_id; full export delivery lands in P5 alongside
- *     the arq worker (D9).
- *   - Delete is immediate, no grace period.
+ *   - Export returns a synchronous JSON download (Sprint 24).
+ *   - Delete is a SOFT delete with a 7-day grace period. Re-login (or
+ *     POST /users/me/restore) cancels the deletion. The daily
+ *     purge_deleted_accounts cron hard-deletes after the window.
  */
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Download, AlertTriangle, Loader2 } from 'lucide-react';
+import { Trash2, Download, AlertTriangle, Loader2, RotateCcw } from 'lucide-react';
 
-import { deleteMe, requestExport, ApiError } from '../lib/api';
+import {
+  deleteMe,
+  requestExport,
+  restoreMe,
+  ApiError,
+} from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { Button } from '../components/ui/button';
 
@@ -28,6 +34,10 @@ export function DangerZone() {
   const [deleteInput, setDeleteInput] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // Post-delete grace-period banner. Null = no pending deletion.
+  const [pendingDeletion, setPendingDeletion] = useState<Date | null>(null);
+  const [restoring, setRestoring] = useState(false);
 
   const handleExport = async () => {
     setExporting(true);
@@ -67,8 +77,12 @@ export function DangerZone() {
     setDeleteError(null);
     try {
       await deleteMe();
-      signOut();
-      navigate('/login', { replace: true });
+      // Per D19: show a banner with the deletion date + a Cancel
+      // option. Don't sign out yet — the user can still see this
+      // banner and reverse the action.
+      setPendingDeletion(new Date());
+      setConfirmingDelete(false);
+      setDeleteInput('');
     } catch (err) {
       setDeleteError(
         err instanceof ApiError
@@ -81,6 +95,24 @@ export function DangerZone() {
       setDeleting(false);
     }
   };
+
+  const handleRestore = async () => {
+    setRestoring(true);
+    try {
+      await restoreMe();
+      setPendingDeletion(null);
+    } catch {
+      // Swallow — the user can just log out + log back in to restore.
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  // Grace window: 7 days. Must match the backend's purge cutoff.
+  const GRACE_DAYS = 7;
+  const deletionDeadline = pendingDeletion
+    ? new Date(pendingDeletion.getTime() + GRACE_DAYS * 86400 * 1000)
+    : null;
 
   return (
     <section
@@ -135,6 +167,56 @@ export function DangerZone() {
       </div>
 
       <hr className="border-danger/20" />
+
+      {/* Soft-delete pending banner — D19 §deletion grace period */}
+      {pendingDeletion && deletionDeadline && (
+        <div
+          role="alert"
+          data-testid="settings-delete-pending"
+          className="space-y-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm"
+        >
+          <p className="font-medium text-amber-700">
+            Account scheduled for deletion
+          </p>
+          <p className="text-xs text-surface-fg-muted">
+            Your account, workouts, sets, and unlocks will be permanently
+            deleted on{' '}
+            <span className="font-mono">
+              {deletionDeadline.toLocaleDateString()}
+            </span>
+            . Log in (or click below) any time before then to cancel.
+          </p>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <Button
+              type="button"
+              variant="default"
+              size="sm"
+              onClick={handleRestore}
+              disabled={restoring}
+              data-testid="settings-restore"
+            >
+              {restoring ? (
+                <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
+              ) : (
+                <RotateCcw aria-hidden className="h-4 w-4" />
+              )}
+              Cancel deletion
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setPendingDeletion(null);
+                signOut();
+                navigate('/login', { replace: true });
+              }}
+            >
+              Sign out anyway
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Delete */}
       <div className="space-y-3">

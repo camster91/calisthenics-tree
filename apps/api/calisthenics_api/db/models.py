@@ -85,6 +85,14 @@ class User(Base):
         nullable=False,
     )
 
+    # Soft-delete tombstone per D19 §deletion. NULL = active account.
+    # Non-NULL = user requested deletion at this UTC time; daily purge
+    # job hard-deletes once grace period (7d) elapses. Login during
+    # the grace period restores by clearing this column.
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     workouts: Mapped[list[Workout]] = relationship(back_populates="user", cascade="all, delete-orphan")
     node_state: Mapped[list[UserNodeState]] = relationship(
         back_populates="user", cascade="all, delete-orphan"

@@ -11,6 +11,7 @@ dump job is a P5 follow-up (will need a background worker).
 
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime, timezone
 
@@ -23,6 +24,8 @@ from calisthenics_api.auth import get_current_user
 from calisthenics_api.db import get_session
 from calisthenics_api.db.models import User
 from calisthenics_api.schemas import AuthContext, UserPublic
+
+logger = logging.getLogger("calisthenics_api.users")
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -74,20 +77,47 @@ async def delete_me(
     auth: AuthContext = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> None:
-    """Hard-delete the user and cascade-delete workouts, set_logs,
-    user_node_state, tendon strain scores.
+    """Soft-delete per D19 §deletion.
 
-    Per D19: immediate, no grace period. If a soft-delete (tombstone +
-    30-day purge) is needed later, swap this for an UPDATE setting
-    deleted_at + a cron that purges tombstones older than 30 days.
+    Sets ``deleted_at = now()`` instead of hard-deleting. The daily
+    ``purge_deleted_accounts`` script hard-deletes users whose
+    ``deleted_at`` is older than the grace period (default 7 days).
+    During the grace period, re-authenticating restores the account
+    (see auth._resolve_jwt_user).
+
+    If the account is already soft-deleted, this is a no-op (idempotent).
     """
     result = await session.execute(select(User).where(User.id == auth.user_id))
     user = result.scalar_one_or_none()
     if user is None:
-        # Already gone — treat as success
+        # Already hard-deleted — treat as success
         return
-    await session.delete(user)
-    await session.flush()
+    if user.deleted_at is None:
+        user.deleted_at = datetime.now(timezone.utc)
+        await session.flush()
+        logger.info("soft-deleted user_id=%s grace_until=%s", user.id, user.deleted_at)
+
+
+@router.post("/me/restore", status_code=status.HTTP_204_NO_CONTENT)
+async def restore_me(
+    auth: AuthContext = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    """Explicitly cancel a pending soft-delete. Equivalent to re-login
+    (which also restores) but exposed as a discrete endpoint for the
+    Settings UI so the user can click 'Cancel deletion' from the
+    banner without logging out."""
+    result = await session.execute(select(User).where(User.id == auth.user_id))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
+    if user.deleted_at is not None:
+        user.deleted_at = None
+        await session.flush()
+        logger.info("restored user_id=%s from soft-delete", user.id)
 
 
 # -----------------------------------------------------------------------------#
