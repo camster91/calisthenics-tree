@@ -30,6 +30,7 @@ import {
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { Button } from '../components/ui/button';
+import { PaywallDialog } from '../components/PaywallDialog';
 
 type Status = 'loading' | 'ready' | 'notfound' | 'error';
 
@@ -56,6 +57,8 @@ export default function ProfilePage() {
   const [unlocks, setUnlocks] = useState<FeedItem[]>([]);
   const [friends, setFriends] = useState<FriendSummary[]>([]);
   const [followBusy, setFollowBusy] = useState(false);
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const [paywallMessage, setPaywallMessage] = useState<string | null>(null);
 
   const isMe = me?.id === userId;
   const isFollowing = friends.some((f) => f.user_id === userId);
@@ -101,7 +104,23 @@ export default function ProfilePage() {
         await unfollowUser(userId);
         setFriends((prev) => prev.filter((f) => f.user_id !== userId));
       } else {
-        await followUser({ user_id: userId });
+        try {
+          await followUser({ user_id: userId });
+        } catch (err) {
+          // 402 = free-tier friend limit reached. Show the paywall
+          // modal instead of the inline error banner so the user
+          // has an obvious upgrade path.
+          if (err instanceof ApiError && err.status === 402) {
+            setPaywallMessage(
+              typeof err.body === 'object' && err.body !== null && 'detail' in err.body
+                ? String((err.body as { detail: string }).detail)
+                : 'You\'ve hit the free friend limit.',
+            );
+            setPaywallOpen(true);
+            return;
+          }
+          throw err;
+        }
         // Refresh the friends list to pick up the new entry with full data
         const f = await getFriends();
         setFriends(f.items);
@@ -283,6 +302,16 @@ export default function ProfilePage() {
           </ol>
         )}
       </section>
+
+      <PaywallDialog
+        open={paywallOpen}
+        onOpenChange={setPaywallOpen}
+        feature="Unlimited friends"
+        description={
+          paywallMessage ??
+            'Free accounts can follow up to 5 friends. Upgrade for unlimited friends + the full social feed.'
+        }
+      />
     </main>
   );
 }
