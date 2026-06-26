@@ -92,7 +92,7 @@ StoreKit paywall, App Store submission, Reddit launch. Cannot start until P4 shi
 - Sentry FastAPI integration (3 lines in `main.py`)
 
 **Sprint 1 follow-ups flagged by the swarm (not blocking, but worth tracking):**
-- **`docker-compose.prod.yml`** is referenced in RUNBOOK.md but doesn't exist in repo. It's created during first-time deploy on the VPS (not a checked-in file). Acceptable as-is, but could be added for reproducibility — Sprint 7+ polish.
+- **`docker-compose.prod.yml`** ✅ done — `docker-compose.prod.yml` now lives at the repo root, parallel to `docker-compose.yml` (which is now the local-dev variant). Prod compose adds TLS via env-driven Caddy, named volumes, no db port mapping, resource limits, and log rotation. `scripts/deploy-to-vps.sh` uses the prod variant. (Sprint 20)
 - **`uv sync` footgun**: bare `uv sync` strips the `[project.optional-dependencies].dev` extras, which silently breaks `pytest`. Fix candidates: (a) update README to always show `uv sync --extra dev`, (b) move pytest/ruff to `[tool.uv].dev-dependencies` so they're default with `uv sync`, or (c) add a `Makefile` / `justfile` target that wraps it. Option (b) is cleanest. Quick fix — could land in Sprint 2.
 
 ### Sprint 2 — Close P1.5 blockers (~half day)
@@ -104,7 +104,7 @@ StoreKit paywall, App Store submission, Reddit launch. Cannot start until P4 shi
 **Sprint 2 follow-ups flagged by the swarm:**
 - **`theme.css` postinstall**: ✅ done — `"postinstall": "npm run theme:build"` is in `apps/web/package.json` (Sprint 2).
 - **PEP 735 deprecation**: ✅ done — `[tool.uv].dev-dependencies` → `[dependency-groups] dev` in `apps/api/pyproject.toml` (Sprint 14). No warning emitted by `uv sync`.
-- **`docker-compose.prod.yml`** still not in repo (deploy-time artifact). Sprint 7+ polish.
+- **`docker-compose.prod.yml`** ✅ done — repo-root prod compose with TLS via env-driven Caddy, named volumes, no db port mapping, resource limits, and log rotation. `scripts/deploy-to-vps.sh` uses it. (Sprint 20)
 
 ### Sprint 3 — P2 web app (~2-3 weeks)
 - Auth UI + magic-link backend
