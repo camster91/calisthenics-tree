@@ -35,6 +35,7 @@ import {
   ApiError,
 } from '../lib/api';
 import * as local from '../lib/local-mode';
+import { useInstallPrompt } from '../lib/use-install-prompt';
 import {
   Sun,
   Moon,
@@ -43,6 +44,8 @@ import {
   Check,
   LogOut,
   RefreshCcw,
+  Download,
+  Smartphone,
 } from 'lucide-react';
 import { tokens } from '../tokens';
 import { cn } from '../lib/cn';
@@ -434,6 +437,8 @@ export default function SettingsPage() {
         </p>
       </section>
 
+      <InstallAppCard />
+
       {/* ====================== ACCOUNT ====================== */}
       <section
         aria-labelledby="account-heading"
@@ -632,5 +637,91 @@ function IconOnlyButton({ label, icon, onClick }: IconOnlyButtonProps) {
     >
       {icon}
     </button>
+  );
+}
+
+/**
+ * InstallAppCard — in-app "Install as app" button. Shows different copy
+ * depending on the platform:
+ *   - Already installed (display-mode: standalone): hidden
+ *   - Android/Desktop Chrome/Edge with beforeinstallprompt fired: big
+ *     "Install app" button that triggers the deferred prompt
+ *   - iOS Safari: instructions to use Share → Add to Home Screen
+ *   - Else: nothing (the browser will offer install via the address bar)
+ */
+function InstallAppCard() {
+  const { canPrompt, isInstalled, isIOSSafari, prompt } = useInstallPrompt();
+  const [installResult, setInstallResult] = useState<string | null>(null);
+
+  if (isInstalled) return null;
+
+  const handleInstall = async () => {
+    const result = await prompt();
+    setInstallResult(
+      result === 'accepted'
+        ? 'Installed. Look for the icon on your home screen.'
+        : result === 'dismissed'
+          ? 'No worries — the browser address bar still has the install option.'
+          : 'Install not available right now. Try again later or check your browser settings.',
+    );
+  };
+
+  return (
+    <section
+      aria-labelledby="install-heading"
+      className="card space-y-3"
+      data-testid="install-app-card"
+    >
+      <div className="flex items-center gap-3">
+        <Smartphone aria-hidden className="h-5 w-5 text-primary" />
+        <h2 id="install-heading" className="text-xl font-semibold">
+          Install as app
+        </h2>
+      </div>
+      <p className="text-sm text-surface-fg-muted">
+        Add Calisthenics Tree to your home screen for one-tap access,
+        offline support, and a fullscreen app experience.
+      </p>
+      {canPrompt ? (
+        <button
+          type="button"
+          onClick={handleInstall}
+          className="btn-primary inline-flex w-full items-center justify-center gap-2"
+          data-testid="install-app-button"
+        >
+          <Download aria-hidden className="h-4 w-4" />
+          Install app
+        </button>
+      ) : isIOSSafari ? (
+        <ol className="space-y-2 text-sm text-surface-fg-muted">
+          <li>
+            1. Tap the <strong className="text-surface-fg">Share</strong>{' '}
+            button in Safari's toolbar.
+          </li>
+          <li>
+            2. Choose{' '}
+            <strong className="text-surface-fg">Add to Home Screen</strong>.
+          </li>
+          <li>
+            3. Confirm. The app opens fullscreen from your home screen.
+          </li>
+        </ol>
+      ) : (
+        <p className="text-xs text-surface-fg-subtle">
+          Use your browser's "Install app" option (Chrome:{' '}
+          <span className="font-mono">⋮</span> → Install app). Already-installed?
+          No card here.
+        </p>
+      )}
+      {installResult && (
+        <p
+          role="status"
+          className="text-sm text-surface-fg-muted"
+          aria-live="polite"
+        >
+          {installResult}
+        </p>
+      )}
+    </section>
   );
 }
