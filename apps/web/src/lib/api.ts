@@ -195,7 +195,9 @@ async function localMockRoute<T>(path: string, body: unknown, method: string): P
       for (const log of w.logs ?? []) {
         // Frontend sends only the completed sets (no `completed` field,
         // no `tree_id`). Infer tree_id from the node_id prefix.
-        const inferredTreeId = log.tree_id ?? log.node_id.split('-').slice(0, 2).join('-').replace(/^node-/, 'tree-');
+        // node_push-4 -> 'tree-push', node_pull-7 -> 'tree-pull', etc.
+        const slugMatch = log.node_id.match(/^node_([a-z]+)-\d+$/);
+        const inferredTreeId = log.tree_id ?? (slugMatch ? `tree-${slugMatch[1]}` : '');
         const beforeNodeId = log.node_id;
         const r = local.logLocalWorkout({
           node_id: log.node_id,
