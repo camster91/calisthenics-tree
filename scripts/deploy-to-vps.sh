@@ -37,7 +37,10 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 VPS_HOST="${VPS_HOST:-root@187.77.26.99}"
-VPS_DEPLOY_DIR="${VPS_DEPLOY_DIR:-/opt/calisthenicstree}"
+# Repo lives on the VPS at /opt/calisthenics-tree/ (with hyphen, matching
+# the GitHub repo name). The hyphen-less /opt/calisthenicstree/ path was
+# a typo from when this script was first written.
+VPS_DEPLOY_DIR="${VPS_DEPLOY_DIR:-/opt/calisthenics-tree}"
 VPS_SECRETS_DIR="${VPS_SECRETS_DIR:-/root/calisthenicstree-secrets}"
 REMOTE_REPO="${REMOTE_REPO:-https://github.com/camster91/calisthenics-tree.git}"
 REMOTE_BRANCH="${REMOTE_BRANCH:-main}"
