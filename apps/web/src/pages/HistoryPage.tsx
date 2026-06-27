@@ -57,10 +57,11 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
-function treeIcon(slug: string): string {
-  if (slug.includes('push')) return '🏔️';
-  if (slug.includes('pull')) return '🔥';
-  if (slug.includes('core')) return '⚓';
+function treeIcon(slug: string | undefined | null): string {
+  const s = (slug ?? '').toLowerCase();
+  if (s.includes('push')) return '🏔️';
+  if (s.includes('pull')) return '🔥';
+  if (s.includes('core')) return '⚓';
   return '⭐';
 }
 

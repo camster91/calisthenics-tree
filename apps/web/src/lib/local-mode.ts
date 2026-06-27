@@ -450,15 +450,16 @@ export function getLocalHistory(): {
   const recent = workouts.map((w) => {
     const tree = TREES.find((t) => t.id === w.tree_id);
     const node = tree?.nodes.find((n) => n.id === w.node_id);
-    const setsCompleted = w.sets.filter((s) => s.completed).length;
+    // Frontend sends only the completed sets — length is the completed count.
+    const setsCompleted = w.sets.length;
     const targetSets = node?.target_sets ?? 3;
     const isPromotion = setsCompleted >= targetSets && (data.workout_counts[w.node_id] ?? 0) === 0;
     return {
       id: `${w.node_id}-${w.logged_at}`,
       logged_at: w.logged_at,
       exercise_name: node?.name ?? w.node_id,
-      tree_id: w.tree_id,
-      tree_name: tree?.name ?? w.tree_id,
+      tree_id: tree?.id ?? '',
+      tree_name: tree?.name ?? 'Unknown',
       node_id: w.node_id,
       sets_completed: setsCompleted,
       sets_target: targetSets,

@@ -188,15 +188,18 @@ async function localMockRoute<T>(path: string, body: unknown, method: string): P
   // Workouts — mirror the real /workouts/sync response shape so the
   // WorkoutDonePage renders without changes.
   if (p === '/workouts/sync' && method === 'POST') {
-    const sync = body as { sync_client_timestamp?: string; workouts?: { client_workout_id: string; completed_at: string; logs: { node_id: string; tree_id: string; sets: { set_index: number; reps: number | null; hold_secs: number | null; completed: boolean }[]; notes?: string | null; rir?: number | null; logged_at?: string }[] }[] };
+    const sync = body as { sync_client_timestamp?: string; workouts?: { client_workout_id: string; completed_at: string; logs: { node_id: string; tree_id?: string; sets: { set_number: number; reps: number | null; hold_secs: number | null }[]; notes?: string | null; rir?: number | null; logged_at?: string }[] }[] };
     let syncedCount = 0;
     const promotions: { tree_id: string; old_node_id: string; new_node_id: string; trigger: string; reason: string }[] = [];
     for (const w of sync.workouts ?? []) {
       for (const log of w.logs ?? []) {
+        // Frontend sends only the completed sets (no `completed` field,
+        // no `tree_id`). Infer tree_id from the node_id prefix.
+        const inferredTreeId = log.tree_id ?? log.node_id.split('-').slice(0, 2).join('-').replace(/^node-/, 'tree-');
         const beforeNodeId = log.node_id;
         const r = local.logLocalWorkout({
           node_id: log.node_id,
-          tree_id: log.tree_id,
+          tree_id: inferredTreeId,
           sets: log.sets,
           notes: log.notes ?? null,
           logged_at: log.logged_at ?? w.completed_at ?? new Date().toISOString(),
