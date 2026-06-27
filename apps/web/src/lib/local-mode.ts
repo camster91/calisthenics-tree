@@ -45,10 +45,11 @@ export interface LocalPlacement {
 }
 
 export interface LocalSyncedSet {
-  set_index: number;
+  // Matches the frontend's SyncedSet (WorkoutLogPage.handleSave).
+  // Only completed sets are sent — no `completed` flag, just the count.
+  set_number: number;
   reps: number | null;
   hold_secs: number | null;
-  completed: boolean;
 }
 
 export interface LocalSyncedLog {
@@ -386,7 +387,8 @@ export function logLocalWorkout(log: LocalSyncedLog): {
   const data = read();
   data.workouts.push(log);
   // Bump workout count + check if this counts as a "promotion"
-  const completedSets = log.sets.filter((s) => s.completed).length;
+  // (frontend sends only completed sets, so sets.length is the count)
+  const completedSets = log.sets.length;
   const targetSets = 3; // default target
   const promoted = completedSets >= targetSets;
   data.workout_counts[log.node_id] = (data.workout_counts[log.node_id] ?? 0) + 1;
