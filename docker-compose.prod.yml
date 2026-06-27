@@ -89,8 +89,14 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-    expose:
-      - "8000"
+    # Host port 3021 → container 8000. Traefik routes api.workout.ashbi.ca
+    # here for direct API hostname. The web container also reaches the
+    # API over the internal Docker network (api:8000) via Caddy's
+    # /api/* reverse proxy — so the SPA never sees a cross-origin
+    # API base URL. 127.0.0.1 binding means the port is reachable
+    # only from the host (Traefik); not exposed to the public network.
+    ports:
+      - "127.0.0.1:3021:8000"
     deploy:
       resources:
         limits:
