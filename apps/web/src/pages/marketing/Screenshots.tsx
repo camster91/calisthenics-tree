@@ -300,7 +300,7 @@ function PhoneFrame({
               marginLeft: 'auto',
             }}
           >
-            calisthenicstree.app
+            workout.ashbi.ca
           </span>
         </div>
       </div>

@@ -150,7 +150,7 @@ export function UnlockShareCard({
               Calisthenics Tree
             </span>
           </div>
-          <span className="font-mono">calisthenicstree.app</span>
+          <span className="font-mono">workout.ashbi.ca</span>
         </footer>
       </div>
     </div>
