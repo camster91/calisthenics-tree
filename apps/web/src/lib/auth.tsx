@@ -198,7 +198,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const snapshot = local.buildLocalAuthSnapshot();
     setSnapshot({
       status: 'authenticated',
-      user: snapshot.user as UserPublic,
+      user: { ...snapshot.user, created_at: new Date().toISOString() } as UserPublic,
       accessToken: snapshot.accessToken,
       refreshToken: snapshot.refreshToken,
       accessExpiresAt: snapshot.accessExpiresAt,

@@ -19,7 +19,6 @@ import { Mail, CheckCircle2, AlertCircle, ArrowRight, Laptop } from 'lucide-reac
 
 import { useAuth } from '../lib/auth';
 import { ApiError } from '../lib/api';
-import * as local from '../lib/local-mode';
 import { useT } from '../lib/i18n';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';

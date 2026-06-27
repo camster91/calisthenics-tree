@@ -435,7 +435,7 @@ export function getLocalProfile(userId: string): {
 } {
   const data = read();
   return {
-    user_id,
+    user_id: userId,
     email: data.email,
     display_name: data.display_name || null,
     created_at: new Date().toISOString(),
