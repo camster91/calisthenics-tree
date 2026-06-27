@@ -82,7 +82,7 @@ async def list_trees(
             {
                 "node_id": f"node_{n.id}",
                 "name": ex.name,
-                "movement_type": n.movement_type,
+                "movement_type": ex.movement_type,
                 "rank_level": n.rank_level,
                 "target_sets": n.target_sets,
                 "target_reps": n.target_reps,
@@ -174,7 +174,7 @@ async def get_tree(
                 {
                     "node_id": f"node_{n.id}",
                     "name": ex.name,
-                    "movement_type": n.movement_type,
+                    "movement_type": ex.movement_type,
                     "rank_level": n.rank_level,
                     "target_sets": n.target_sets,
                     "target_reps": n.target_reps,
