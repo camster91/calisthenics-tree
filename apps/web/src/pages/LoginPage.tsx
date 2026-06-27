@@ -7,14 +7,19 @@
  * returns the token inline and we render it as a clickable URL so the
  * dev doesn't have to leave the browser.
  *
+ * Also offers a "Continue without account" path — local-only mode where
+ * data lives in localStorage and never hits the backend. Useful when
+ * email isn't wired up.
+ *
  * After the link is clicked, AuthVerifyPage handles the redirect.
  */
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
+import { Mail, CheckCircle2, AlertCircle, ArrowRight, Laptop } from 'lucide-react';
 
 import { useAuth } from '../lib/auth';
 import { ApiError } from '../lib/api';
+import * as local from '../lib/local-mode';
 import { useT } from '../lib/i18n';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -25,7 +30,7 @@ type Status = 'idle' | 'submitting' | 'sent' | 'error';
 export default function LoginPage() {
   const t = useT();
   const navigate = useNavigate();
-  const { signIn, status: authStatus } = useAuth();
+  const { signIn, signInLocal, status: authStatus } = useAuth();
 
   // Already signed in? Don't show the login form — bounce to home.
   // (Covers the "clicked an old email link while already logged in" case.)
@@ -221,6 +226,37 @@ export default function LoginPage() {
             <Link to="/onboarding/q1" className="text-primary underline">
               {t('auth.startHere')}
             </Link>
+          </p>
+
+          {/* Divider + local-mode escape hatch. */}
+          <div className="relative my-2">
+            <div className="absolute inset-0 flex items-center" aria-hidden="true">
+              <div className="w-full border-t border-surface-border" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-surface px-2 text-xs uppercase tracking-wider text-surface-fg-subtle">
+                or
+              </span>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="lg"
+            className="w-full"
+            onClick={() => {
+              signInLocal();
+              navigate('/onboarding/q1', { replace: true });
+            }}
+            data-testid="login-skip"
+          >
+            <Laptop aria-hidden className="h-4 w-4" />
+            Continue without account
+          </Button>
+
+          <p className="text-center text-[10px] leading-snug text-surface-fg-subtle">
+            Data saves on this device only. No email, no server.
           </p>
         </form>
       )}

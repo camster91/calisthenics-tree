@@ -14,6 +14,7 @@
  */
 
 import { authStore } from './auth-store';
+import * as local from './local-mode';
 
 export * from './api-types';
 
@@ -52,6 +53,14 @@ function buildHeaders(opts: RequestOptions): HeadersInit {
 export async function api<T = unknown>(path: string, opts: RequestOptions = {}): Promise<T> {
   const { body, skipAuth, skipRefresh, headers, ...rest } = opts;
 
+  // Local-mode intercept: when the user signed in via "Continue without
+  // account", the accessToken is 'local-dev-mode' and we serve everything
+  // from localStorage instead of hitting the network. Keeps the app
+  // fully usable when email / Postmark isn't wired up.
+  if (local.isLocalMode()) {
+    return localMockRoute<T>(path, body, rest.method ?? 'GET');
+  }
+
   const doFetch = (): Promise<Response> =>
     fetch(`${API_BASE}${path}`, {
       ...rest,
@@ -84,6 +93,154 @@ export async function api<T = unknown>(path: string, opts: RequestOptions = {}):
 
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
+}
+
+/**
+ * localMockRoute — handle every endpoint the app calls when in local mode.
+ * Routes without a real local equivalent return safe empty shapes so the
+ * UI shows empty states instead of crashing.
+ */
+async function localMockRoute<T>(path: string, body: unknown, method: string): Promise<T> {
+  const p = path.replace(/^\/api\/v1/, '');
+
+  // Auth — return success shapes so the auth flow doesn't break if
+  // someone hits them in local mode.
+  if (p === '/auth/magic-link' && method === 'POST') {
+    return { status: 'sent', expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(), dev_token: null } as T;
+  }
+  if (p.startsWith('/auth/verify')) {
+    const snapshot = local.buildLocalAuthSnapshot();
+    return {
+      access_token: snapshot.accessToken,
+      access_expires_at: snapshot.accessExpiresAt,
+      refresh_token: snapshot.refreshToken,
+      refresh_expires_at: snapshot.accessExpiresAt,
+      user: snapshot.user,
+    } as T;
+  }
+  if (p === '/auth/refresh' && method === 'POST') {
+    const snapshot = local.buildLocalAuthSnapshot();
+    return {
+      access_token: snapshot.accessToken,
+      access_expires_at: snapshot.accessExpiresAt,
+      refresh_token: snapshot.refreshToken,
+      refresh_expires_at: snapshot.accessExpiresAt,
+    } as T;
+  }
+
+  // Onboarding placement — mirrors the backend's placement.py logic
+  // (very loosely — just enough to produce a consistent local state).
+  if (p === '/onboarding/place' && method === 'POST') {
+    const a = (body as { answers?: { can_pull_up?: boolean; support_hold_15s?: boolean; active_hang_10s?: boolean; rir2_pushup_reps?: number } })?.answers;
+    const archetype = computeArchetype(a);
+    const rir2Offset = computeRir2Offset(a?.rir2_pushup_reps ?? 0);
+    const placements = (['push', 'pull', 'core'] as const).map((slug) => ({
+      tree_id: `tree-${slug}`,
+      tree_name: TREE_DISPLAY_NAMES[slug],
+      starting_node_id: `node-${slug}-${archetype.startRank}`,
+      starting_node_name: nameForRank(slug, archetype.startRank),
+      starting_rank: archetype.startRank,
+    }));
+    local.setLocalPlacements(archetype.label, placements);
+    return { archetype: archetype.label, rir2_offset: rir2Offset, placements } as T;
+  }
+
+  // Progressions
+  if (p === '/users/me/progressions' && method === 'GET') {
+    return local.getLocalProgressions() as T;
+  }
+
+  // Nodes
+  if (p.startsWith('/nodes/')) {
+    const nodeId = decodeURIComponent(p.replace('/nodes/', ''));
+    const node = local.getLocalNode(nodeId);
+    if (!node) throw new ApiError(404, { detail: `Node ${nodeId} not found.` }, `404 on ${path}`);
+    return node as T;
+  }
+
+  // Trees
+  if (p.startsWith('/trees/')) {
+    const treeId = decodeURIComponent(p.replace('/trees/', ''));
+    const tree = local.getLocalTree(treeId);
+    if (!tree) throw new ApiError(404, { detail: `Tree ${treeId} not found.` }, `404 on ${path}`);
+    return tree as T;
+  }
+
+  // Insights
+  if (p === '/tendon-strain') return local.getLocalTendonStrain() as T;
+
+  // Profile / settings
+  if (p === '/users/me' && method === 'GET') return local.getLocalProfile(local.buildLocalAuthSnapshot().user.id) as T;
+  if (p === '/users/me' && method === 'PATCH') return local.updateLocalDisplayName((body as { display_name?: string })?.display_name ?? '') as T;
+  if (p === '/users/me' && method === 'DELETE') { local.softDeleteLocal(); return { deleted: true } as T; }
+  if (p === '/users/me/restore' && method === 'POST') return local.restoreLocal() as T;
+  if (p === '/users/me/export' && method === 'POST') return local.exportLocalData() as T;
+
+  // Feed
+  if (p.startsWith('/feed')) return local.getLocalFeed() as T;
+
+  // Friends
+  if (p.startsWith('/friends')) return local.getLocalFriends() as T;
+
+  // Workouts
+  if (p === '/workouts/sync' && method === 'POST') {
+    const sync = body as { workouts?: { node_id: string; tree_id: string; sets: { set_index: number; reps: number | null; hold_secs: number | null; completed: boolean }[]; notes?: string | null; rir?: number | null; logged_at?: string }[] };
+    const accepted: { node_id: string; tree_id: string; current_node_id: string; unlocked: boolean; promotion: boolean }[] = [];
+    for (const w of sync.workouts ?? []) {
+      const r = local.logLocalWorkout({
+        node_id: w.node_id,
+        tree_id: w.tree_id,
+        sets: w.sets,
+        notes: w.notes ?? null,
+        logged_at: w.logged_at ?? new Date().toISOString(),
+        rir: w.rir ?? null,
+      });
+      accepted.push(...r.applied_states);
+    }
+    return { accepted: accepted.length, applied_states: accepted } as T;
+  }
+
+  // Public profile / unlocks
+  if (p.startsWith('/users/') && p.endsWith('/unlocks')) return local.getLocalUnlocks('') as T;
+  if (p.startsWith('/users/')) return local.getLocalProfile(local.buildLocalAuthSnapshot().user.id) as T;
+
+  // Fallback: empty success so the app doesn't crash on unmocked routes.
+  // eslint-disable-next-line no-console
+  console.warn(`[local-mode] unmocked endpoint: ${method} ${path}`);
+  return {} as T;
+}
+
+// --- local placement helpers ---
+
+function computeArchetype(answers?: { can_pull_up?: boolean; support_hold_15s?: boolean; active_hang_10s?: boolean; rir2_pushup_reps?: number }): { label: string; startRank: number } {
+  if (!answers) return { label: 'novice_b', startRank: 3 };
+  if (answers.can_pull_up && answers.support_hold_15s) return { label: 'intermediate', startRank: 6 };
+  if (answers.can_pull_up) return { label: 'novice_b', startRank: 4 };
+  if (answers.active_hang_10s) return { label: 'novice_a', startRank: 3 };
+  return { label: 'beginner', startRank: 2 };
+}
+
+function computeRir2Offset(reps: number): number {
+  if (reps < 5) return -1;
+  if (reps < 10) return 0;
+  if (reps < 20) return 1;
+  return 2;
+}
+
+const TREE_DISPLAY_NAMES: Record<'push' | 'pull' | 'core', string> = {
+  push: 'Vertical Push (Handstand Push-Up Path)',
+  pull: 'Horizontal Pull (Front Lever Path)',
+  core: 'Core (Dragon Flag Path)',
+};
+
+const TREE_RANK_NAMES: Record<'push' | 'pull' | 'core', string[]> = {
+  push: ['Wall Push-Up', 'Incline Push-Up', 'Standard Push-Up', 'Diamond Push-Up', 'Pike Push-Up', 'Wall Handstand Hold', 'Wall Handstand Push-Up', 'Freestanding Handstand Hold', 'Freestanding Handstand Push-Up', 'Planche Push-Up (Rings)'],
+  pull: ['Dead Hang', 'Active Hang', 'Scapular Pulls', 'Negative Pull-Up', 'Pull-Up', 'Tuck Front Lever Hold', 'Advanced Tuck Front Lever Hold', 'Straddle Front Lever Hold', 'Full Front Lever Hold', 'Front Lever Pull'],
+  core: ['Plank', 'Side Plank', 'Hollow Body Hold', 'L-Sit on Floor', 'L-Sit on Bars', 'Hanging Leg Raise', 'Toes-to-Bar', 'Dragon Flag (Tucked)', 'Dragon Flag', 'Maltese (Rings)'],
+};
+
+function nameForRank(treeSlug: 'push' | 'pull' | 'core', rank: number): string {
+  return TREE_RANK_NAMES[treeSlug][rank - 1] ?? `Node ${rank}`;
 }
 
 /* ------------------------------------------------------------------ */

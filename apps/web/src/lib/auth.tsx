@@ -27,6 +27,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import * as local from './local-mode';
 
 import { api } from './api';
 import { authStore, type AuthSnapshot } from './auth-store';
@@ -85,6 +86,9 @@ export interface AuthContextValue {
   /** Exchange the current refresh token for a fresh pair. Used internally
    *  by the API client on 401, exposed for manual refresh. */
   refresh: () => Promise<void>;
+  /** Local-mode escape hatch: synthesize an authenticated session backed
+   *  by localStorage. No email, no API, no PostHog identity. */
+  signInLocal: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -186,6 +190,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
     });
   }, []);
 
+  const signInLocal = useCallback((): void => {
+    // Initialize local-mode data (creates a fresh user_id if none exists)
+    // then build a fake auth snapshot. The api() client checks the
+    // accessToken against local-mode and routes everything to localStorage.
+    local.initLocalMode();
+    const snapshot = local.buildLocalAuthSnapshot();
+    setSnapshot({
+      status: 'authenticated',
+      user: snapshot.user as UserPublic,
+      accessToken: snapshot.accessToken,
+      refreshToken: snapshot.refreshToken,
+      accessExpiresAt: snapshot.accessExpiresAt,
+    });
+  }, []);
+
   const signOut = useCallback((): void => {
     // Clear localStorage synchronously so the next page load (which
     // happens immediately after signOut in the click handler) sees the
@@ -255,8 +274,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       verifyMagicLink,
       signOut,
       refresh,
+      signInLocal,
     }),
-    [snapshot.status, snapshot.user, signIn, verifyMagicLink, signOut, refresh],
+    [snapshot.status, snapshot.user, signIn, verifyMagicLink, signOut, refresh, signInLocal],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
