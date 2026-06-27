@@ -96,7 +96,7 @@ services:
     # API base URL. 127.0.0.1 binding means the port is reachable
     # only from the host (Traefik); not exposed to the public network.
     ports:
-      - "127.0.0.1:3021:8000"
+      - "127.0.0.1:3026:8000"
     deploy:
       resources:
         limits:
@@ -123,7 +123,7 @@ services:
     # Caddy then reverse-proxies /api/* → api:8000 over the internal
     # Docker network so the SPA never sees a cross-origin API base URL.
     ports:
-      - "127.0.0.1:3020:80"
+      - "127.0.0.1:3025:80"
     deploy:
       resources:
         limits:
