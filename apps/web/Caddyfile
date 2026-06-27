@@ -14,18 +14,30 @@
 #   - /share/*  → same (social-bot previews + share-card rasterization)
 #   - /healthz  → static 200 (container healthcheck + uptime monitor)
 #   - everything else → index.html (SPA fallback for client routing)
+#
+# IMPORTANT: the path-specific handles MUST come before the catch-all
+# SPA fallback. Without `handle_path`, Caddy's try_files rewrite runs
+# first and rewrites /api/* + /share/* + /healthz to /index.html
+# (because the file doesn't exist) before the reverse_proxy / respond
+# directives get a chance. handle_path creates an explicit named matcher
+# that short-circuits the rewrite for those prefixes.
 
 :80 {
+    # API + share reverse-proxy — strip the prefix, forward rest to api
+    handle_path /api/* {
+        reverse_proxy api:8000
+    }
+    handle_path /share/* {
+        reverse_proxy api:8000
+    }
+
     # Container / orchestrator healthcheck — always 200, no auth, no rate-limit
-    respond /healthz 200
+    handle_path /healthz {
+        respond 200
+    }
 
-    # API + share reverse-proxy. /api/* goes to FastAPI; /share/* is the
-    # social-bot preview path that hits the same upstream.
-    reverse_proxy /api/*    api:8000
-    reverse_proxy /share/*  api:8000
-
-    # SPA fallback — unknown routes get the index.html so React Router
-    # can take over client-side.
+    # SPA fallback for everything else: try the file, fall back to index.html
+    # so React Router can take over client-side.
     root * /srv
     try_files {path} /index.html
     file_server
