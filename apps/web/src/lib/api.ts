@@ -182,22 +182,45 @@ async function localMockRoute<T>(path: string, body: unknown, method: string): P
   // Friends
   if (p.startsWith('/friends')) return local.getLocalFriends() as T;
 
-  // Workouts
+  // Workouts — mirror the real /workouts/sync response shape so the
+  // WorkoutDonePage renders without changes.
   if (p === '/workouts/sync' && method === 'POST') {
-    const sync = body as { workouts?: { node_id: string; tree_id: string; sets: { set_index: number; reps: number | null; hold_secs: number | null; completed: boolean }[]; notes?: string | null; rir?: number | null; logged_at?: string }[] };
-    const accepted: { node_id: string; tree_id: string; current_node_id: string; unlocked: boolean; promotion: boolean }[] = [];
+    const sync = body as { sync_client_timestamp?: string; workouts?: { client_workout_id: string; completed_at: string; logs: { node_id: string; tree_id: string; sets: { set_index: number; reps: number | null; hold_secs: number | null; completed: boolean }[]; notes?: string | null; rir?: number | null; logged_at?: string }[] }[] };
+    let syncedCount = 0;
+    const promotions: { tree_id: string; old_node_id: string; new_node_id: string; trigger: string; reason: string }[] = [];
     for (const w of sync.workouts ?? []) {
-      const r = local.logLocalWorkout({
-        node_id: w.node_id,
-        tree_id: w.tree_id,
-        sets: w.sets,
-        notes: w.notes ?? null,
-        logged_at: w.logged_at ?? new Date().toISOString(),
-        rir: w.rir ?? null,
-      });
-      accepted.push(...r.applied_states);
+      for (const log of w.logs ?? []) {
+        const beforeNodeId = log.node_id;
+        const r = local.logLocalWorkout({
+          node_id: log.node_id,
+          tree_id: log.tree_id,
+          sets: log.sets,
+          notes: log.notes ?? null,
+          logged_at: log.logged_at ?? w.completed_at ?? new Date().toISOString(),
+          rir: log.rir ?? null,
+        });
+        syncedCount += r.accepted;
+        for (const s of r.applied_states) {
+          if (s.promotion && s.current_node_id !== beforeNodeId) {
+            promotions.push({
+              tree_id: s.tree_id,
+              old_node_id: beforeNodeId,
+              new_node_id: s.current_node_id,
+              trigger: 'PROMOTION',
+              reason: 'Completed all target sets twice on this node',
+            });
+          }
+        }
+      }
     }
-    return { accepted: accepted.length, applied_states: accepted } as T;
+    return {
+      status: 'success',
+      synced_workout_count: syncedCount,
+      state_updates: {
+        promotions,
+        regressions: [],
+      },
+    } as T;
   }
 
   // Public profile / unlocks

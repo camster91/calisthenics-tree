@@ -209,10 +209,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Clear localStorage synchronously so the next page load (which
     // happens immediately after signOut in the click handler) sees the
     // anonymous state from the first hydration tick.
+    const wasLocalMode = local.isLocalMode();
     try {
       window.localStorage.removeItem('ct:auth');
     } catch {
       // ignore — localStorage may be blocked
+    }
+    // Local mode: also wipe the local-mode data so the next sign-up
+    // starts fresh. Server mode: nothing else to do here.
+    if (wasLocalMode) {
+      local.resetLocalMode();
     }
     setSnapshot({
       status: 'anonymous',
