@@ -34,9 +34,11 @@
         reverse_proxy api:8000
     }
 
-    # Container / orchestrator healthcheck — always 200
+    # Health probe — proxy to the API so the response carries the real
+    # {"status":"ok","version":...} payload. Docker's HEALTHCHECK just
+    # looks at the status code (200) so the JSON body is fine for it too.
     route /healthz {
-        respond 200
+        reverse_proxy api:8000
     }
 
     # SPA fallback for everything else: try the file, fall back to index.html
