@@ -354,52 +354,58 @@ def upgrade() -> None:
     # ---------------------------------------------------------------------#
     # Wire edges: linear progression + 1-2 regressions per node + occasional lateral
     # ---------------------------------------------------------------------#
+    # asyncpg rejects prepared statements with more than one SQL command,
+    # so each INSERT is its own op.execute() call. The comments next to
+    # each call describe what the edge semantically represents.
     op.execute(
-        """
-        -- Push tree edges
-        INSERT INTO progression_edges (from_node_id, to_node_id, edge_type, priority)
-        SELECT a.node_id, b.node_id, 'progression', NULL
-        FROM seed_push_nodes a JOIN seed_push_nodes b ON b.rank_level = a.rank_level + 1;
-
-        -- Push tree: regression from rank 8 (freestanding HS hold) -> rank 6 (wall HS hold)
-        INSERT INTO progression_edges (from_node_id, to_node_id, edge_type, priority)
-        SELECT a.node_id, b.node_id, 'regression', 1
-        FROM seed_push_nodes a JOIN seed_push_nodes b ON b.rank_level = 6
-        WHERE a.rank_level = 8;
-
-        -- Pull tree edges
-        INSERT INTO progression_edges (from_node_id, to_node_id, edge_type, priority)
-        SELECT a.node_id, b.node_id, 'progression', NULL
-        FROM seed_pull_nodes a JOIN seed_pull_nodes b ON b.rank_level = a.rank_level + 1;
-
-        -- Pull tree: tuck FL regresses to dead hang AND active hang
-        INSERT INTO progression_edges (from_node_id, to_node_id, edge_type, priority)
-        SELECT a.node_id, b.node_id, 'regression', p
-        FROM seed_pull_nodes a
-        CROSS JOIN (VALUES (1, 1), (2, 2)) AS targets(rr, p)
-        JOIN seed_pull_nodes b ON b.rank_level = targets.rr
-        WHERE a.rank_level = 6;
-
-        -- Pull tree: tuck FL -> advanced tuck FL (lateral? no, that's a progression; we already have it)
-        -- Pull tree: straddle FL -> advanced tuck FL (lateral move — same rank family, different style)
-        INSERT INTO progression_edges (from_node_id, to_node_id, edge_type, priority)
-        SELECT a.node_id, b.node_id, 'lateral', NULL
-        FROM seed_pull_nodes a JOIN seed_pull_nodes b ON b.rank_level = 7
-        WHERE a.rank_level = 8;
-
-        -- Core tree edges
-        INSERT INTO progression_edges (from_node_id, to_node_id, edge_type, priority)
-        SELECT a.node_id, b.node_id, 'progression', NULL
-        FROM seed_core_nodes a JOIN seed_core_nodes b ON b.rank_level = a.rank_level + 1;
-
-        -- Core tree: hanging leg raise regresses to L-sit on bars (priority 1) and L-sit on floor (priority 2)
-        INSERT INTO progression_edges (from_node_id, to_node_id, edge_type, priority)
-        SELECT a.node_id, b.node_id, 'regression', p
-        FROM seed_core_nodes a
-        CROSS JOIN (VALUES (5, 1), (4, 2)) AS targets(rr, p)
-        JOIN seed_core_nodes b ON b.rank_level = targets.rr
-        WHERE a.rank_level = 6;
-        """
+        # Push tree edges
+        "INSERT INTO progression_edges (from_node_id, to_node_id, edge_type, priority) "
+        "SELECT a.node_id, b.node_id, 'progression', NULL "
+        "FROM seed_push_nodes a JOIN seed_push_nodes b ON b.rank_level = a.rank_level + 1"
+    )
+    op.execute(
+        # Push tree: regression from rank 8 (freestanding HS hold) -> rank 6 (wall HS hold)
+        "INSERT INTO progression_edges (from_node_id, to_node_id, edge_type, priority) "
+        "SELECT a.node_id, b.node_id, 'regression', 1 "
+        "FROM seed_push_nodes a JOIN seed_push_nodes b ON b.rank_level = 6 "
+        "WHERE a.rank_level = 8"
+    )
+    op.execute(
+        # Pull tree edges
+        "INSERT INTO progression_edges (from_node_id, to_node_id, edge_type, priority) "
+        "SELECT a.node_id, b.node_id, 'progression', NULL "
+        "FROM seed_pull_nodes a JOIN seed_pull_nodes b ON b.rank_level = a.rank_level + 1"
+    )
+    op.execute(
+        # Pull tree: tuck FL regresses to dead hang AND active hang
+        "INSERT INTO progression_edges (from_node_id, to_node_id, edge_type, priority) "
+        "SELECT a.node_id, b.node_id, 'regression', p "
+        "FROM seed_pull_nodes a "
+        "CROSS JOIN (VALUES (1, 1), (2, 2)) AS targets(rr, p) "
+        "JOIN seed_pull_nodes b ON b.rank_level = targets.rr "
+        "WHERE a.rank_level = 6"
+    )
+    op.execute(
+        # Pull tree: straddle FL -> advanced tuck FL (lateral move — same rank family, different style)
+        "INSERT INTO progression_edges (from_node_id, to_node_id, edge_type, priority) "
+        "SELECT a.node_id, b.node_id, 'lateral', NULL "
+        "FROM seed_pull_nodes a JOIN seed_pull_nodes b ON b.rank_level = 7 "
+        "WHERE a.rank_level = 8"
+    )
+    op.execute(
+        # Core tree edges
+        "INSERT INTO progression_edges (from_node_id, to_node_id, edge_type, priority) "
+        "SELECT a.node_id, b.node_id, 'progression', NULL "
+        "FROM seed_core_nodes a JOIN seed_core_nodes b ON b.rank_level = a.rank_level + 1"
+    )
+    op.execute(
+        # Core tree: hanging leg raise regresses to L-sit on bars (priority 1) and L-sit on floor (priority 2)
+        "INSERT INTO progression_edges (from_node_id, to_node_id, edge_type, priority) "
+        "SELECT a.node_id, b.node_id, 'regression', p "
+        "FROM seed_core_nodes a "
+        "CROSS JOIN (VALUES (5, 1), (4, 2)) AS targets(rr, p) "
+        "JOIN seed_core_nodes b ON b.rank_level = targets.rr "
+        "WHERE a.rank_level = 6"
     )
 
 
