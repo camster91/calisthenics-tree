@@ -175,6 +175,37 @@ StoreKit paywall, App Store submission, Reddit launch. Cannot start until P4 shi
 ### Sprint 7 — P6 iterate (ongoing, post-launch)
 - Driven by real user data, not pre-planned
 
+### Production deploy + bugfixes (2026-06-27)
+
+First production deploy at `workout.ashbi.ca` (wildcard DNS at *.ashbi.ca →
+VPS 187.77.26.99, Traefik-fronted). Pre-deploy QA surfaced **10 real bugs**
+across frontend + backend; all fixed and shipped in one session.
+
+**Deploy plumbing (committed 6a92fcc..d915ac3):**
+- Traefik dynamic config: `/opt/traefik/dynamic/workout-addon.yml` + `merge-workout.py`. Some other process on the VPS regenerates `routers.yml` periodically — re-run the merge script if workout routes disappear.
+- Host ports: web=3025, api=3026 (3020 was taken by `lull-relay`). Both bound to 127.0.0.1.
+- Caddy in web container: `route /api/* → api:8000`, `route /healthz → api:8000`, SPA fallback for `/share/<unlockId>` + everything else.
+- LE certs auto-issued for `workout.ashbi.ca` + `api.workout.ashbi.ca` + `www.workout.ashbi.ca` (verified in `/opt/traefik/acme.json`, 19 total certs).
+- Soft-delete daily cron: `17 3 * * * cd /opt/calisthenics-tree && make purge-deleted >> /var/log/calisthenicstree/purge.log 2>&1`.
+- `make deploy` script default `VPS_DEPLOY_DIR` corrected to `/opt/calisthenics-tree` (with hyphen, matches repo name).
+
+**Bugs found and fixed during deploy QA:**
+
+1. **API build context bug** (`api/Dockerfile` paths assume `apps/api/` is the build context, but compose had `context: .`). Fixed both `docker-compose.yml` + `docker-compose.prod.yml`. CI never caught it because CI only builds the web container.
+2. **`npm ci` ERESOLVE**: project pins `typescript@~6.0.2` but `react-i18next@15.7.4` wants `typescript@^5`. Lockfile pins a working resolution; added `--legacy-peer-deps` to web Dockerfile.
+3. **`prebuild` hook requires running Vite dev server**: dropped it from `package.json` (committed PNGs at `apps/web/public/share/*.png` are the canonical production asset).
+4. **Alembic 0001_initial.py multi-statement SQL**: asyncpg rejects prepared statements with multiple commands. Split the 3 `CREATE TEMP TABLE` and 7 `INSERT INTO progression_edges` blocks into individual `op.execute()` calls.
+5. **`POSTGRES_PASSWORD` not reaching containers**: was an `--env-file` quirk; resolved by adding `--env-file /root/calisthenicstree-secrets/.env` to `docker compose` invocations.
+6. **`routes/trees.py` `n.movement_type` AttributeError**: movement_type lives on Exercise, not ProgressionNode. Test didn't exercise the response shape end-to-end.
+7. **`routes/nodes.py` `node.movement_type` AttributeError**: same class of bug, fixed by reading `exercise.movement_type` from the join tuple. (`hasattr(...)` ternary was a band-aid from a previous attempt — replaced with the correct attribute.)
+8. **Caddy `try_files` rewrite ran before path-specific handlers**: switched from bare `reverse_proxy /api/*` (which was overridden by try_files) to explicit `route /api/* { ... }` blocks. `handle_path` doesn't work either — it's a subroute, not a separate route.
+9. **Caddy `route /share/*` proxied SPA route to api**: 404'd `/share/<unlockId>` for OG previews. Removed the route — `/share/<id>.png` served as static by file_server, `/share/<unlockId>` falls through to SPA fallback.
+10. **OnboardingResultPage guard bounced to /login during auth hydration**: `if (authStatus !== 'authenticated')` matched `'loading'` too. Fixed to `if (authStatus === 'loading') return; if (authStatus === 'anonymous') navigate('/login')` — matches `RequireAuth`'s pattern.
+
+**Cosmetic fixes:**
+- Home page Backend status: was showing `/healthz → checking…` (404'd). Fixed by proxying `/healthz` to api.
+- Share card footer `calisthenicstree.app` → `workout.ashbi.ca` (old domain before Sprint 27 switch).
+
 ## Open questions before Sprint 1
 
 1. **CI/CD?** Repo has no `.github/`. PLAN.md describes `GitHub Actions on push
