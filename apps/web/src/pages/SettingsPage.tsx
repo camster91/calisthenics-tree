@@ -34,6 +34,7 @@ import {
   updateMe,
   ApiError,
 } from '../lib/api';
+import * as local from '../lib/local-mode';
 import {
   Sun,
   Moon,
@@ -41,6 +42,7 @@ import {
   MonitorSmartphone,
   Check,
   LogOut,
+  RefreshCcw,
 } from 'lucide-react';
 import { tokens } from '../tokens';
 import { cn } from '../lib/cn';
@@ -550,6 +552,30 @@ export default function SettingsPage() {
           <LogOut aria-hidden className="h-4 w-4" />
           {t('auth.logout')}
         </button>
+
+        {/* Local-mode only: wipe all local data and restart onboarding.
+            Useful for testing different placements without losing your
+            email-backed account on the server (local-mode doesn't touch
+            the server). */}
+        {local.isLocalMode() && (
+          <button
+            type="button"
+            onClick={() => {
+              const confirmed = window.confirm(
+                'Reset everything on this device? This deletes all locally-saved workouts, placements, and onboarding answers. There is no undo.',
+              );
+              if (!confirmed) return;
+              local.resetLocalMode();
+              localStorage.removeItem('ct:onboarding');
+              window.location.href = '/onboarding/q1';
+            }}
+            className="btn-ghost inline-flex w-full items-center justify-center gap-2 border border-surface-border text-surface-fg-muted"
+            data-testid="settings-reset-local"
+          >
+            <RefreshCcw aria-hidden className="h-4 w-4" />
+            Reset & re-onboard (local-only)
+          </button>
+        )}
       </section>
 
       {/* ====================== ICON-ONLY BUTTON EXAMPLE ======================
