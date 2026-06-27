@@ -5,11 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#0B1220" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Workout" />
     <meta
       name="description"
       content="A real skill tree for calisthenics. Unlock planche, front lever, handstand — progression that makes sense."
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/icon-180.png" />
     <!--
       T39 — Open Graph + Twitter Card metadata. Points at the static share
       PNG so Slack / iMessage / Twitter / Facebook render a rich preview
@@ -46,5 +51,22 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Register the service worker after the page loads. PWA installability
+      // requires the SW to be served from the same origin over HTTPS, which
+      // workout.ashbi.ca already satisfies (Traefik handles TLS).
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('/sw.js')
+            .then((reg) => {
+              console.info('[pwa] service worker registered, scope:', reg.scope);
+            })
+            .catch((err) => {
+              console.warn('[pwa] service worker registration failed:', err);
+            });
+        });
+      }
+    </script>
   </body>
 </html>
