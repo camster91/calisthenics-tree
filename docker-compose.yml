@@ -5,17 +5,17 @@
 # For production, see `docker-compose.prod.yml`. The two files are
 # deliberately split so local dev stays friendly (db port exposed for
 # Postico / pgAdmin, bind mount for share-cards so re-renders are live,
-# plain HTTP via Caddy with no ACME), while production gets a hardened
-# shape (no db port, named volumes, TLS + security headers, resource
-# limits, explicit restart policies).
+# plain HTTP via Caddy with no ACME), while production uses Traefik for
+# TLS termination (workout.ashbi.ca → this stack via Docker labels on
+# the web service).
 #
 # Differences from `docker-compose.prod.yml`:
-#   - db exposes 5433:5432 for local Postgres tools
+#   - db exposes 5433:5432 for local Postgres tooling
 #   - api mounts `./apps/web/public/share` as a bind mount (re-rendering
 #     a share card on the host immediately reflects in the container)
 #   - web binds :80 only (no ACME challenge on 443 needed locally)
 #   - no resource limits (let the dev machine breathe)
-#   - CADDY_DOMAIN unset → Caddy runs plain HTTP
+#   - no Traefik labels (local dev doesn't use Traefik)
 
 services:
   db:
@@ -71,10 +71,9 @@ services:
     restart: unless-stopped
     depends_on:
       - api
-    environment:
-      # CADDY_DOMAIN unset → Caddy listens on :80 plain HTTP (dev mode).
-      # See apps/web/Caddyfile for the env-driven mode switch.
-      CADDY_DOMAIN: ${CADDY_DOMAIN:-}
+    # No CADDY_DOMAIN env needed in dev — the Caddyfile uses :80
+    # directly (no TLS, no env-driven mode switch). Production uses
+    # Traefik for TLS termination, see docker-compose.prod.yml.
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:80/healthz"]
       interval: 30s

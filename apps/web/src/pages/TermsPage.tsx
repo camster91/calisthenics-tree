@@ -63,8 +63,8 @@ export default function TermsPage() {
       <h2>Contact</h2>
       <p>
         Questions:{' '}
-        <a href="mailto:hello@calisthenics-tree.com" className="text-primary underline">
-          hello@calisthenics-tree.com
+        <a href="mailto:hello@workout.ashbi.ca" className="text-primary underline">
+          hello@workout.ashbi.ca
         </a>
       </p>
     </main>

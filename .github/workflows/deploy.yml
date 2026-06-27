@@ -36,7 +36,7 @@ jobs:
     # with a clear error).
     environment:
       name: production
-      url: https://calisthenics-tree.com
+      url: https://workout.ashbi.ca
     steps:
       - uses: actions/checkout@v4
 
@@ -82,7 +82,7 @@ jobs:
           sleep 10  # Caddy ACME cert may take a moment on first request
           for i in 1 2 3 4 5; do
             if curl -fsS -o /dev/null -w '%{http_code}' \
-                https://calisthenics-tree.com/healthz | grep -q 200; then
+                https://workout.ashbi.ca/healthz | grep -q 200; then
               echo "Public /healthz: 200"
               exit 0
             fi

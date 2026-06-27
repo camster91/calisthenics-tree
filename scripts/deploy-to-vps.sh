@@ -11,7 +11,9 @@
 #   - Traefik is already running on the VPS (per the existing infra pattern)
 #   - /root/calisthenicstree-secrets/.env already exists (sourced from
 #     scripts/.env.production.example, copied over ssh)
-#   - DNS for calisthenics-tree.com points at the VPS via Cloudflare proxy
+#   - DNS for workout.ashbi.ca (wildcard at *.ashbi.ca) points at the VPS.
+#     Traefik on the host routes workout.ashbi.ca → web:80 in this
+#     compose via Docker labels.
 #
 # What this does:
 #   1. Run preflight.sh locally (validates docker build + tests)
@@ -124,5 +126,5 @@ else
 fi
 
 hr "Done"
-log "Deployment complete. Public URL: https://calisthenics-tree.com"
+log "Deployment complete. Public URL: https://workout.ashbi.ca"
 log "If something looks off: ssh $VPS_HOST 'cd $VPS_DEPLOY_DIR && docker compose -f docker-compose.prod.yml logs -f --tail=200'"
