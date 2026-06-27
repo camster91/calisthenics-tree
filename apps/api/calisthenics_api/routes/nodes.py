@@ -67,7 +67,7 @@ async def get_node(
     return {
         "node_id": f"node_{node.id}",
         "exercise_name": exercise.name,
-        "movement_type": node.movement_type if hasattr(node.movement_type, "value") else node.movement_type,
+        "movement_type": exercise.movement_type,
         "target_sets": node.target_sets,
         "target_reps": node.target_reps,
         "target_hold_secs": node.target_hold_secs,
