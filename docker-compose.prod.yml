@@ -91,18 +91,6 @@ services:
       retries: 3
     expose:
       - "8000"
-    # Traefik labels: api runs at api.workout.ashbi.ca (or
-    # workout.ashbi.ca/api/* when reached via the web container's
-    # /api/* reverse proxy — preferred path so the SPA never sees
-    # a cross-origin API base URL).
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=traefik"
-      - "traefik.http.routers.calisthenics-api.rule=Host(`api.workout.ashbi.ca`)"
-      - "traefik.http.routers.calisthenics-api.entrypoints=websecure"
-      - "traefik.http.routers.calisthenics-api.tls=true"
-      - "traefik.http.routers.calisthenics-api.tls.certresolver=letsencrypt"
-      - "traefik.http.services.calisthenics-api.loadbalancer.server.port=8000"
     deploy:
       resources:
         limits:
@@ -122,29 +110,14 @@ services:
     restart: unless-stopped
     depends_on:
       - api
-    # No host port mapping — Traefik talks to this container via the
-    # `traefik` Docker network. The container listens on :80 internally.
-    expose:
-      - "80"
-    # Traefik labels for the workout.ashbi.ca public hostname.
-    # - workout.ashbi.ca            → web:80 (this container, Caddy
-    #   in-container then reverse-proxies /api/* → api:8000 internally
-    #   so the SPA never sees a cross-origin API base URL)
-    # - www.workout.ashbi.ca redirect → workout.ashbi.ca (handled by
-    #   Traefik's redirectRegex middleware in the dynamic config)
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=traefik"
-      - "traefik.http.routers.calisthenics-web.rule=Host(`workout.ashbi.ca`)"
-      - "traefik.http.routers.calisthenics-web.entrypoints=websecure"
-      - "traefik.http.routers.calisthenics-web.tls=true"
-      - "traefik.http.routers.calisthenics-web.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.calisthenics-web.service=calisthenics-web"
-      - "traefik.http.services.calisthenics-web.loadbalancer.server.port=80"
-      # Force the response to be HTTPS (defense in depth — Traefik
-      # already terminates TLS but if a service ever gets bypassed, this
-      # HSTS header tells browsers to upgrade anyway).
-      - "traefik.http.routers.calisthenics-web.middlewares=hsts@docker"
+    # Host port mapping (matches the ai-billing-audit pattern on the
+    # same VPS). Traefik reaches the web container via 127.0.0.1:3020.
+    # The host port (3020) is intentionally NOT 80/443 — Traefik owns
+    # those for ACME + the multi-app routing layer. The web container's
+    # Caddy then reverse-proxies /api/* → api:8000 over the internal
+    # Docker network so the SPA never sees a cross-origin API base URL.
+    ports:
+      - "127.0.0.1:3020:80"
     deploy:
       resources:
         limits:
@@ -162,20 +135,32 @@ volumes:
   calisthenics_share:
 
 # -----------------------------------------------------------------------------
-# Traefik dynamic config snippet for this app — drop into
+# Traefik dynamic config snippet for this app — to enable routing,
+# append the following routers + services to
 # /opt/traefik/dynamic/routers.yml (merge with the existing entries;
-# do NOT replace the whole file — see previous-session gotcha).
+# do NOT replace the whole file — see the previous-session gotcha
+# about heredoc-YAML overwrites silently dropping keys).
 #
-#   middlewares:
-#     hsts:
-#       headers:
-#         stsIncludeSubdomains: true
-#         stsSeconds: 31536000
-#         stsPreload: true
+# Routers:
+#   workout-web:
+#     rule: Host(`workout.ashbi.ca`)
+#     entryPoints: [websecure]
+#     service: workout-web
+#     tls: { certResolver: letsencrypt }
 #
-# (The HSTS middleware above is referenced by calisthenics-web via the
-# "traefik.http.routers.calisthenics-web.middlewares=hsts@docker" label.
-# If Traefik can't resolve the middleware, the route still works
-# without HSTS — just re-add the middleware on the next maintenance
-# window.)
+# Services:
+#   workout-web:
+#     loadBalancer:
+#       servers:
+#       - url: http://127.0.0.1:3020
+#
+# Optional: also add a www→apex redirect:
+#   workout-www-redirect:
+#     rule: Host(`www.workout.ashbi.ca`)
+#     entryPoints: [websecure]
+#     middlewares: [redirect-to-apex]
+#     service: workout-web
+#     tls: { certResolver: letsencrypt }
+#
+# (redirect-to-apex middleware defined elsewhere in routers.yml.)
 # -----------------------------------------------------------------------------
