@@ -389,5 +389,15 @@ export const syncWorkouts = (payload: WorkoutsSyncRequest) =>
     body: payload,
   });
 
-/** GET /healthz — no auth. */
-export const getHealth = () => api<{ status: string }>('/healthz', { skipAuth: true });
+/** GET /healthz — no auth.
+ *
+ * Called at the ROOT path, NOT under /api/v1 — the backend mounts the
+ * health router at /healthz directly (see main.py line 73) so an
+ * orchestrator liveness probe doesn't need to know the API version.
+ * Going through api() would prepend '/api/v1' and 404.
+ */
+export const getHealth = () =>
+  fetch('/healthz').then(async (r) => {
+    if (!r.ok) throw new ApiError(r.status, await r.text(), `${r.status} ${r.statusText} on /healthz`);
+    return (await r.json()) as { status: string };
+  });

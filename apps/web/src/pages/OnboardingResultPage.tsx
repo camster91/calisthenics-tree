@@ -38,12 +38,19 @@ export default function OnboardingResultPage() {
   );
 
   // Guard: must be authed AND have completed answers to be here.
+  // Match RequireAuth's loading-spinner pattern so a brief 'loading' phase
+  // during AuthProvider hydration doesn't bounce us to /login. Without this
+  // fix, a fast user who lands on /onboarding/result right after verify
+  // (or after a hard refresh on the result page) sees the auth status flash
+  // from 'loading' to 'authenticated' and the previous logic redirected to
+  // /login on the 'loading' tick.
   useEffect(() => {
+    if (authStatus === 'loading') return;
     if (!isComplete) {
       navigate('/onboarding/q1', { replace: true });
       return;
     }
-    if (authStatus !== 'authenticated') {
+    if (authStatus === 'anonymous') {
       navigate('/login', { replace: true });
       return;
     }
