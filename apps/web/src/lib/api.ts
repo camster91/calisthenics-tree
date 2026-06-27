@@ -179,6 +179,9 @@ async function localMockRoute<T>(path: string, body: unknown, method: string): P
   // Feed
   if (p.startsWith('/feed')) return local.getLocalFeed() as T;
 
+  // History (local-mode only — no backend equivalent yet)
+  if (p === '/users/me/history') return local.getLocalHistory() as T;
+
   // Friends
   if (p.startsWith('/friends')) return local.getLocalFriends() as T;
 

@@ -55,6 +55,14 @@ export default function Layout() {
               {t('nav.feed')}
             </NavLink>
             <NavLink
+              to="/history"
+              className={({ isActive }) =>
+                `btn-ghost ${isActive ? 'bg-surface-muted' : ''}`
+              }
+            >
+              History
+            </NavLink>
+            <NavLink
               to="/settings"
               className={({ isActive }) =>
                 `btn-ghost ${isActive ? 'bg-surface-muted' : ''}`

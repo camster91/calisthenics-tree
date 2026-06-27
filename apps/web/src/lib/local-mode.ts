@@ -421,7 +421,62 @@ export function logLocalWorkout(log: LocalSyncedLog): {
 }
 
 export function getLocalWorkouts(): LocalSyncedLog[] {
-  return read().workouts;
+  // Sort newest first by logged_at
+  return [...read().workouts].sort((a, b) => (a.logged_at < b.logged_at ? 1 : -1));
+}
+
+/**
+ * Aggregate view of recent workouts for the /history page. Returns one row
+ * per workout with the exercise name resolved from the local tree, plus
+ * a per-tree streak count.
+ */
+export function getLocalHistory(): {
+  recent: {
+    id: string; // synthesized from node_id + logged_at
+    logged_at: string;
+    exercise_name: string;
+    tree_id: string;
+    tree_name: string;
+    node_id: string;
+    sets_completed: number;
+    sets_target: number;
+    is_promotion: boolean;
+  }[];
+  total_workouts: number;
+  streak_days: number;
+} {
+  const data = read();
+  const workouts = [...data.workouts].sort((a, b) => (a.logged_at < b.logged_at ? 1 : -1));
+  const recent = workouts.map((w) => {
+    const tree = TREES.find((t) => t.id === w.tree_id);
+    const node = tree?.nodes.find((n) => n.id === w.node_id);
+    const setsCompleted = w.sets.filter((s) => s.completed).length;
+    const targetSets = node?.target_sets ?? 3;
+    const isPromotion = setsCompleted >= targetSets && (data.workout_counts[w.node_id] ?? 0) === 0;
+    return {
+      id: `${w.node_id}-${w.logged_at}`,
+      logged_at: w.logged_at,
+      exercise_name: node?.name ?? w.node_id,
+      tree_id: w.tree_id,
+      tree_name: tree?.name ?? w.tree_id,
+      node_id: w.node_id,
+      sets_completed: setsCompleted,
+      sets_target: targetSets,
+      is_promotion: isPromotion,
+    };
+  });
+  // Streak = consecutive days with at least 1 workout, ending today or yesterday.
+  const daysWithWorkout = new Set(
+    workouts.map((w) => new Date(w.logged_at).toISOString().slice(0, 10)),
+  );
+  let streak = 0;
+  const cursor = new Date();
+  cursor.setUTCHours(0, 0, 0, 0);
+  while (daysWithWorkout.has(cursor.toISOString().slice(0, 10))) {
+    streak += 1;
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+  return { recent, total_workouts: workouts.length, streak_days: streak };
 }
 
 // ----------------------------- profile / settings -----------------------------
