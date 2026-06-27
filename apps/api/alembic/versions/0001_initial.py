@@ -281,13 +281,11 @@ def upgrade() -> None:
     # by name. The function below creates the tree/exercise/node rows
     # in a single transaction and emits the node IDs to a temp table
     # so the edge-wiring step can reference them.
-    op.execute(
-        """
-        CREATE TEMP TABLE seed_push_nodes (rank_level INT, node_id UUID) ON COMMIT DROP;
-        CREATE TEMP TABLE seed_pull_nodes (rank_level INT, node_id UUID) ON COMMIT DROP;
-        CREATE TEMP TABLE seed_core_nodes (rank_level INT, node_id UUID) ON COMMIT DROP;
-        """
-    )
+    # asyncpg doesn't support multi-statement prepared statements, so
+    # each CREATE TEMP TABLE has to be its own op.execute() call.
+    op.execute("CREATE TEMP TABLE seed_push_nodes (rank_level INT, node_id UUID) ON COMMIT DROP")
+    op.execute("CREATE TEMP TABLE seed_pull_nodes (rank_level INT, node_id UUID) ON COMMIT DROP")
+    op.execute("CREATE TEMP TABLE seed_core_nodes (rank_level INT, node_id UUID) ON COMMIT DROP")
 
     # --- Push tree: Vertical Push (Handstand Push-Up Path) ---
     push_nodes = [
