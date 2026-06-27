@@ -279,7 +279,8 @@ export function getLocalProgressions(): {
       tree_name: p.tree_name,
       current_node: node
         ? {
-            node_id: `node_${node.id}`,
+            // TREES nodes use wire-format ids (node_push-4) directly.
+            node_id: node.id,
             exercise_name: node.name,
             movement_type: node.movement_type,
             target_sets: node.target_sets,
@@ -287,7 +288,7 @@ export function getLocalProgressions(): {
             target_hold_secs: node.target_hold_secs,
           }
         : {
-            node_id: `node_${p.starting_node_id}`,
+            node_id: p.starting_node_id,
             exercise_name: p.starting_node_name,
             movement_type: 'isotonic' as const,
             target_sets: 3,
@@ -305,7 +306,7 @@ export function getLocalProgressions(): {
 
 // ----------------------------- node lookup -----------------------------
 
-/** Fetch a single node by the wire-format id `node_<local_id>`. */
+/** Fetch a single node by the wire-format id `node_<slug>-<rank>`. */
 export function getLocalNode(wireId: string): {
   node_id: string;
   exercise_name: string;
@@ -314,12 +315,11 @@ export function getLocalNode(wireId: string): {
   target_reps: number | null;
   target_hold_secs: number | null;
 } | null {
-  const localId = wireId.replace(/^node_/, '');
   for (const tree of TREES) {
-    const node = tree.nodes.find((n) => n.id === localId);
+    const node = tree.nodes.find((n) => n.id === wireId);
     if (node) {
       return {
-        node_id: `node_${node.id}`,
+        node_id: node.id,
         exercise_name: node.name,
         movement_type: node.movement_type,
         target_sets: node.target_sets,
@@ -347,7 +347,7 @@ export function getLocalTree(treeId: string): {
   const placement = data.placements.find((p) => p.tree_id === tree.id);
   const currentRank = placement?.starting_rank ?? 1;
   const nodes = tree.nodes.map((n, i) => ({
-    node_id: `node_${n.id}`,
+    node_id: n.id,
     rank_level: i + 1,
     exercise_name: n.name,
     movement_type: n.movement_type,
@@ -357,8 +357,8 @@ export function getLocalTree(treeId: string): {
   const edges: { from_node_id: string; to_node_id: string; edge_type: 'progression' | 'regression' | 'lateral' }[] = [];
   for (let i = 0; i < tree.nodes.length - 1; i++) {
     edges.push({
-      from_node_id: `node_${tree.nodes[i].id}`,
-      to_node_id: `node_${tree.nodes[i + 1].id}`,
+      from_node_id: tree.nodes[i].id,
+      to_node_id: tree.nodes[i + 1].id,
       edge_type: 'progression',
     });
   }

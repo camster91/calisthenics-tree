@@ -137,7 +137,9 @@ async function localMockRoute<T>(path: string, body: unknown, method: string): P
     const placements = (['push', 'pull', 'core'] as const).map((slug) => ({
       tree_id: `tree-${slug}`,
       tree_name: TREE_DISPLAY_NAMES[slug],
-      starting_node_id: `node-${slug}-${archetype.startRank}`,
+      // Match the wire format used everywhere else (TREES nodes,
+      // workout logs): node_<slug>-<rank> with underscore.
+      starting_node_id: `node_${slug}-${archetype.startRank}`,
       starting_node_name: nameForRank(slug, archetype.startRank),
       starting_rank: archetype.startRank,
     }));
