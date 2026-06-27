@@ -196,6 +196,34 @@ class WorkoutsSyncResponse(BaseModel):
 
 
 # -----------------------------------------------------------------------------#
+# GET /api/v1/users/me/history
+# -----------------------------------------------------------------------------#
+
+
+class HistoryRow(BaseModel):
+    """One logged workout row, joined with the exercise + tree name.
+
+    Matches the shape consumed by apps/web/src/pages/HistoryPage.tsx so
+    the frontend renders server-mode history with zero changes.
+    """
+    id: str
+    logged_at: datetime
+    exercise_name: str
+    tree_id: str
+    tree_name: str
+    node_id: str
+    sets_completed: int
+    sets_target: int
+    is_promotion: bool
+
+
+class HistoryResponse(BaseModel):
+    recent: list[HistoryRow]
+    total_workouts: int
+    streak_days: int
+
+
+# -----------------------------------------------------------------------------#
 # POST /api/v1/onboarding/place
 # -----------------------------------------------------------------------------#
 

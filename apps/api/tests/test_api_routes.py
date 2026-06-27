@@ -310,4 +310,157 @@ def test_openapi_spec_published(client):
     assert "/api/v1/users/me/progressions" in spec["paths"]
     assert "/api/v1/workouts/sync" in spec["paths"]
     assert "/api/v1/onboarding/place" in spec["paths"]
+
+
+# -----------------------------------------------------------------------------#
+# GET /api/v1/users/me/history
+# -----------------------------------------------------------------------------#
+
+
+def test_history_requires_auth(client):
+    r = client.get("/api/v1/users/me/history")
+    assert r.status_code == 401
+
+
+def test_history_empty_for_fresh_user(client):
+    """No workouts logged yet → recent=[], total_workouts=0, streak_days=0."""
+    # Make sure we're past onboarding first (clear any prior placement).
+    # Then read history directly. Even without placement, history is just "empty".
+    r = client.get(
+        "/api/v1/users/me/history",
+        headers={"Authorization": f"Bearer {BEARER_TOKEN}"},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["recent"] == []
+    assert body["total_workouts"] == 0
+    assert body["streak_days"] == 0
+
+
+def test_history_after_one_workout(client):
+    """Log one workout, then history returns 1 row with the right shape."""
+    headers = {"Authorization": f"Bearer {BEARER_TOKEN}"}
+
+    # Place + grab a node_id
+    client.post(
+        "/api/v1/onboarding/place",
+        json={
+            "answers": {
+                "can_pull_up": True,
+                "support_hold_15s": True,
+                "active_hang_10s": False,
+                "rir2_pushup_reps": 8,
+            }
+        },
+        headers=headers,
+    )
+    r = client.get("/api/v1/users/me/progressions", headers=headers)
+    body = r.json()
+    pull_prog = next(p for p in body["active_progressions"] if "Pull" in p["tree_name"])
+    node_id = pull_prog["current_node"]["node_id"]
+
+    # Log 1 workout on that node
+    sync_r = client.post(
+        "/api/v1/workouts/sync",
+        json={
+            "sync_client_timestamp": "2026-06-25T12:00:00Z",
+            "workouts": [
+                {
+                    "client_workout_id": "history-test-wk-1",
+                    "completed_at": "2026-06-25T11:30:00Z",
+                    "logs": [
+                        {
+                            "node_id": node_id,
+                            "sets": [
+                                {"set_number": 1, "hold_secs": 15, "reps": None},
+                                {"set_number": 2, "hold_secs": 12, "reps": None},
+                            ],
+                        }
+                    ],
+                }
+            ],
+        },
+        headers=headers,
+    )
+    assert sync_r.status_code == 201
+
+    r = client.get("/api/v1/users/me/history", headers=headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["total_workouts"] == 1
+    # 2 sets logged => 2 rows (one HistoryRow per set_log in the join)
+    assert len(body["recent"]) == 2
+    row = body["recent"][0]
+    # Wire-format checks
+    assert row["id"]  # non-empty
+    assert row["exercise_name"]
+    assert row["tree_id"].startswith("tree_")
+    assert row["tree_name"]
+    assert row["node_id"].startswith("node_")
+    assert row["sets_completed"] == 1
+    assert row["sets_target"] >= 1
+    assert isinstance(row["is_promotion"], bool)
+    assert "logged_at" in row
+    # Streak: workout was today-ish, so >= 1
+    assert body["streak_days"] >= 1
+
+
+def test_history_isolated_per_user(client):
+    """Each user sees only their own workouts."""
+    h1 = {"Authorization": f"Bearer {BEARER_TOKEN}"}
+
+    # User 1: place + log a workout
+    client.post(
+        "/api/v1/onboarding/place",
+        json={
+            "answers": {
+                "can_pull_up": True,
+                "support_hold_15s": True,
+                "active_hang_10s": False,
+                "rir2_pushup_reps": 8,
+            }
+        },
+        headers=h1,
+    )
+    r = client.get("/api/v1/users/me/progressions", headers=h1)
+    body = r.json()
+    pull_prog = next(p for p in body["active_progressions"] if "Pull" in p["tree_name"])
+    node_id = pull_prog["current_node"]["node_id"]
+
+    client.post(
+        "/api/v1/workouts/sync",
+        json={
+            "sync_client_timestamp": "2026-06-25T13:00:00Z",
+            "workouts": [
+                {
+                    "client_workout_id": "history-isolation-wk-1",
+                    "completed_at": "2026-06-25T12:00:00Z",
+                    "logs": [
+                        {
+                            "node_id": node_id,
+                            "sets": [
+                                {"set_number": 1, "hold_secs": 15, "reps": None},
+                            ],
+                        }
+                    ],
+                }
+            ],
+        },
+        headers=h1,
+    )
+    r1 = client.get("/api/v1/users/me/history", headers=h1)
+    assert r1.status_code == 200
+    user1_count = r1.json()["total_workouts"]
+    assert user1_count == 1
+
+    # User 2: separate bearer (from BEARER_TOKEN2, falls back to BEARER_TOKEN if absent —
+    # which means we can't truly isolate users with this test fixture; flag it instead).
+    bearer2 = os.environ.get("BEARER_TOKEN2", BEARER_TOKEN)
+    if bearer2 == BEARER_TOKEN:
+        pytest.skip("No BEARER_TOKEN2 set; cannot test cross-user isolation in this env")
+    h2 = {"Authorization": f"Bearer {bearer2}"}
+    r2 = client.get("/api/v1/users/me/history", headers=h2)
+    assert r2.status_code == 200
+    # User 2 has no workouts of their own
+    assert r2.json()["total_workouts"] == 0
     assert "/healthz" in spec["paths"]
