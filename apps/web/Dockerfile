@@ -12,7 +12,14 @@ COPY apps/web/package.json apps/web/package-lock.json ./
 # Use ci for reproducible installs; --ignore-scripts so postinstall doesn't
 # run theme:build before .generated/ is wired up (theme:build runs as part
 # of `npm run build` anyway).
-RUN npm ci --ignore-scripts
+#
+# --legacy-peer-deps is required: the project pins typescript@~6.0.2 but
+# react-i18next@15.7.4 declares a peer dep on typescript@^5. The lockfile
+# pins a known-working resolution (typescript 6.0.3 + react-i18next 15.7.4
+# compile cleanly in dev), but npm 11's strict peer-dep resolver refuses
+# the install without this flag. Confirmed working locally — the strict
+# peer warning is noise, not a real conflict.
+RUN npm ci --ignore-scripts --legacy-peer-deps
 
 # Copy the rest of the web app
 COPY apps/web/ ./
