@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "npm run share:render -- --dev",
     "build": "npm run theme:build && tsc -b && vite build",
     "theme:build": "tsx scripts/build-theme.mjs",
     "postinstall": "npm run theme:build",
     "verify:tokens": "tsx scripts/verify-contrast.mjs",
     "share:render": "tsx scripts/render-share.ts",
+    "regen-share": "npm run share:render -- --dev",
     "marketing:render": "tsx scripts/render-marketing.ts",
     "marketing:video": "tsx scripts/render-onboarding-video.ts",
     "lint": "oxlint",
