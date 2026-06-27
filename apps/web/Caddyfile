@@ -9,28 +9,21 @@
 #       on :80 internally (no TLS, no ACME) — Traefik labels on the
 #       web service route workout.ashbi.ca → this container.
 #
-# In both modes:
-#   - /api/*    → reverse-proxy to api:8000 (docker-network DNS)
-#   - /share/*  → same (social-bot previews + share-card rasterization)
-#   - /healthz  → static 200 (container healthcheck + uptime monitor)
-#   - everything else → index.html (SPA fallback for client routing)
+# Path routing inside this container:
+#   - /api/*    → reverse-proxy to api:8000
+#   - /healthz  → reverse-proxy to api:8000 (real healthz payload;
+#                 Docker's HEALTHCHECK still sees 200)
+#   - /share/<id>.png → static PNG from public/share/ (committed in Sprint 18)
+#   - /share/<unlockId> → SPA fallback → ShareRenderPage React component
+#   - everything else → SPA fallback → index.html
 #
 # IMPORTANT: each route is evaluated in declaration order, and the
 # FIRST matching route handles the request. The catch-all SPA fallback
-# MUST be the last route. Using `route` (not `handle_path`) so each
-# path matcher creates a separate route — `handle_path` only creates
-# a subroute within the current route, and the outer try_files
-# rewrite still runs first and rewrites the URI to /index.html before
-# the inner handlers get a chance to match.
+# MUST be the last route.
 
 :80 {
-    # API reverse-proxy — strip the prefix, forward rest to FastAPI
+    # API reverse-proxy — forward /api/* to FastAPI
     route /api/* {
-        reverse_proxy api:8000
-    }
-
-    # Share-card reverse-proxy (social-bot previews + share rasterization)
-    route /share/* {
         reverse_proxy api:8000
     }
 
@@ -40,6 +33,11 @@
     route /healthz {
         reverse_proxy api:8000
     }
+
+    # /share/* intentionally falls through to the SPA fallback below.
+    # Static PNGs committed to apps/web/public/share/ are served by
+    # file_server (try_files finds them first); /share/<unlockId>
+    # (no .png) hits the SPA fallback which routes to ShareRenderPage.
 
     # SPA fallback for everything else: try the file, fall back to index.html
     # so React Router can take over client-side.
