@@ -16,7 +16,7 @@
  *
  * Bump CACHE_NAME to invalidate old caches on deploy.
  */
-const CACHE_NAME = 'ct-shell-v1';
+const CACHE_NAME = 'ct-shell-v2';
 const APP_SHELL = [
   '/',
   '/login',
