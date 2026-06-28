@@ -9,6 +9,15 @@
  * that with a real, data-driven view. The hero stays for first-visit
  * marketing feel, then collapses into a "you're on <X> in <tree>" CTA
  * once progressions are loaded.
+ *
+ * Sprint 37 (Apple Fitness+ direction):
+ * - Hero section uses display-section typography (text-5xl, font-bold,
+ *   tracking-tighter) for the page title — was font-semibold text-4xl
+ * - Each progression card uses the new 'hero' Card variant (squircle
+ *   28px, glow shadow, primary accent ring) for the focal current node
+ * - BigNumber used for the target_hold_secs / target_reps display
+ * - "Start workout" CTA is a full-width squircle primary button
+ * - Empty state is a hero card with prominent onboarding CTA
  */
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -19,6 +28,8 @@ import {
   getMyProgressions,
   type ActiveProgression,
 } from '../lib/api';
+import { Card } from '../components/ui/card';
+import { BigNumber } from '../components/ui/big-number';
 
 const TREE_ICONS: Record<string, typeof Flame> = {
   push_handstand_pushup_path: Mountain,
@@ -53,12 +64,12 @@ export default function HomePage() {
 
   return (
     <div className="space-y-12">
-      <section className="space-y-4 text-balance">
-        <p className="chip">Your training</p>
-        <h1 className="text-4xl font-semibold leading-tight sm:text-5xl">
+      <section className="space-y-3 text-balance">
+        <p className="display-eyebrow">Your training</p>
+        <h1 className="text-5xl font-bold leading-heading tracking-tighter sm:text-6xl">
           Pick up where you left off.
         </h1>
-        <p className="max-w-xl text-lg text-surface-fg-muted">
+        <p className="max-w-xl text-lg leading-body text-surface-fg-muted">
           Three trees. One current node each. Log a workout to unlock the
           next rung, or regress if the load is too high today.
         </p>
@@ -79,10 +90,13 @@ export default function HomePage() {
 
       <section
         aria-labelledby="progressions-heading"
-        className="space-y-4"
+        className="space-y-5"
         data-testid="home-progressions"
       >
-        <h2 id="progressions-heading" className="text-2xl font-semibold">
+        <h2
+          id="progressions-heading"
+          className="text-3xl font-bold leading-heading tracking-tighter"
+        >
           Your progressions
         </h2>
 
@@ -92,71 +106,104 @@ export default function HomePage() {
             Loading your trees…
           </div>
         ) : progressions.length === 0 ? (
-          <div className="card space-y-3 text-sm text-surface-fg-muted">
-            <p>
-              No progressions yet. If you just completed onboarding, try
-              refreshing — otherwise contact support.
+          <Card variant="hero" className="space-y-4">
+            <p className="display-eyebrow">No progressions yet</p>
+            <h3 className="text-2xl font-bold leading-heading tracking-tighter">
+              Start with a 30-second check-in.
+            </h3>
+            <p className="text-base leading-body text-surface-fg-muted">
+              Four questions to figure out which rung of each tree you
+              belong on today. No equipment needed.
             </p>
-          </div>
+            <Link
+              to="/onboarding/q1"
+              className="btn-primary mt-2 inline-flex w-full items-center justify-center"
+              data-testid="home-empty-start-onboarding"
+            >
+              Start check-in
+              <ChevronRight aria-hidden className="h-4 w-4" />
+            </Link>
+          </Card>
         ) : (
-          <ul className="grid gap-4 sm:grid-cols-1 lg:grid-cols-3">
-            {progressions.map((p) => {
+          <ul className="grid gap-5 sm:grid-cols-1 lg:grid-cols-3">
+            {progressions.map((p, idx) => {
               const Icon =
                 TREE_ICONS[p.tree_name.toLowerCase().replace(/\s+/g, '_')] ??
                 Flame;
               const cn = p.current_node;
+              const isHold = typeof cn.target_hold_secs === 'number';
               return (
-                <li key={p.tree_id} className="card flex flex-col gap-3">
-                  <div className="flex items-center gap-3">
-                    <span
-                      aria-hidden
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-primary/15 text-primary"
-                    >
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <h3 className="text-base font-semibold">{p.tree_name}</h3>
-                  </div>
-
-                  <div className="space-y-1">
-                    <p
-                      className="text-lg font-semibold leading-tight"
-                      data-testid={`home-current-${p.tree_id}`}
-                    >
-                      {cn.exercise_name}
-                    </p>
-                    <p className="text-xs uppercase tracking-wider text-surface-fg-muted">
-                      Current node
-                    </p>
-                  </div>
-
-                  <div className="flex items-baseline gap-2 font-mono text-sm">
-                    <span className="text-surface-fg">{cn.target_sets}×</span>
-                    <span className="text-primary">
-                      {cn.target_hold_secs
-                        ? `${cn.target_hold_secs}s hold`
-                        : `${cn.target_reps ?? '?'} reps`}
-                    </span>
-                    <span className="text-xs text-surface-fg-muted">
-                      ({cn.movement_type})
-                    </span>
-                  </div>
-
-                  <Link
-                    to={`/workout/${encodeURIComponent(cn.node_id)}`}
-                    className="btn-primary mt-auto inline-flex items-center justify-between gap-2"
-                    data-testid={`home-start-${p.tree_id}`}
+                <li
+                  key={p.tree_id}
+                  className="spring-in"
+                  style={{ animationDelay: `${idx * 80}ms` }}
+                >
+                  <Card
+                    variant="hero"
+                    className="flex h-full flex-col gap-4"
+                    data-testid={`home-card-${p.tree_id}`}
                   >
-                    Start workout
-                    <ChevronRight aria-hidden className="h-4 w-4" />
-                  </Link>
+                    <div className="flex items-center gap-3">
+                      <span
+                        aria-hidden
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary"
+                      >
+                        <Icon className="h-5 w-5" />
+                      </span>
+                      <h3 className="text-lg font-bold tracking-tighter">
+                        {p.tree_name}
+                      </h3>
+                    </div>
 
-                  <Link
-                    to={`/tree/${encodeURIComponent(p.tree_id)}`}
-                    className="btn-ghost text-xs inline-flex items-center justify-center"
-                    data-testid={`home-view-${p.tree_id}`}
-                  >
-                    View full tree
-                  </Link>
+                    <div className="space-y-1">
+                      <p
+                        className="text-2xl font-bold leading-heading tracking-tighter text-surface-fg"
+                        data-testid={`home-current-${p.tree_id}`}
+                      >
+                        {cn.exercise_name}
+                      </p>
+                      <p className="display-eyebrow">Current node</p>
+                    </div>
+
+                    {/* Big-number target — Apple Fitness+ style focal counter */}
+                    <div className="flex items-baseline gap-3">
+                      <BigNumber
+                        size="xl"
+                        tone="primary"
+                        data-testid={`home-target-${p.tree_id}`}
+                      >
+                        {isHold
+                          ? `${cn.target_hold_secs}`
+                          : `${cn.target_reps ?? '?'}`}
+                      </BigNumber>
+                      <div className="space-y-0.5">
+                        <p className="text-sm font-semibold tracking-tight text-surface-fg">
+                          {cn.target_sets}× sets
+                        </p>
+                        <p className="text-xs text-surface-fg-muted">
+                          {isHold ? 'seconds hold' : 'reps'} ·{' '}
+                          {cn.movement_type}
+                        </p>
+                      </div>
+                    </div>
+
+                    <Link
+                      to={`/workout/${encodeURIComponent(cn.node_id)}`}
+                      className="btn-primary mt-auto inline-flex w-full items-center justify-center gap-2"
+                      data-testid={`home-start-${p.tree_id}`}
+                    >
+                      Start workout
+                      <ChevronRight aria-hidden className="h-4 w-4" />
+                    </Link>
+
+                    <Link
+                      to={`/tree/${encodeURIComponent(p.tree_id)}`}
+                      className="inline-flex items-center justify-center text-sm font-medium text-surface-fg-muted transition-colors hover:text-surface-fg"
+                      data-testid={`home-view-${p.tree_id}`}
+                    >
+                      View full tree →
+                    </Link>
+                  </Card>
                 </li>
               );
             })}
@@ -166,9 +213,7 @@ export default function HomePage() {
 
       {/* API status — visible during Phase 2 dev */}
       <section className="card">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-surface-fg-muted">
-          Backend status
-        </h2>
+        <h2 className="display-eyebrow">Backend status</h2>
         <p className="mt-2 font-mono text-sm">
           /healthz →{' '}
           <span className={health === 'ok' ? 'text-success' : 'text-warning'}>
