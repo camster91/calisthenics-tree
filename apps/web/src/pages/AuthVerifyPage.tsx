@@ -94,10 +94,11 @@ export default function AuthVerifyPage() {
   return (
     <main
       id="main"
-      className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-8 px-4 py-8"
+      className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-8 px-5 py-8"
     >
-      <header className="space-y-2 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight">
+      <header className="space-y-3 text-center">
+        <p className="display-eyebrow">Sign in</p>
+        <h1 className="text-balance text-4xl font-bold leading-heading tracking-tighter">
           {t('auth.verifying')}
         </h1>
       </header>
