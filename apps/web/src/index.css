@@ -98,32 +98,100 @@
 /*                                                                    */
 /* Tailwind v4 strictness: @apply cannot chain to another @layer       */
 /* component. Each variant inlines the shared base (the .btn rules). */
+/*                                                                    */
+/* Sprint 37: Apple Fitness+ direction — squircle radii (--radius-lg  */
+/* = 20px), spring motion on press (scale + ease-spring), glass       */
+/* surface on .card-glass, heavy display weights on .display-*       */
 /* ------------------------------------------------------------------ */
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold;
     min-height: 48px; /* WCAG 2.5.5 tap target floor */
+    transition: background-color var(--motion-micro, 150ms) ease-out,
+                transform var(--motion-instant, 80ms) cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .btn:active {
+    transform: scale(0.97);
   }
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors bg-primary text-primary-on hover:bg-primary-hover active:bg-primary-active;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold bg-primary text-primary-on hover:bg-primary-hover active:bg-primary-active;
     min-height: 48px;
+    transition: background-color var(--motion-micro, 150ms) ease-out,
+                transform var(--motion-instant, 80ms) cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .btn-primary:active {
+    transform: scale(0.97);
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors bg-transparent text-surface-fg hover:bg-surface-muted;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold bg-transparent text-surface-fg hover:bg-surface-muted;
     min-height: 48px;
+    transition: background-color var(--motion-micro, 150ms) ease-out,
+                transform var(--motion-instant, 80ms) cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .btn-ghost:active {
+    transform: scale(0.97);
   }
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors bg-danger text-white hover:opacity-90;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold bg-danger text-white hover:opacity-90;
     min-height: 48px;
+    transition: background-color var(--motion-micro, 150ms) ease-out,
+                transform var(--motion-instant, 80ms) cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .btn-danger:active {
+    transform: scale(0.97);
   }
 
   .card {
-    @apply rounded-lg border border-surface-border bg-surface-subtle p-4 shadow-sm;
+    @apply rounded-xl border border-surface-border bg-surface-subtle p-5 shadow-sm;
+  }
+
+  /* Glass card — Apple-style frosted surface for floating elements.
+     Use on cards that sit on top of content (workout header over scrolling,
+     share cards in feed, hero overlays). Falls back to subtle surface when
+     backdrop-filter is unsupported. */
+  .card-glass {
+    background-color: var(--color-glass);
+    backdrop-filter: blur(var(--blur-md)) saturate(180%);
+    -webkit-backdrop-filter: blur(var(--blur-md)) saturate(180%);
+    @apply rounded-xl border border-surface-border p-5;
+    box-shadow: var(--shadow-glass);
   }
 
   .chip {
-    @apply inline-flex items-center gap-1 rounded-full bg-surface-muted px-2 py-0.5 text-xs font-medium text-surface-fg-muted;
+    @apply inline-flex items-center gap-1 rounded-full bg-surface-muted px-2.5 py-1 text-xs font-medium text-surface-fg-muted;
+  }
+
+  /* Display text utilities — heavy weights, tight tracking, controlled
+     line-height. Used for hero numerals, big section headers, rep counters. */
+  .display-hero {
+    @apply font-black leading-display tracking-tightest;
+  }
+  .display-section {
+    @apply font-bold leading-heading tracking-tighter;
+  }
+  .display-eyebrow {
+    @apply text-xs font-semibold uppercase tracking-widest text-surface-fg-muted;
+  }
+
+  /* Spring entry animation — for cards / sheets / hero sections that
+     animate in on mount. Respects prefers-reduced-motion (global rule above). */
+  .spring-in {
+    animation: spring-in var(--motion-spring, 500ms) var(--ease-spring);
+  }
+  @keyframes spring-in {
+    0% {
+      opacity: 0;
+      transform: translateY(8px) scale(0.96);
+    }
+    60% {
+      opacity: 1;
+      transform: translateY(-2px) scale(1.02);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
   }
 }
 

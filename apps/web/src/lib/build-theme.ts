@@ -71,6 +71,22 @@ function zVar(key: string): string {
   return `--z-index-${kebab(key)}`;
 }
 
+function blurVar(key: string): string {
+  return `--blur-${kebab(key)}`;
+}
+
+function lineHeightVar(key: string): string {
+  return `--leading-${kebab(key)}`;
+}
+
+function letterSpacingVar(key: string): string {
+  return `--tracking-${kebab(key)}`;
+}
+
+function fontWeightVar(key: string): string {
+  return `--font-weight-${kebab(key)}`;
+}
+
 /** Build the `@theme { ... }` block. */
 export function buildThemeBlock(): string {
   const lines: string[] = ['@theme {'];
@@ -83,6 +99,17 @@ export function buildThemeBlock(): string {
   // Primary
   for (const [k, v] of Object.entries(tokens.color.primary)) {
     lines.push(`  ${colorVar('primary', k)}: ${v};`);
+  }
+
+  // Accent (2nd-tier state colors — Sprint 37)
+  for (const [k, v] of Object.entries(tokens.color.accent)) {
+    lines.push(`  ${colorVar('accent', k)}: ${v};`);
+  }
+
+  // Glass surfaces (rgba + backdrop-blur source) — Sprint 37
+  for (const [k, v] of Object.entries(tokens.color.glass)) {
+    const suffix = k === 'DEFAULT' ? '' : `-${k}`;
+    lines.push(`  --color-glass${suffix}: ${v};`);
   }
 
   // Semantic
@@ -102,7 +129,14 @@ export function buildThemeBlock(): string {
 
   // Fonts
   for (const [k, v] of Object.entries(tokens.font)) {
+    // Skip the new font.weight sub-object — handled separately
+    if (k === 'weight') continue;
     lines.push(`  ${fontVar(k)}: ${v};`);
+  }
+
+  // Font weights — Sprint 37
+  for (const [k, v] of Object.entries(tokens.font.weight)) {
+    lines.push(`  ${fontWeightVar(k)}: ${v};`);
   }
 
   // Font sizes
@@ -110,9 +144,24 @@ export function buildThemeBlock(): string {
     lines.push(`  ${fontSizeVar(k)}: ${v};`);
   }
 
+  // Line heights — Sprint 37
+  for (const [k, v] of Object.entries(tokens.lineHeight)) {
+    lines.push(`  ${lineHeightVar(k)}: ${v};`);
+  }
+
+  // Letter spacing — Sprint 37
+  for (const [k, v] of Object.entries(tokens.letterSpacing)) {
+    lines.push(`  ${letterSpacingVar(k)}: ${v};`);
+  }
+
   // Radii
   for (const [k, v] of Object.entries(tokens.radius)) {
     lines.push(`  ${radiusVar(k)}: ${v};`);
+  }
+
+  // Blur — Sprint 37 (for backdrop-filter glass)
+  for (const [k, v] of Object.entries(tokens.blur)) {
+    lines.push(`  ${blurVar(k)}: ${v};`);
   }
 
   // Shadows
@@ -129,6 +178,10 @@ export function buildThemeBlock(): string {
   for (const [k, v] of Object.entries(tokens.z)) {
     lines.push(`  ${zVar(k)}: ${v};`);
   }
+
+  // Motion easings — Sprint 37 (exposed as Tailwind transition-timing-function)
+  lines.push(`  --ease-spring: ${tokens.motion.springOut};`);
+  lines.push(`  --ease-sheet: ${tokens.motion.sheetOut};`);
 
   lines.push('}');
   return lines.join('\n');
