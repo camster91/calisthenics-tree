@@ -1,7 +1,23 @@
-# Project State Review — 2026-06-25 (updated 2026-06-26: payment deferred)
+# Project State Review — 2026-06-25 (updated 2026-06-28: Sprint 37 — Apple Fitness+ design language)
 
 Solo-dev review of the repo against `docs/PLAN.md`. Goal: figure out what's actually
 done vs. what the plan says, and lay out a concrete execution order.
+
+**2026-06-28 update:** Sprint 37 — Apple Fitness+ design language refresh
+applied across the entire app. Refreshed `tokens.ts` (true black #000,
+warm orange-red #FF6B1A, Apple system colors, squircle radii 20px/28px,
+heavy display weights 700-900, tight tracking on display sizes, glass
+surfaces with backdrop-blur+saturate(180%), spring motion curves).
+Component library updated: Button (squircle + spring press), Card
+(CVA variants default/glass/hero), BigNumber (display-grade numeral
+36-128px with tabular-nums), SegmentedControl (iOS-style picker on
+Radix Tabs). 14 screens polished (HomePage, WorkoutLogPage,
+WorkoutDonePage, HistoryPage, TreePage, InsightsPage, FeedPage,
+ProfilePage, OnboardingQ1/Q2/Result, LandingPage, LoginPage,
+AuthVerifyPage, SettingsPage, NodeLandingPage). **Live in production**
+at `https://workout.ashbi.ca`. TypeScript clean, build green, 10/10
+a11y tests pass (zero WCAG AA violations), 81 backend tests pass +
+31 skipped (DB-integration), 96 E2E pass + 6 chromium-only skips.
 
 **2026-06-26 update:** Phase 5 (monetization) deferred. The billing scaffold from
 Sprints 16-17 was fully torn down in Sprint 22 — payment routes, provider
@@ -80,12 +96,12 @@ backend ships with Phase 2 onboarding, Apple Sign-In ships with P4 native.
 
 | Item | Status | Where |
 |---|---|---|
-| T34 Design tokens | ✅ | `apps/web/src/tokens.ts` |
-| T35 shadcn-style UI + 8 workout components | ✅ | `src/components/{ui,workout}/` |
+| T34 Design tokens | ✅ **Apple Fitness+ direction (Sprint 37)** | `apps/web/src/tokens.ts` |
+| T35 shadcn-style UI + 8 workout components | ✅ **+ BigNumber, SegmentedControl (Sprint 37c)** | `src/components/{ui,workout}/` |
 | T36 App icon (all sizes) | ✅ | `apps/web/public/icons/icon-{40,60,80,...}.png` |
 | T37 Screen inventory + 19 wireframes | ✅ | `SCREEN_INVENTORY.md` + `src/pages/wireframes/` |
-| T38 axe-core + keyboard nav + visual contrast | ⚠️ tests written, not verified | `apps/web/tests/a11y/{axe,keyboard,visual}.spec.ts` |
-| T39 `/api/v1/share/[unlock_id].png` endpoint | ❌ renderer exists, no API route | gap |
+| T38 axe-core + keyboard nav + visual contrast | ✅ **verified Sprint 25, re-verified Sprint 37o (10/10 pass)** | `apps/web/tests/a11y/{axe,keyboard,visual}.spec.ts` |
+| T39 `/api/v1/share/[unlock_id].png` endpoint | ✅ Sprint 18 | `apps/api/calisthenics_api/routes/share.py` |
 | T40 App Store screenshots + preview video | ✅ | `apps/web/marketing/` |
 
 **T38/T39 are the only Phase 1.5 blockers.** T38 just needs `npx playwright test

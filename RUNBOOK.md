@@ -2,7 +2,7 @@
 
 > For Cameron, at 2am, with an outage. Terse. Copy-pasteable.
 >
-> Last updated: 2026-06-27
+> Last updated: 2026-06-28 (Sprint 37 — Apple Fitness+ design language)
 
 ---
 
@@ -44,6 +44,30 @@ Domain is `workout.ashbi.ca` (parent: `*.ashbi.ca` wildcard). api at `api.workou
 **Local-mode escape hatch**: if email auth isn't wired up (no `POSTMARK_TOKEN`), users can click "Continue without account" on `/login`. This sets a fake auth snapshot with `accessToken='local-dev-mode'`. `apps/web/src/lib/api.ts` detects this token and routes ALL endpoint calls to a localStorage-backed mock (`apps/web/src/lib/local-mode.ts`). Onboarding, progressions, workout log/sync, profile/settings all work offline; feed/friends/insights show empty states.
 
 Secrets live at `/root/calisthenicstree-secrets/.env` on the VPS (mode 600). Generated secrets (POSTGRES_PASSWORD, JWT_SECRET, MAGIC_LINK_SECRET, BEARER_TOKEN) use `secrets.token_urlsafe(64)`. POSTMARK_TOKEN + SENTRY_DSN start empty — fill them in `/root/calisthenicstree-secrets/.env` then `docker compose ... up -d --no-deps --force-recreate api` to pick them up.
+
+---
+
+## 1a. Design system (Apple Fitness+ direction — Sprint 37)
+
+Single source of truth for color, type, radii, motion: **`apps/web/src/tokens.ts`**. The file is consumed by `src/lib/build-theme.ts` (regenerates `.generated/theme.css` on `npm run theme:build` and on Vite HMR) — DO NOT edit `theme.css` by hand, edit `tokens.ts` instead. Both files flow into Tailwind v4's `@theme` block.
+
+Visual language:
+
+- **True black** `#000000` page background — Fitness+ immersive feel, not developer-dark blue.
+- **Warm orange-red** `#FF6B1A` primary accent — Fitness+ energy, with `#FF8A4A` hover and `#E5550F` active.
+- **Apple system colors**: success `#30D158`, warning `#FFD60A`, danger `#FF453A`, info `#64D2FF`.
+- **Squircle radii**: `--radius-lg` 20px primary (cards, buttons, sheets), `--radius-xl` 28px hero, `--radius-2xl` 32px modals.
+- **Glass surfaces**: `rgba(28, 28, 30, 0.72)` + `backdrop-blur-md` + `saturate(180%)` for nav header, workout overlay, share cards.
+- **Heavy display weights**: Inter 700–900 on titles (was 600 max), tight tracking `-0.022em` on sizes ≥2xl.
+- **Spring motion**: scale 0.97 on `:active` with 80ms duration; springIn cubic-bezier(0.34, 1.56, 0.64, 1) for card entrances.
+
+Component primitives in `apps/web/src/components/ui/`:
+- `Button` — squircle radius, spring press feedback, font-weight 600.
+- `Card` — CVA variants: `default` (squircle 28px), `glass` (backdrop-filter + saturate), `hero` (28px + glow shadow).
+- `BigNumber` — display-grade numeral 36–128px, tabular-nums so digits don't jiggle. Used on rep counters, hold timers, streak counts.
+- `SegmentedControl` — iOS-style segmented picker on Radix Tabs.
+- `Sheet` — slide-up panel with glass background.
+- `Tooltip`, `Toast`, `Dialog`, `DropdownMenu`, `Progress`, `Tabs`, `Select`, `Separator`, `Toggle`, `VisuallyHidden`, `Label`, `Input`, `Badge` — shadcn-style primitives, all using the new tokens via `cn()`.
 
 ---
 
