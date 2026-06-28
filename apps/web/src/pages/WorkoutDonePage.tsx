@@ -5,12 +5,23 @@
  * Reads the sync response from router state (passed by WorkoutLogPage
  * after a successful POST). Falls back to "workout saved" if state
  * is missing (e.g. hard refresh).
+ *
+ * Sprint 37 (Apple Fitness+ direction):
+ * - Celebration hero with a giant check-circle in the success-green tone,
+ *   animated with the spring-in keyframe
+ * - Workout count rendered with BigNumber (3xl, primary tone) — the
+ *   focal stat of the screen
+ * - Tree update cards with hero variant (glow shadow) for promotion,
+ *   outline variant for regression
+ * - Bottom CTA cluster with primary 'Back to home' + ghost 'Log another'
  */
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { CheckCircle2, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
 
 import type { WorkoutsSyncResponse } from '../lib/api';
 import { Button } from '../components/ui/button';
+import { Card } from '../components/ui/card';
+import { BigNumber } from '../components/ui/big-number';
 
 interface LocationState {
   response: WorkoutsSyncResponse;
@@ -29,15 +40,22 @@ export default function WorkoutDonePage() {
     return (
       <main
         id="main"
-        className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center gap-4 px-4 py-8"
+        className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center gap-4 px-5 py-8"
       >
-        <CheckCircle2 aria-hidden className="h-12 w-12 text-success" />
-        <h1 className="text-2xl font-semibold">Workout saved</h1>
-        <p className="text-sm text-surface-fg-muted text-center max-w-md">
+        <div
+          aria-hidden
+          className="inline-flex h-24 w-24 items-center justify-center rounded-full bg-accent-success/15 text-accent-success spring-in"
+        >
+          <CheckCircle2 aria-hidden className="h-12 w-12" />
+        </div>
+        <h1 className="text-4xl font-bold leading-heading tracking-tighter">
+          Workout saved
+        </h1>
+        <p className="max-w-md text-center text-base text-surface-fg-muted">
           We couldn't load the sync details (this can happen after a hard
           refresh). Your workout was recorded.
         </p>
-        <Button asChild variant="default" size="lg">
+        <Button asChild variant="default" size="lg" className="mt-4">
           <Link to="/">
             Back to home
             <ArrowRight aria-hidden className="h-4 w-4" />
@@ -55,29 +73,41 @@ export default function WorkoutDonePage() {
   return (
     <main
       id="main"
-      className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-8"
+      className="mx-auto flex max-w-2xl flex-col gap-6 px-5 py-8"
       data-testid="workout-done"
     >
-      <header className="space-y-2 text-center">
-        <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-full bg-success/10 text-success">
-          <CheckCircle2 aria-hidden className="h-6 w-6" />
+      {/* Celebration hero */}
+      <header className="flex flex-col items-center gap-4 text-center">
+        <div
+          aria-hidden
+          className="inline-flex h-24 w-24 items-center justify-center rounded-full bg-accent-success/15 text-accent-success spring-in"
+        >
+          <CheckCircle2 aria-hidden className="h-12 w-12" />
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight">
-          {exerciseName} — done
-        </h1>
-        <p className="text-sm text-surface-fg-muted">
-          Synced {synced_workout_count} workout{synced_workout_count === 1 ? '' : 's'}.
-        </p>
+        <div className="space-y-2">
+          <p className="display-eyebrow text-accent-success">Complete</p>
+          <h1 className="text-4xl font-bold leading-heading tracking-tighter sm:text-5xl">
+            {exerciseName}
+          </h1>
+        </div>
       </header>
+
+      {/* Workout count stat — BigNumber focal */}
+      <Card variant="hero" className="flex flex-col items-center gap-1 py-6">
+        <BigNumber size="3xl" tone="primary">
+          {synced_workout_count}
+        </BigNumber>
+        <p className="display-eyebrow">Workouts synced</p>
+      </Card>
 
       {hasUpdates && (
         <section
           aria-labelledby="updates-heading"
-          className="card space-y-3"
+          className="space-y-3"
         >
           <h2
             id="updates-heading"
-            className="text-sm font-semibold uppercase tracking-wider text-surface-fg-muted"
+            className="display-eyebrow"
           >
             Tree updates
           </h2>
@@ -87,11 +117,25 @@ export default function WorkoutDonePage() {
               {state_updates.promotions.map((u) => (
                 <li
                   key={`${u.tree_id}-${u.new_node_id}`}
-                  className="flex items-start gap-2 text-sm text-success"
                   data-testid="workout-done-promotion"
                 >
-                  <TrendingUp aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span>{u.reason}</span>
+                  <Card
+                    variant="default"
+                    className="flex items-start gap-3 border-accent-success/30 bg-accent-success/5"
+                  >
+                    <span
+                      aria-hidden
+                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent-success/20 text-accent-success"
+                    >
+                      <TrendingUp className="h-5 w-5" />
+                    </span>
+                    <div className="flex-1 space-y-0.5">
+                      <p className="text-sm font-semibold text-accent-success">
+                        Promoted
+                      </p>
+                      <p className="text-sm text-surface-fg">{u.reason}</p>
+                    </div>
+                  </Card>
                 </li>
               ))}
             </ul>
@@ -102,11 +146,25 @@ export default function WorkoutDonePage() {
               {state_updates.regressions.map((u) => (
                 <li
                   key={`${u.tree_id}-${u.new_node_id}`}
-                  className="flex items-start gap-2 text-sm text-warning"
                   data-testid="workout-done-regression"
                 >
-                  <TrendingDown aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span>{u.reason}</span>
+                  <Card
+                    variant="default"
+                    className="flex items-start gap-3 border-warning/30 bg-warning/5"
+                  >
+                    <span
+                      aria-hidden
+                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-warning/20 text-warning"
+                    >
+                      <TrendingDown className="h-5 w-5" />
+                    </span>
+                    <div className="flex-1 space-y-0.5">
+                      <p className="text-sm font-semibold text-warning">
+                        Regressed
+                      </p>
+                      <p className="text-sm text-surface-fg">{u.reason}</p>
+                    </div>
+                  </Card>
                 </li>
               ))}
             </ul>
@@ -115,7 +173,7 @@ export default function WorkoutDonePage() {
       )}
 
       {!hasUpdates && (
-        <p className="text-center text-sm text-surface-fg-muted">
+        <p className="text-center text-base leading-body text-surface-fg-muted">
           No tree updates this time. Stay consistent — the next session is
           where progress happens.
         </p>
