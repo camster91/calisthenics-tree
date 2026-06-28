@@ -127,28 +127,36 @@ export default function TreePage() {
   return (
     <main
       id="main"
-      className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8"
+      className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-8"
       data-testid="tree-page"
     >
-      <header className="space-y-3">
+      <header className="space-y-4">
         <Link
           to="/"
-          className="inline-flex items-center gap-1 text-xs text-surface-fg-muted hover:text-surface-fg"
+          className="inline-flex items-center gap-1 text-xs font-medium text-surface-fg-muted transition-colors hover:text-surface-fg"
         >
           <ArrowLeft aria-hidden className="h-3 w-3" />
           All trees
         </Link>
 
-        <div className="space-y-1">
-          <h1 className="text-3xl font-semibold tracking-tight">{tree.name}</h1>
-          <p className="text-sm text-surface-fg-muted">{tree.description}</p>
+        <div className="space-y-2">
+          <p className="display-eyebrow">Progression tree</p>
+          <h1 className="text-4xl font-bold leading-heading tracking-tighter sm:text-5xl">
+            {tree.name}
+          </h1>
+          <p className="max-w-xl text-base leading-body text-surface-fg-muted">
+            {tree.description}
+          </p>
         </div>
 
         {tree.current_node_id && (
-          <div className="flex items-center gap-2 text-sm">
+          <div
+            className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm"
+            data-testid="tree-current-pill"
+          >
             <Play aria-hidden className="h-4 w-4 text-primary" />
-            <span className="text-surface-fg-muted">Your current node:</span>
-            <span className="font-semibold">
+            <span className="text-surface-fg-muted">Current:</span>
+            <span className="font-bold text-surface-fg">
               {tree.nodes.find((n) => n.node_id === tree.current_node_id)?.name}
             </span>
           </div>

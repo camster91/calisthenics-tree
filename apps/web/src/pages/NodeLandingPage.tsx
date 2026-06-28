@@ -178,22 +178,24 @@ export default function NodeLandingPage() {
   return (
     <main
       id="main"
-      className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-12"
+      className="mx-auto flex max-w-3xl flex-col gap-8 px-5 py-12"
       data-testid="node-landing"
     >
       {/* Header / breadcrumb */}
       <header className="space-y-4">
-        <p className="text-xs uppercase tracking-wider text-surface-fg-muted">
+        <p className="display-eyebrow">
           <Link to="/" className="hover:text-surface-fg">
             {treeName}
           </Link>
-          {' · '}
-          Rank {node.rank_level}
+          {' · Rank '}
+          {node.rank_level}
         </p>
-        <h1 className="text-4xl font-semibold leading-tight sm:text-5xl">
+        <h1 className="text-balance text-4xl font-bold leading-heading tracking-tighter sm:text-5xl">
           {node.name}
         </h1>
-        <p className="max-w-2xl text-base text-surface-fg-muted">{treeDesc}</p>
+        <p className="max-w-2xl text-base leading-body text-surface-fg-muted">
+          {treeDesc}
+        </p>
       </header>
 
       {/* Hero stats */}

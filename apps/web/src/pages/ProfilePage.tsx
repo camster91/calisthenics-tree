@@ -164,19 +164,20 @@ export default function ProfilePage() {
   return (
     <main
       id="main"
-      className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8"
+      className="mx-auto flex max-w-3xl flex-col gap-6 px-5 py-8"
       data-testid="profile-page"
     >
       <Link
         to="/feed"
-        className="inline-flex items-center gap-1 text-xs text-surface-fg-muted hover:text-surface-fg"
+        className="inline-flex items-center gap-1 text-xs font-medium text-surface-fg-muted transition-colors hover:text-surface-fg"
       >
         <ArrowLeft aria-hidden className="h-3 w-3" />
         Back to feed
       </Link>
 
-      <header className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">
+      <header className="space-y-3">
+        <p className="display-eyebrow">Profile</p>
+        <h1 className="text-4xl font-bold leading-heading tracking-tighter">
           {displayLabel}
         </h1>
         <p className="font-mono text-xs text-surface-fg-muted">{profile.email}</p>

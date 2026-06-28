@@ -20,6 +20,7 @@ import { useOnboarding } from '../lib/onboarding';
 import { api, ApiError } from '../lib/api';
 import { useT } from '../lib/i18n';
 import { Button } from '../components/ui/button';
+import { Card } from '../components/ui/card';
 import type { OnboardingPlaceResponse } from '../lib/api-types';
 
 type FetchState =
@@ -141,50 +142,79 @@ export default function OnboardingResultPage() {
   return (
     <main
       id="main"
-      className="mx-auto flex min-h-screen max-w-2xl flex-col px-4 py-8"
+      className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 px-5 py-8"
       data-testid="onboarding-result"
     >
-      <header className="space-y-2 text-center">
-        <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-full bg-success/10 text-success">
-          <CheckCircle2 aria-hidden className="h-6 w-6" />
+      {/* Hero — celebration moment, Fitness+ style */}
+      <header className="flex flex-col items-center gap-4 text-center">
+        <div
+          aria-hidden
+          className="inline-flex h-24 w-24 items-center justify-center rounded-full bg-accent-success/15 text-accent-success spring-in"
+        >
+          <CheckCircle2 aria-hidden className="h-12 w-12" />
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight">{t('onboarding.resultTitle')}</h1>
-        <p className="text-sm text-surface-fg-muted">{t('onboarding.resultBody')}</p>
-      </header>
-
-      <section className="mt-8 space-y-3" aria-labelledby="archetype-heading">
-        <h2 id="archetype-heading" className="text-sm font-semibold uppercase tracking-wider text-surface-fg-muted">
-          {t('onboarding.resultArchetype.beginner').startsWith('Archetype') ? 'Archetype' : 'Archetype'}
-        </h2>
-        <div className="card">
-          <p className="text-xl font-semibold">{archetypeLabel}</p>
-          <p className="mt-1 text-xs text-surface-fg-muted">
-            RIR-2 offset: <span className="font-mono">{r.rir2_offset}</span>
+        <div className="space-y-2">
+          <p className="display-eyebrow text-accent-success">Ready</p>
+          <h1 className="text-balance text-4xl font-bold leading-heading tracking-tighter sm:text-5xl">
+            {t('onboarding.resultTitle')}
+          </h1>
+          <p className="max-w-md text-base leading-body text-surface-fg-muted">
+            {t('onboarding.resultBody')}
           </p>
         </div>
-      </section>
+      </header>
 
-      <section className="mt-6 space-y-3" aria-labelledby="placements-heading">
-        <h2 id="placements-heading" className="text-sm font-semibold uppercase tracking-wider text-surface-fg-muted">
+      {/* Archetype — BigNumber focal stat for the rank */}
+      <Card
+        variant="hero"
+        className="flex flex-col items-center gap-1 py-7"
+        data-testid="onboarding-archetype"
+      >
+        <p className="display-eyebrow">Archetype</p>
+        <p className="text-3xl font-bold leading-heading tracking-tighter text-primary">
+          {archetypeLabel}
+        </p>
+        <p className="text-sm text-surface-fg-muted">
+          RIR-2 offset: <span className="font-mono text-surface-fg">{r.rir2_offset}</span>
+        </p>
+      </Card>
+
+      <section className="space-y-3" aria-labelledby="placements-heading">
+        <h2 id="placements-heading" className="display-eyebrow">
           Starting nodes
         </h2>
         <ul className="space-y-2">
-          {r.placements.map((p) => (
-            <li key={p.tree_id} className="card flex items-center justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold">{p.tree_name}</p>
-                <p className="text-xs text-surface-fg-muted">
-                  {p.starting_node_name} · rank {p.starting_rank}
-                </p>
-              </div>
-              <span className="text-xs text-surface-fg-subtle">unlocked</span>
+          {r.placements.map((p, idx) => (
+            <li
+              key={p.tree_id}
+              className="spring-in"
+              style={{ animationDelay: `${idx * 80}ms` }}
+            >
+              <Card variant="default" className="flex items-center justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <p className="text-base font-bold tracking-tighter text-surface-fg">
+                    {p.tree_name}
+                  </p>
+                  <p className="text-sm text-surface-fg-muted">
+                    {p.starting_node_name}
+                  </p>
+                </div>
+                <div className="flex flex-col items-end gap-0.5">
+                  <span className="text-xs font-medium uppercase tracking-wide text-surface-fg-muted">
+                    Rank
+                  </span>
+                  <span className="text-2xl font-bold tabular-nums text-primary">
+                    {p.starting_rank}
+                  </span>
+                </div>
+              </Card>
             </li>
           ))}
         </ul>
       </section>
 
-      <footer className="mt-8 flex justify-center">
-        <Button asChild variant="default" size="lg">
+      <footer className="flex justify-center pt-2">
+        <Button asChild variant="default" size="lg" className="min-w-[200px]">
           <Link to="/">
             {t('onboarding.resultContinue')}
             <ArrowRight aria-hidden className="h-4 w-4" />

@@ -4,23 +4,54 @@
  * Composable: Card / CardHeader / CardTitle / CardDescription /
  * CardContent / CardFooter. Each is a plain div with sensible defaults;
  * compose them or replace slots with your own elements.
+ *
+ * Sprint 37 (Apple Fitness+ direction):
+ * - Squircle radius (--radius-xl = 28px on default, was 16px)
+ * - CVA variant: 'glass' for floating cards (workout header over scrolling,
+ *   share cards in feed) — backdrop-filter + saturate(180%)
+ * - CVA variant: 'hero' for the workout header (28px radius, glow shadow)
  */
 import * as React from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../../lib/cn';
 
-const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      data-slot="card"
-      className={cn(
-        'rounded-lg border border-surface-border bg-surface-subtle text-surface-fg shadow-sm',
-        className,
-      )}
-      {...props}
-    />
-  ),
+const cardVariants = cva(
+  'border text-surface-fg',
+  {
+    variants: {
+      variant: {
+        // Default — subtle dark surface, the everyday card
+        default: 'rounded-xl border-surface-border bg-surface-subtle shadow-sm',
+        // Glass — frosted surface for floating elements over content
+        glass: [
+          'rounded-xl border-surface-border',
+          'bg-[var(--color-glass)]',
+          'backdrop-blur-md backdrop-saturate-150',
+          'shadow-[var(--shadow-glass)]',
+        ].join(' '),
+        // Hero — for the workout header / share card hero. Bigger radius,
+        // glow shadow, primary accent ring.
+        hero: [
+          'rounded-2xl border-primary/20 bg-surface-subtle',
+          'shadow-[var(--shadow-glow)]',
+        ].join(' '),
+      },
+    },
+    defaultVariants: { variant: 'default' },
+  },
 );
+
+const Card = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof cardVariants>
+>(({ className, variant, ...props }, ref) => (
+  <div
+    ref={ref}
+    data-slot="card"
+    className={cn(cardVariants({ variant }), className)}
+    {...props}
+  />
+));
 Card.displayName = 'Card';
 
 const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
@@ -28,7 +59,7 @@ const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
     <div
       ref={ref}
       data-slot="card-header"
-      className={cn('flex flex-col space-y-1.5 p-4', className)}
+      className={cn('flex flex-col space-y-1.5 p-5', className)}
       {...props}
     />
   ),
@@ -40,7 +71,8 @@ const CardTitle = React.forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTML
     <h3
       ref={ref}
       data-slot="card-title"
-      className={cn('text-lg font-semibold leading-tight tracking-tight', className)}
+      // Heavier weight + tighter tracking per display-section utility
+      className={cn('text-xl font-bold leading-heading tracking-tighter', className)}
       {...props}
     />
   ),
@@ -65,7 +97,7 @@ const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
     <div
       ref={ref}
       data-slot="card-content"
-      className={cn('p-4 pt-0', className)}
+      className={cn('p-5 pt-0', className)}
       {...props}
     />
   ),
@@ -77,11 +109,11 @@ const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
     <div
       ref={ref}
       data-slot="card-footer"
-      className={cn('flex items-center gap-2 p-4 pt-0', className)}
+      className={cn('flex items-center gap-2 p-5 pt-0', className)}
       {...props}
     />
   ),
 );
 CardFooter.displayName = 'CardFooter';
 
-export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent };
+export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent, cardVariants };

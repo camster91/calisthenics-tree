@@ -1,72 +1,102 @@
 /**
- * Calisthenics Tree — Design Tokens (foundation)
+ * Calisthenics Tree — Design Tokens (Apple Fitness+ direction, Sprint 37)
  *
- * Single source of truth for color, typography, spacing, motion.
+ * Single source of truth for color, typography, spacing, motion, blur.
  * Consumed by:
- *   - src/index.css `@theme { ... }` block (Tailwind v4 utilities)
+ *   - src/index.css `@theme { ... }` block (Tailwind v4 utilities, via build-theme.ts)
  *   - React components reading tokens via the `cn()` helper or direct var() in CSS
  *   - Storybook / Wireframes (Phase 1.5 T37)
  *
  * Conventions:
  *   - Colors are SEMANTIC (surface, primary, danger), not raw (#0F172A). Raw values live here only.
- *   - Two themes: `default` (dark, default) and `gym-glare` (high-contrast, auto + manual toggle).
+ *   - Two themes: `default` (dark, immersive — Fitness+ direction) and `gym-glare`
+ *     (high-contrast, auto + manual toggle).
  *   - WCAG targets: AA (4.5:1) default, AAA (7:1) gym-glare. axe-core verifies.
- *   - Movement palette derived from doc2 visual guidelines: dark blue + orange.
+ *   - Movement palette: warm orange-red on true black. Fitness+ energy.
  *
- * Phase 1.5 T34 will refine these values; this is the foundation scaffold so the
- * Phase 1.5 children have a target file to extend.
+ * Apple Fitness+ design language:
+ *   - True black immersive surface (#000) — not developer dark-mode blue-black
+ *   - Squircle radii (20px primary, 28px hero) — iOS-style continuous corners
+ *   - Heavy display weights (700-800) + tight tracking (-0.022em) on sizes ≥2xl
+ *   - Spring-like motion (overshoot cubic-bezier) for tactile press feedback
+ *   - Glass surfaces (rgba + backdrop-blur) for floating cards / sheets
+ *   - Soft, wide glow on the active node (was punchy and small)
  */
 
 export const tokens = {
   color: {
-    // Surfaces — dark by default per doc2 (sweat-proof dark mode)
+    // Surfaces — true black, immersive Fitness+ feel
     surface: {
-      bg: '#0B1220', // page background (dark blue near-black)
-      subtle: '#111827', // card / panel background
-      muted: '#1F2937', // hover / pressed
-      fg: '#F8FAFC', // primary text
-      'fg-muted': '#94A3B8', // secondary text
-      'fg-subtle': '#7B8AA3', // tertiary text — passes WCAG AA on bg (5.36:1)
-      border: '#1E293B', // hairline borders
+      bg: '#000000', // page background (true black, immersive)
+      subtle: '#0A0A0C', // card / panel background (lifted off bg)
+      muted: '#1C1C1E', // hover / pressed (Apple systemGray6)
+      fg: '#FFFFFF', // primary text (pure white for max contrast on black)
+      'fg-muted': '#AEAEB2', // secondary text (Apple systemGray3 — passes AA on bg 7.04:1)
+      'fg-subtle': '#8E8E93', // tertiary text (Apple systemGray4 — 5.36:1)
+      border: 'rgba(255, 255, 255, 0.08)', // hairline borders (iOS separator style)
+      'border-strong': 'rgba(255, 255, 255, 0.16)', // emphasized borders
     },
-    // Brand primary — orange (doc2)
+    // Brand primary — warm orange-red, Fitness+ energy
     primary: {
-      DEFAULT: '#F97316', // orange-500
-      hover: '#FB923C', // orange-400
-      active: '#EA580C', // orange-600
-      'on-primary': '#0B1220', // text on primary bg
+      DEFAULT: '#FF6B1A', // warmer orange-red than #F97316, more "fire" than "construction"
+      hover: '#FF8A4A', // brighter on hover (tactile lift)
+      active: '#E5550F', // pressed state
+      'on-primary': '#000000', // text on primary bg (black on orange — passes AAA)
     },
-    // Semantic state
-    danger: '#EF4444',
-    success: '#22C55E',
-    warning: '#F59E0B',
-    info: '#38BDF8',
-    // DAG visualization (Phase 2)
+    // 2nd-tier accents — for achievements / state
+    accent: {
+      success: '#30D158', // Apple system green — Promoted / PR
+      warning: '#FFD60A', // Apple system yellow — caution / watch
+      danger: '#FF453A', // Apple system red — fail / deload
+      info: '#64D2FF', // Apple system teal — info / share
+    },
+    // Semantic state (aliased to accent for component code that reads these)
+    danger: '#FF453A',
+    success: '#30D158',
+    warning: '#FFD60A',
+    info: '#64D2FF',
+    // Glass surfaces — for floating cards / sheets over content
+    glass: {
+      DEFAULT: 'rgba(28, 28, 30, 0.72)', // iOS systemGray6 with alpha
+      'subtle': 'rgba(44, 44, 46, 0.6)', // slightly lighter, for inputs
+      'heavy': 'rgba(20, 20, 22, 0.88)', // for modals / sheets
+    },
+    // DAG visualization — refined for dark immersive base
     dag: {
-      'node-locked': '#475569',
-      'node-unlocked': '#94A3B8',
-      'node-current': '#F97316', // glows
-      edge: '#334155',
+      'node-locked': '#3A3A3C', // locked — barely visible (de-emphasized)
+      'node-unlocked': '#8E8E93', // unlocked — readable but not shouting
+      'node-current': '#FF6B1A', // active — primary glow
+      'node-promoted': '#30D158', // newly promoted — success green
+      edge: 'rgba(255, 255, 255, 0.08)', // hairline edges
     },
     // Tendon strain (insights screen)
     tendon: {
-      ok: '#22C55E',
-      watch: '#F59E0B',
-      deload: '#EF4444',
+      ok: '#30D158',
+      watch: '#FFD60A',
+      deload: '#FF453A',
     },
-    // Gym-glare variant overrides (AAA contrast)
+    // Gym-glare variant overrides (AAA contrast, pure black)
     'gym-glare': {
       bg: '#000000',
       fg: '#FFFFFF',
-      'fg-muted': '#E5E7EB',
+      'fg-muted': '#F5F5F7',
       primary: '#FF8A1F', // brighter orange, passes AAA on black
-      border: '#FFFFFF',
+      border: 'rgba(255, 255, 255, 0.24)',
     },
   },
 
   font: {
-    sans: "'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+    sans: "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
     mono: "'JetBrains Mono', 'SF Mono', Menlo, monospace",
+    /** Display weights — heavier than Inter default. Apple uses 700-800 on big numerals. */
+    weight: {
+      regular: 400,
+      medium: 500,
+      semibold: 600,
+      bold: 700,
+      heavy: 800,
+      black: 900,
+    },
   },
 
   fontSize: {
@@ -82,6 +112,25 @@ export const tokens = {
     '6xl': '3.75rem', // 60px — marketing
     '7xl': '4.5rem', // 72px — hero display
     '8xl': '6rem', // 96px — WorkoutTimer big number
+    '9xl': '8rem', // 128px — hero / rep counter (NEW)
+  },
+
+  /** Line heights — controlled per size. Tighter on display, looser on body. */
+  lineHeight: {
+    display: '1.05', // sizes ≥ 5xl — hero display
+    heading: '1.15', // sizes 2xl-4xl — section headings
+    body: '1.5', // base body
+    caption: '1.4', // xs / sm captions
+  },
+
+  /** Letter spacing — tighter on display, normal on body. */
+  letterSpacing: {
+    tightest: '-0.04em', // 8xl-9xl hero numerals
+    tighter: '-0.022em', // 3xl-6xl headings
+    tight: '-0.011em', // lg-xl body headings
+    normal: '0', // body
+    wide: '0.025em', // uppercase captions
+    widest: '0.08em', // eyebrow text (Settings labels)
   },
 
   spacing: {
@@ -105,32 +154,54 @@ export const tokens = {
 
   radius: {
     none: '0',
-    sm: '0.375rem', // 6px
-    md: '0.75rem', // 12px — primary radius (cards, buttons)
-    lg: '1rem', // 16px — modal panels
-    xl: '1.5rem',
+    sm: '0.5rem', // 8px — chips, small elements
+    md: '0.875rem', // 14px — inputs, secondary cards
+    lg: '1.25rem', // 20px — squircle (PRIMARY radius — cards, buttons, sheets)
+    xl: '1.75rem', // 28px — hero cards, workout header
+    '2xl': '2rem', // 32px — modals
     full: '9999px', // pills, rep counter
   },
 
+  /** Blur — for backdrop-filter on glass surfaces. */
+  blur: {
+    none: '0',
+    sm: '8px', // subtle blur for inputs / tooltips
+    md: '20px', // primary blur for cards floating over content
+    lg: '40px', // heavy blur for modals / sheets over scrolling content
+  },
+
   shadow: {
-    sm: '0 1px 2px 0 rgb(0 0 0 / 0.25)',
-    md: '0 4px 8px -2px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3)',
-    lg: '0 12px 32px -8px rgb(0 0 0 / 0.6), 0 4px 8px -4px rgb(0 0 0 / 0.4)',
-    glow: '0 0 24px 0 rgb(249 115 22 / 0.45)', // primary glow (current node)
+    // Subtle elevation — Apple uses nearly-invisible shadows
+    sm: '0 1px 2px 0 rgb(0 0 0 / 0.4)',
+    md: '0 4px 12px -2px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.3)',
+    lg: '0 12px 24px -8px rgb(0 0 0 / 0.6), 0 4px 8px -4px rgb(0 0 0 / 0.4)',
+    // Active-node glow — softer, wider (was punchy 24px @ 0.45)
+    glow: '0 0 40px 0 rgb(255 107 26 / 0.4), 0 0 80px 0 rgb(255 107 26 / 0.2)',
+    // Glass surface shadow — subtle lift for floating glass
+    glass: '0 8px 32px -8px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(255 255 255 / 0.04)',
   },
 
   motion: {
-    micro: '150ms', // tap feedback, hover
+    // Apple-style timing — fast snappy taps, springy entries
+    instant: '80ms', // tap feedback (press)
+    micro: '150ms', // hover, small transitions
     ui: '250ms', // modal open/close, sheet
     page: '400ms', // route transitions
-    easeOut: 'cubic-bezier(0.16, 1, 0.3, 1)',
-    easeIn: 'cubic-bezier(0.7, 0, 0.84, 0)',
+    spring: '500ms', // springy entry (cards animating in)
+    // iOS-style easing curves
+    easeOut: 'cubic-bezier(0.16, 1, 0.3, 1)', // material-style out
+    easeIn: 'cubic-bezier(0.7, 0, 0.84, 0)', // material-style in
+    easeInOut: 'cubic-bezier(0.65, 0, 0.35, 1)', // smooth in/out
+    /** iOS spring — slight overshoot for tactile entry. */
+    springOut: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+    /** iOS sheet — slides from bottom, decelerates naturally. */
+    sheetOut: 'cubic-bezier(0.32, 0.72, 0, 1)',
   },
 
-  /** Tap target floor (iOS HIG). gym-glare mode raises this. */
+  /** Tap target floor — iOS HIG recommends 44pt minimum. */
   tapTarget: {
-    base: '48px',
-    gymGlare: '56px',
+    base: '48px', // comfortable thumb reach
+    gymGlare: '56px', // bigger for outdoor / sweaty hands
   },
 
   /** Z-index scale. */

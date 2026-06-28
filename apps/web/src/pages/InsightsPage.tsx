@@ -60,19 +60,22 @@ export default function InsightsPage() {
   return (
     <main
       id="main"
-      className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8"
+      className="mx-auto flex max-w-3xl flex-col gap-6 px-5 py-8"
       data-testid="insights-page"
     >
       <header className="space-y-3">
         <Link
           to="/"
-          className="inline-flex items-center gap-1 text-xs text-surface-fg-muted hover:text-surface-fg"
+          className="inline-flex items-center gap-1 text-xs font-medium text-surface-fg-muted transition-colors hover:text-surface-fg"
         >
           <ArrowLeft aria-hidden className="h-3 w-3" />
           Back to home
         </Link>
-        <h1 className="text-3xl font-semibold tracking-tight">Insights</h1>
-        <p className="text-sm text-surface-fg-muted">
+        <p className="display-eyebrow">Tendon strain</p>
+        <h1 className="text-4xl font-bold leading-heading tracking-tighter sm:text-5xl">
+          Insights
+        </h1>
+        <p className="max-w-xl text-base leading-body text-surface-fg-muted">
           Strain loads on the joints that take the brunt of your training.
           Dips in the 4-week trend are normal; spikes above 1.5× the
           baseline mean it's time to deload.

@@ -5,10 +5,19 @@
  * sets via RepCounter (isotonic) or WorkoutTimer (isometric), then POSTs
  * the completed workout to /api/v1/workouts/sync on save. State updates
  * (promotions/regressions) are passed to the done screen.
+ *
+ * Sprint 37 (Apple Fitness+ direction):
+ * - Hero card with exercise name + BigNumber target (Fitness+-style
+ *   focal counter)
+ * - Persistent progress strip at the top showing X of N sets
+ * - Per-set cards keep the RepCounter / WorkoutTimer; check button
+ *   promoted to a primary full-width CTA per set (was a ghost button)
+ * - Save CTA at the bottom is a full-width sticky-feeling primary button
+ * - Set checklist stays visible (was at bottom, now in the middle)
  */
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowRight, AlertCircle, Loader2, Save } from 'lucide-react';
+import { ArrowRight, AlertCircle, Loader2, Save, Check } from 'lucide-react';
 
 import {
   api,
@@ -18,6 +27,8 @@ import {
   type SyncedWorkout,
 } from '../lib/api';
 import { Button } from '../components/ui/button';
+import { Card } from '../components/ui/card';
+import { BigNumber } from '../components/ui/big-number';
 import { RepCounter } from '../components/workout/RepCounter';
 import { WorkoutTimer } from '../components/workout/WorkoutTimer';
 import { SetChecklist } from '../components/workout/SetChecklist';
@@ -175,29 +186,63 @@ export default function WorkoutLogPage() {
   return (
     <main
       id="main"
-      className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-8"
+      className="mx-auto flex max-w-2xl flex-col gap-6 px-5 py-8 pb-32"
       data-testid="workout-log"
     >
-      <header className="space-y-1">
-        <p className="text-xs uppercase tracking-wider text-surface-fg-muted">
-          {node.movement_type === 'isometric' ? 'Hold' : 'Reps'} workout
+      {/* Hero card — exercise name + BigNumber target (Apple Fitness+ focal counter) */}
+      <Card variant="hero" className="space-y-4">
+        <p className="display-eyebrow">
+          {node.movement_type === 'isometric' ? 'Hold workout' : 'Reps workout'}
         </p>
-        <h1 className="text-3xl font-semibold tracking-tight">
+        <h1 className="text-3xl font-bold leading-heading tracking-tighter sm:text-4xl">
           {node.exercise_name}
         </h1>
-        <p className="font-mono text-sm text-surface-fg-muted">
-          Target: {node.target_sets}×
-          {node.target_hold_secs
-            ? `${node.target_hold_secs}s hold`
-            : `${node.target_reps ?? '?'} reps`}
-        </p>
-      </header>
+        <div className="flex items-baseline gap-3">
+          <BigNumber size="2xl" tone="primary">
+            {isIsometric
+              ? `${node.target_hold_secs ?? 0}`
+              : `${node.target_reps ?? '?'}`}
+          </BigNumber>
+          <div className="space-y-0.5">
+            <p className="text-base font-semibold tracking-tight text-surface-fg">
+              {node.target_sets}× sets
+            </p>
+            <p className="text-sm text-surface-fg-muted">
+              {isIsometric ? 'seconds hold' : 'reps per set'} ·{' '}
+              {node.movement_type}
+            </p>
+          </div>
+        </div>
+
+        {/* Progress strip — Apple-style progress dots + counter */}
+        <div
+          className="flex items-center gap-3 pt-2"
+          role="status"
+          aria-label={`${completed.length} of ${totalSets} sets complete`}
+        >
+          <div className="flex flex-1 gap-1.5">
+            {Array.from({ length: totalSets }, (_, idx) => (
+              <div
+                key={idx}
+                className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${
+                  completed.includes(idx)
+                    ? 'bg-primary'
+                    : 'bg-surface-muted'
+                }`}
+              />
+            ))}
+          </div>
+          <span className="text-sm font-semibold tabular-nums text-surface-fg">
+            {completed.length} / {totalSets}
+          </span>
+        </div>
+      </Card>
 
       {errorMsg && (
         <div
           role="alert"
           aria-live="assertive"
-          className="flex items-start gap-2 rounded-md border border-danger/30 bg-danger/5 p-3 text-sm text-danger"
+          className="flex items-start gap-2 rounded-lg border border-danger/30 bg-danger/5 p-3 text-sm text-danger"
         >
           <AlertCircle aria-hidden className="h-4 w-4 shrink-0" />
           <p>{errorMsg}</p>
@@ -205,17 +250,26 @@ export default function WorkoutLogPage() {
       )}
 
       <section aria-labelledby="sets-heading" className="space-y-3">
-        <h2 id="sets-heading" className="text-sm font-semibold uppercase tracking-wider text-surface-fg-muted">
-          Sets ({completed.length} / {totalSets})
+        <h2
+          id="sets-heading"
+          className="display-eyebrow"
+        >
+          Sets
         </h2>
         <ol className="space-y-3">
           {Array.from({ length: totalSets }, (_, idx) => {
             const isDone = completed.includes(idx);
             return (
-              <li key={idx} className="card space-y-3">
+              <li
+                key={idx}
+                className="card space-y-3"
+                data-testid={`workout-set-${idx}`}
+              >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold">Set {idx + 1}</span>
-                  <span className="text-xs text-surface-fg-muted">
+                  <span className="text-base font-bold tracking-tighter text-surface-fg">
+                    Set {idx + 1}
+                  </span>
+                  <span className="text-sm tabular-nums text-surface-fg-muted">
                     Target:{' '}
                     {node.target_hold_secs
                       ? `${node.target_hold_secs}s`
@@ -264,11 +318,22 @@ export default function WorkoutLogPage() {
                         : [...prev, idx],
                     )
                   }
-                  className={`btn-ghost w-full text-sm ${isDone ? 'border-success/50 text-success' : ''}`}
+                  className={`btn w-full text-sm font-semibold transition-all ${
+                    isDone
+                      ? 'bg-accent-success text-black hover:bg-accent-success/90'
+                      : ''
+                  }`}
                   data-testid={`workout-set-toggle-${idx}`}
                   aria-pressed={isDone}
                 >
-                  {isDone ? '✓ Marked complete — tap to undo' : 'Mark set complete'}
+                  {isDone ? (
+                    <>
+                      <Check aria-hidden className="h-4 w-4" />
+                      Marked complete — tap to undo
+                    </>
+                  ) : (
+                    'Mark set complete'
+                  )}
                 </button>
               </li>
             );
@@ -282,30 +347,36 @@ export default function WorkoutLogPage() {
         onChange={(next) => setCompleted(next)}
       />
 
-      <div className="flex items-center justify-between gap-3 pt-2">
-        <Button asChild variant="ghost">
-          <a href="/">Cancel</a>
-        </Button>
-        <Button
-          variant="default"
-          size="lg"
-          onClick={handleSave}
-          disabled={!canSave}
-          data-testid="workout-save"
-        >
-          {status === 'saving' ? (
-            <>
-              <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
-              Saving…
-            </>
-          ) : (
-            <>
-              <Save aria-hidden className="h-4 w-4" />
-              Save workout
-              <ArrowRight aria-hidden className="h-4 w-4" />
-            </>
-          )}
-        </Button>
+      {/* Sticky-feel save bar — full-width primary CTA at the bottom */}
+      <div className="sticky bottom-0 -mx-5 mt-4 border-t border-surface-border bg-surface/90 px-5 py-4 backdrop-blur-md">
+        <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
+          <Button asChild variant="ghost" size="md">
+            <a href="/" className="text-surface-fg-muted">
+              Cancel
+            </a>
+          </Button>
+          <Button
+            variant="default"
+            size="lg"
+            onClick={handleSave}
+            disabled={!canSave}
+            data-testid="workout-save"
+            className="min-w-[180px]"
+          >
+            {status === 'saving' ? (
+              <>
+                <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
+                Saving…
+              </>
+            ) : (
+              <>
+                <Save aria-hidden className="h-4 w-4" />
+                Save workout
+                <ArrowRight aria-hidden className="h-4 w-4" />
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     </main>
   );

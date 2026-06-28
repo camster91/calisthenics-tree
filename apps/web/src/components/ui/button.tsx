@@ -4,6 +4,11 @@
  * Variants: default | primary | ghost | outline | destructive | secondary
  * Sizes:    sm | md | lg | icon (+ touch-target floor for workout use)
  *
+ * Sprint 37 (Apple Fitness+ direction):
+ * - Squircle radius (--radius-lg = 20px)
+ * - Spring press feedback (scale 0.97 on :active, ease-spring)
+ * - Heavier font weight (semibold 600) — Apple buttons read with confidence
+ *
  * Built on Radix Slot for asChild composition (icon-only icon buttons,
  * link-as-button, etc.) and CVA for variant typing.
  */
@@ -16,8 +21,11 @@ const buttonVariants = cva(
   // base — shared by every variant
   [
     'inline-flex items-center justify-center gap-2 whitespace-nowrap',
-    'rounded-md text-sm font-medium',
-    'transition-colors duration-[150ms]',
+    // Squircle (20px) — was rounded-md (12px)
+    'rounded-lg text-sm font-semibold',
+    // Spring press: scale + springy easing on active
+    'transition-[background-color,transform] duration-[150ms] ease-out',
+    'active:scale-[0.97] active:duration-[80ms]',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
     'disabled:pointer-events-none disabled:opacity-50',
     '[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
@@ -36,8 +44,8 @@ const buttonVariants = cva(
       },
       size: {
         sm: 'h-9 px-3',
-        md: 'h-12 px-4', // 48dp tap target — WCAG 2.5.5 floor
-        lg: 'h-14 px-6 text-base',
+        md: 'h-12 px-5', // 48dp tap target — WCAG 2.5.5 floor
+        lg: 'h-14 px-7 text-base',
         xl: 'h-16 px-8 text-lg', // workout-floor, dominant CTAs
         icon: 'h-12 w-12',
       },

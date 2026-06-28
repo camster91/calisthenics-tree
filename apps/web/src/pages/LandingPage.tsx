@@ -41,16 +41,16 @@ export default function LandingPage() {
   return (
     <main
       id="main"
-      className="mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-12"
+      className="mx-auto flex min-h-screen max-w-5xl flex-col px-5 py-12"
     >
-      {/* Hero */}
+      {/* Hero — Fitness+ style big title */}
       <header className="space-y-6 text-balance">
-        <p className="chip">Calisthenics Tree</p>
-        <h1 className="text-4xl font-semibold leading-[1.1] sm:text-6xl">
+        <p className="display-eyebrow">Calisthenics Tree</p>
+        <h1 className="text-5xl font-bold leading-display tracking-tightest sm:text-7xl">
           A real skill tree for{' '}
           <span className="text-primary">calisthenics</span>.
         </h1>
-        <p className="max-w-2xl text-lg text-surface-fg-muted">
+        <p className="max-w-2xl text-lg leading-body text-surface-fg-muted sm:text-xl">
           Unlock planche, front lever, handstand — progression that makes
           sense, with smart regressions when you fatigue.
         </p>
@@ -69,20 +69,32 @@ export default function LandingPage() {
 
       {/* Features */}
       <section className="mt-20 space-y-6" aria-labelledby="features-heading">
-        <h2
-          id="features-heading"
-          className="text-sm font-semibold uppercase tracking-wider text-surface-fg-muted"
-        >
+        <h2 id="features-heading" className="display-eyebrow">
           What's inside
         </h2>
-        <ul className="grid gap-4 sm:grid-cols-1 lg:grid-cols-3">
-          {FEATURES.map((f) => {
+        <ul className="grid gap-5 sm:grid-cols-1 lg:grid-cols-3">
+          {FEATURES.map((f, idx) => {
             const Icon = f.icon;
             return (
-              <li key={f.title} className="card space-y-3">
-                <Icon aria-hidden className="h-6 w-6 text-primary" />
-                <h3 className="text-base font-semibold">{f.title}</h3>
-                <p className="text-sm text-surface-fg-muted">{f.body}</p>
+              <li
+                key={f.title}
+                className="spring-in"
+                style={{ animationDelay: `${idx * 100}ms` }}
+              >
+                <div className="card flex h-full flex-col gap-3">
+                  <span
+                    aria-hidden
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary"
+                  >
+                    <Icon aria-hidden className="h-5 w-5" />
+                  </span>
+                  <h3 className="text-lg font-bold tracking-tighter">
+                    {f.title}
+                  </h3>
+                  <p className="text-sm leading-body text-surface-fg-muted">
+                    {f.body}
+                  </p>
+                </div>
               </li>
             );
           })}
@@ -90,21 +102,28 @@ export default function LandingPage() {
       </section>
 
       {/* What's not here (anti-features from DECISION.md) */}
-      <section className="mt-16 space-y-3 text-sm text-surface-fg-muted">
-        <h2 className="text-sm font-semibold uppercase tracking-wider">
-          What we don't do
-        </h2>
-        <ul className="space-y-1">
+      <section className="mt-16 space-y-3">
+        <h2 className="display-eyebrow">What we don't do</h2>
+        <ul className="space-y-2 text-base leading-body text-surface-fg-muted">
           <li className="flex items-start gap-2">
-            <CheckCircle2 aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+            <CheckCircle2
+              aria-hidden
+              className="mt-1 h-4 w-4 shrink-0 text-accent-success"
+            />
             <span>No daily reminders or push notifications.</span>
           </li>
           <li className="flex items-start gap-2">
-            <CheckCircle2 aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+            <CheckCircle2
+              aria-hidden
+              className="mt-1 h-4 w-4 shrink-0 text-accent-success"
+            />
             <span>No paywalled core features. Push-ups stay free.</span>
           </li>
           <li className="flex items-start gap-2">
-            <CheckCircle2 aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+            <CheckCircle2
+              aria-hidden
+              className="mt-1 h-4 w-4 shrink-0 text-accent-success"
+            />
             <span>No computer-vision form check. We trust you.</span>
           </li>
         </ul>

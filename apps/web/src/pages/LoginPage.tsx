@@ -89,18 +89,19 @@ export default function LoginPage() {
   return (
     <main
       id="main"
-      className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-8 px-4 py-8"
+      className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-8 px-5 py-8"
     >
-      <header className="space-y-2 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight">
+      <header className="space-y-3 text-center">
+        <p className="display-eyebrow">Sign in</p>
+        <h1 className="text-balance text-4xl font-bold leading-heading tracking-tighter">
           {t('auth.login')}
         </h1>
-        <p className="text-sm text-surface-fg-muted">
+        <p className="text-base leading-body text-surface-fg-muted">
           {t('auth.loginSubtitle')}
         </p>
         <Link
           to="/welcome"
-          className="inline-block text-xs text-surface-fg-muted underline hover:text-surface-fg"
+          className="inline-block pt-1 text-xs font-medium text-surface-fg-muted transition-colors hover:text-surface-fg"
         >
           ← Back to the product overview
         </Link>

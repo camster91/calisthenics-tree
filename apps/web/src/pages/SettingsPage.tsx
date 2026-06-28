@@ -377,11 +377,12 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-12 max-w-2xl">
-      <header className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">
+      <header className="space-y-3">
+        <p className="display-eyebrow">Settings</p>
+        <h1 className="text-balance text-4xl font-bold leading-heading tracking-tighter sm:text-5xl">
           {t('settings.title')}
         </h1>
-        <p className="text-surface-fg-muted">
+        <p className="max-w-xl text-base leading-body text-surface-fg-muted">
           {t('settings.subtitle')}
         </p>
       </header>
