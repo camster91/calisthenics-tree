@@ -61,6 +61,18 @@
         reverse_proxy api:8000
     }
 
+    # Sprint 38 RED-9 follow-up — gzip + cache headers for fingerprinted
+    # assets. Vite emits hashed filenames (`index-CPp13brX.js`), so we
+    # can set max-age=1y + immutable safely: a new deploy produces new
+    # hashes, the old ones stay cached until they expire. Drops repeat
+    # visitor bandwidth by ~70% (gzip 264KB → 70KB).
+    route /assets/* {
+        header Cache-Control "public, max-age=31536000, immutable"
+        encode zstd gzip
+        root * /srv
+        file_server
+    }
+
     # /share/* intentionally falls through to the SPA fallback below.
     # Static PNGs committed to apps/web/public/share/ are served by
     # file_server (try_files finds them first); /share/<unlockId>
