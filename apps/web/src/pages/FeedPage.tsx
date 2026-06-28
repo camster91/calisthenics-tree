@@ -78,12 +78,15 @@ export default function FeedPage() {
   return (
     <main
       id="main"
-      className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8"
+      className="mx-auto flex max-w-3xl flex-col gap-6 px-5 py-8"
       data-testid="feed-page"
     >
-      <header className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">Your activity</h1>
-        <p className="text-sm text-surface-fg-muted">
+      <header className="space-y-3">
+        <p className="display-eyebrow">Activity</p>
+        <h1 className="text-4xl font-bold leading-heading tracking-tighter sm:text-5xl">
+          Your activity
+        </h1>
+        <p className="max-w-xl text-base leading-body text-surface-fg-muted">
           Every promotion and regression from your recent workouts. Friends
           view coming in Phase 4 — for now this is your private timeline.
         </p>
