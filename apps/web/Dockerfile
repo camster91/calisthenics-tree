@@ -45,10 +45,14 @@ EXPOSE 80
 
 # Caddy auto-TLS via ACME when the public hostname is reachable; for local
 # dev, runs plain HTTP on :80.
-# Sprint 38 hardening YELLOW — caddy:2-alpine ships with a non-root
-# `caddy` user (uid 1000). Switch to it explicitly. cap_drop: [ALL] +
-# read_only: true + tmpfs mounts live at the compose layer.
-USER caddy
+# Sprint 38 hardening YELLOW — caddy:2-alpine does NOT ship a `caddy`
+# user in /etc/passwd at build time (the upstream Dockerfile runs as
+# root and uses setcap for low-port binding). So we DON'T add a USER
+# directive here — instead, the compose layer uses `cap_drop: [ALL]` +
+# `cap_add: [NET_BIND_SERVICE]` + `security_opt: no-new-privileges` to
+# restrict what the root process can do. The api container gets the
+# stricter `read_only: true` + tmpfs treatment since Python has a clean
+# non-root user; the web container runs as root with dropped caps.
 
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
     CMD wget -qO- http://localhost:80/healthz || exit 1

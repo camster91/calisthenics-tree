@@ -132,19 +132,17 @@ services:
     restart: unless-stopped
     depends_on:
       - api
-    # Sprint 38 hardening YELLOW — same hardening pattern as api.
-    # caddy:2-alpine image ships a non-root `caddy` user (uid 1000); the
-    # Dockerfile sets USER caddy. We still set cap_drop / read_only /
-    # security_opt at the compose layer for defense in depth.
+    # Sprint 38 hardening YELLOW — caddy:2-alpine doesn't ship a non-root
+    # user at build time (it relies on setcap cap_net_bind_service for the
+    # caddy binary). So we keep root + drop everything EXCEPT the cap
+    # caddy actually needs (NET_BIND_SERVICE for port 80) + no-new-privileges.
+    # The api container gets the stricter read_only + tmpfs treatment; web
+    # needs write access to /config/caddy + /data/caddy for cert storage.
     cap_drop: [ALL]
+    cap_add:
+      - NET_BIND_SERVICE
     security_opt:
       - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp:size=32m,mode=1777
-      - /var/run/caddy:size=8m,mode=1777
-      - /config/caddy:size=32m,mode=1777
-      - /data/caddy:size=32m,mode=1777
     # Host port mapping (matches the ai-billing-audit pattern on the
     # same VPS). Traefik reaches the web container via 127.0.0.1:3020.
     # The host port (3020) is intentionally NOT 80/443 — Traefik owns
