@@ -118,12 +118,17 @@ async def request_magic_link(
         # so the API doesn't leak which emails are deliverable.
         logger.exception("Failed to send magic link to %s: %s", email, exc)
 
+    # Sprint 37 audit fix (RED-1): never return dev_token in production, even
+    # if POSTMARK_TOKEN is unset. Returning the signed magic-link token in an
+    # unauthenticated response is a one-shot account-takeover path: any caller
+    # who can hit POST /auth/magic-link can mint a JWT pair for any email.
+    # The boot guard in main.py refuses to start the server in prod without
+    # POSTMARK_TOKEN, so this is belt-and-suspenders defense-in-depth.
+    is_prod = settings.environment == "production"
     response = MagicLinkResponse(
-        status="dev" if not settings.postmark_token else "sent",
+        status="dev" if (not settings.postmark_token and not is_prod) else "sent",
         expires_at=expires_at,
-        # dev_token is only populated in dev (no Postmark) so local UIs can
-        # construct the verify URL without scraping logs.
-        dev_token=token if not settings.postmark_token else None,
+        dev_token=token if (not settings.postmark_token and not is_prod) else None,
     )
     return response
 

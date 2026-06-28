@@ -13,7 +13,7 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 
 # -----------------------------------------------------------------------------#
@@ -145,11 +145,19 @@ class SyncedSet(BaseModel):
     reps: int | None = None
     hold_secs: int | None = None
 
-    @field_validator("reps", "hold_secs")
-    @classmethod
-    def at_least_one(cls, v: int | None, info) -> int | None:
-        # Either reps or hold_secs is required
-        return v
+    # Sprint 37 audit fix (RED-3): the previous implementation was a no-op
+    # `@field_validator` that returned `v` unchanged, letting garbage workout
+    # data (both reps and hold_secs = None) flow into the PL/pgSQL promotion
+    # function on every sync. Use `@model_validator(mode="after")` so we can
+    # compare both fields against each other.
+    @model_validator(mode="after")
+    def at_least_one(self) -> "SyncedSet":
+        if self.reps is None and self.hold_secs is None:
+            raise ValueError(
+                f"Set {self.set_number} must have either reps (isotonic) or "
+                "hold_secs (isometric) populated."
+            )
+        return self
 
 
 class SyncedLog(BaseModel):

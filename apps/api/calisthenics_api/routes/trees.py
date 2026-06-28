@@ -90,9 +90,20 @@ async def list_trees(
             }
         )
 
-    edges_out: list[dict] = []
+    # Sprint 37 audit fix (RED-4): previously every tree's response included
+    # the union of ALL edges across all trees — 3× payload bloat + correctness
+    # bug (DAG renderer sees edges to nodes it doesn't have). Partition by
+    # tree_id keyed by from_node's tree membership.
+    node_to_tree: dict[uuid.UUID, uuid.UUID] = {n.id: n.tree_id for n, _ex in nodes}
+    edges_by_tree: dict[uuid.UUID, list[dict]] = {tid: [] for tid in tree_ids}
     for e in edges:
-        edges_out.append(
+        source_tree = node_to_tree.get(e.from_node_id)
+        if source_tree is None:
+            # Edge from a node outside the trees we returned — drop rather
+            # than leak. Should not happen given the edges query filters by
+            # node_id in tree_ids, but defensive.
+            continue
+        edges_by_tree[source_tree].append(
             {
                 "from_node_id": f"node_{e.from_node_id}",
                 "to_node_id": f"node_{e.to_node_id}",
@@ -108,7 +119,7 @@ async def list_trees(
                 "name": t.name,
                 "description": t.description or "",
                 "nodes": nodes_by_tree[t.id],
-                "edges": edges_out,  # all edges belong to one of the trees we returned
+                "edges": edges_by_tree[t.id],
             }
             for t in trees
         ],

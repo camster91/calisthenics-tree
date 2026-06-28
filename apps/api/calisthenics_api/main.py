@@ -45,8 +45,27 @@ async def lifespan(app: FastAPI):
     logger.info("calisthenics_api shutdown complete")
 
 
+def validate_production_secrets(settings) -> None:
+    """Sprint 37 audit fix (RED-1): refuse to start in production without a
+    Postmark server token. Returning a signed magic-link token in an
+    unauthenticated response when POSTMARK_TOKEN is unset is a one-shot
+    account-takeover path; the auth route also strips dev_token in prod
+    (defense-in-depth), but refusing to boot is the primary gate.
+
+    Extracted from create_app() so it's unit-testable without import-time
+    side effects.
+    """
+    if settings.environment == "production" and not settings.postmark_token:
+        raise RuntimeError(
+            "POSTMARK_TOKEN must be set when environment=='production'. "
+            "Refusing to start: a missing Postmark token would leak signed "
+            "magic-link tokens in the unauthenticated /auth/magic-link response."
+        )
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
+    validate_production_secrets(settings)
 
     # Sentry error tracking — only initialised when DSN is set, so cold-start
     # stays fast in environments without observability (local dev, tests).
