@@ -50,6 +50,26 @@ class FollowResponse(BaseModel):
     followee_id: str
 
 
+async def _is_following(
+    session: AsyncSession,
+    *,
+    follower_id: uuid.UUID,
+    followee_id: uuid.UUID,
+) -> bool:
+    """Sprint 38 helper — single-direction follow check used by both
+    follow_user and get_public_profile (PII gating). Returns True iff
+    `follower_id` follows `followee_id`."""
+    if follower_id == followee_id:
+        return True  # self-follow counts for the PII gate
+    result = await session.execute(
+        select(Friendship.id).where(
+            Friendship.follower_id == follower_id,
+            Friendship.followee_id == followee_id,
+        )
+    )
+    return result.scalar_one_or_none() is not None
+
+
 @router.post("/friends", response_model=FollowResponse, status_code=status.HTTP_201_CREATED)
 async def follow_user(
     payload: FollowRequest,
@@ -198,22 +218,29 @@ async def list_friends(
 
 class PublicProfile(BaseModel):
     user_id: str
-    email: str  # will show email of friends; consider hiding in v2
+    # Sprint 38 YELLOW PII gating — email is no longer always exposed.
+    # Only included when caller follows target OR is target. Otherwise null.
+    email: str | None
     display_name: str | None
     current_nodes: list[dict]  # [{tree_id, tree_name, node_id, node_name}]
+    is_following: bool  # true if caller follows target (for UX clarity)
 
 
 @router.get("/users/{user_id}", response_model=None)
 async def get_public_profile(
     user_id: str = Path(...),
-    _auth: AuthContext = Depends(get_current_user),
+    auth: AuthContext = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> dict:
     """Public profile — display name + current node per tree.
 
-    v1 exposes email of anyone in the system; that's intentional for
-    the follow-by-email UX but should be locked down in v2 (only show
-    email to mutual follows).
+    Sprint 38 YELLOW PII gating: email is no longer leaked to arbitrary
+    callers. Visible only when caller is target (self-view), follows
+    target, or target follows caller (mutual). For everyone else, email
+    is null — UI shows 'User' or display_name.
+
+    v1 follow-by-email flow (`POST /api/v1/friends`) still requires the
+    follower's identity to know who they are; that's authed, not a leak.
     """
     raw = user_id.removeprefix("usr_")
     try:
@@ -232,6 +259,19 @@ async def get_public_profile(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found.",
         )
+
+    # PII gate — show email only to: self, follower-of-target, or target-of-caller.
+    is_self = auth.user_id == user.id
+    is_following = False
+    is_followed_by = False
+    if not is_self:
+        is_following = await _is_following(
+            session, follower_id=auth.user_id, followee_id=user.id
+        )
+        is_followed_by = await _is_following(
+            session, follower_id=user.id, followee_id=auth.user_id
+        )
+    can_see_email = is_self or is_following or is_followed_by
 
     state_rows = (
         await session.execute(
@@ -255,9 +295,10 @@ async def get_public_profile(
 
     return {
         "user_id": f"usr_{user.id}",
-        "email": user.email,
+        "email": user.email if can_see_email else None,
         "display_name": user.display_name,
         "current_nodes": current_nodes,
+        "is_following": is_following,
     }
 
 

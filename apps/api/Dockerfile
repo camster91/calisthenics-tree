@@ -28,3 +28,15 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
 
 # Entrypoint: run alembic upgrade then uvicorn
 CMD ["sh", "-c", "alembic upgrade head && uvicorn calisthenics_api.main:app --host 0.0.0.0 --port 8000"]
+
+
+# Sprint 38 hardening YELLOW — run as non-root user with restricted capabilities.
+# The python:3.12-slim image ships with a `uid 0` default; create a dedicated
+# appuser and switch to it before the CMD runs. `cap_drop: [ALL]` is set at
+# the compose layer (`docker-compose.prod.yml`), not here — Docker doesn't
+# allow cap_drop in Dockerfile RUN, only in compose / run.
+RUN groupadd --system --gid 1001 appuser \
+    && useradd  --system --uid 1001 --gid appuser --home-dir /app --shell /sbin/nologin appuser \
+    && chown -R appuser:appuser /app
+
+USER appuser

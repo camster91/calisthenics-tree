@@ -45,5 +45,10 @@ EXPOSE 80
 
 # Caddy auto-TLS via ACME when the public hostname is reachable; for local
 # dev, runs plain HTTP on :80.
+# Sprint 38 hardening YELLOW — caddy:2-alpine ships with a non-root
+# `caddy` user (uid 1000). Switch to it explicitly. cap_drop: [ALL] +
+# read_only: true + tmpfs mounts live at the compose layer.
+USER caddy
+
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
     CMD wget -qO- http://localhost:80/healthz || exit 1

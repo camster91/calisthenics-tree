@@ -64,12 +64,31 @@ async def _send_magic_link_email(to_email: str, link: str) -> None:
     settings = get_settings()
     if not settings.postmark_token:
         # Dev fallback — log to stdout so devs can copy the link from the API logs.
-        logger.warning(
-            "[dev-mode] Magic link for %s: %s "
-            "(POSTMARK_TOKEN unset — set it in .env to send real emails)",
-            to_email,
-            link,
-        )
+        # Sprint 38 YELLOW: log the link WITH the token only when POSTMARK is
+        # unset AND environment != production. In prod, refuse to log the link
+        # even if dev-mode path triggers (e.g. operator forgot POSTMARK_TOKEN
+        # in a prod env) — the audit's boot guard should prevent prod
+        # startup, but defense in depth.
+        if settings.environment != "production":
+            logger.warning(
+                "[dev-mode] Magic link for %s: %s "
+                "(POSTMARK_TOKEN unset — set it in .env to send real emails)",
+                to_email,
+                link,
+            )
+        else:
+            # Belt + suspenders: the boot guard already refused to start in
+            # prod without POSTMARK_TOKEN. If we somehow reach this path, log
+            # an error WITHOUT the link so we don't leak it via the prod log
+            # aggregator.
+            import hashlib
+
+            link_token_fpr = hashlib.sha256(link.encode("utf-8")).hexdigest()[:12]
+            logger.error(
+                "PROD reached dev-mode magic-link path with POSTMARK_TOKEN unset "
+                "— link suppressed. link_token_fpr=%s",
+                link_token_fpr,
+            )
         return
 
     try:
@@ -116,7 +135,31 @@ async def request_magic_link(
     except Exception as exc:
         # Surface email-send failures in the logs but still 202 to the client
         # so the API doesn't leak which emails are deliverable.
-        logger.exception("Failed to send magic link to %s: %s", email, exc)
+        # Sprint 38 YELLOW: log a SHA-256 prefix of the token instead of
+        # the raw token (PII in observability cluster). NEVER log the full
+        # link / token — even in dev mode, log aggregation can be retained
+        # longer than the token's 15-min TTL.
+        import hashlib
+
+        token_fpr = hashlib.sha256(token.encode("utf-8")).hexdigest()[:12]
+        logger.exception(
+            "Failed to send magic link (token_fpr=%s): %s",
+            token_fpr,
+            exc,
+        )
+
+    # Audit INFO: log request without the link or token. Hash the email for
+    # join-back. We do NOT log the token or the link in any path — neither
+    # info-log nor the dev-mode path. Dev mode exposes dev_token in the
+    # HTTP response body only (Sprint 37 RED-1 fix); stdout never sees it.
+    import hashlib
+
+    email_fpr = hashlib.sha256(email.encode("utf-8")).hexdigest()[:12]
+    logger.info(
+        "Magic link issued (email_fpr=%s, sent_via=%s)",
+        email_fpr,
+        "postmark" if settings.postmark_token else "stdout-dev",
+    )
 
     # Sprint 37 audit fix (RED-1): never return dev_token in production, even
     # if POSTMARK_TOKEN is unset. Returning the signed magic-link token in an

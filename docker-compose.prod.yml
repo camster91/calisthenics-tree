@@ -68,6 +68,20 @@ services:
       context: ./apps/api
       dockerfile: Dockerfile
     restart: unless-stopped
+    # Sprint 38 hardening YELLOW — non-root + drop capabilities + read-only fs.
+    # The Dockerfile USERs to a dedicated appuser (uid 1001). Compose-level
+    # `cap_drop: [ALL]` removes the kernel capability set; the api process
+    # only needs to bind a high port and write to /srv/share (named volume).
+    # `read_only: true` makes the rootfs immutable; tmpfs mounts give the
+    # two writable paths (alembic sqlite cache, /tmp) we need.
+    user: "1001:1001"
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+      - /home/appuser/.cache:size=32m,mode=1777
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-calisthenics}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-calisthenics}
       BEARER_TOKEN: ${BEARER_TOKEN}
@@ -79,6 +93,8 @@ services:
       WEB_BASE_URL: ${WEB_BASE_URL:-https://workout.ashbi.ca}
       SENTRY_DSN: ${SENTRY_DSN:-}
       SHARE_DIR: /srv/share
+      # Tell Python / pip to put cache in a writable location (read_only fs).
+      XDG_CACHE_HOME: /home/appuser/.cache
     depends_on:
       db:
         condition: service_healthy
@@ -116,6 +132,19 @@ services:
     restart: unless-stopped
     depends_on:
       - api
+    # Sprint 38 hardening YELLOW — same hardening pattern as api.
+    # caddy:2-alpine image ships a non-root `caddy` user (uid 1000); the
+    # Dockerfile sets USER caddy. We still set cap_drop / read_only /
+    # security_opt at the compose layer for defense in depth.
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+      - /var/run/caddy:size=8m,mode=1777
+      - /config/caddy:size=32m,mode=1777
+      - /data/caddy:size=32m,mode=1777
     # Host port mapping (matches the ai-billing-audit pattern on the
     # same VPS). Traefik reaches the web container via 127.0.0.1:3020.
     # The host port (3020) is intentionally NOT 80/443 — Traefik owns
