@@ -239,7 +239,7 @@ export function NodeTree({
               <rect
                 width={n.width}
                 height={n.height}
-                rx="12"
+                rx="16"
                 fill={
                   isCurrent
                     ? 'var(--color-primary)'
@@ -257,7 +257,7 @@ export function NodeTree({
                 strokeWidth={isCurrent || isHighlighted ? 3 : 1.5}
                 style={
                   isCurrent
-                    ? { filter: 'drop-shadow(0 0 12px var(--color-primary))' }
+                    ? { filter: 'drop-shadow(0 0 28px rgba(255, 107, 26, 0.55))' }
                     : undefined
                 }
               />
