@@ -8,6 +8,12 @@ import { useT } from '../../lib/i18n';
  * authenticated app shell (DAG browse / workout / feed / settings).
  * Onboarding & marketing screens override this with their own layout.
  *
+ * Sprint 37 (Apple Fitness+ direction):
+ * - Header is now a true glass surface (--color-glass + backdrop-blur)
+ * - Brand mark uses squircle radius and the new wider glow
+ * - Nav links use the new ghost button with spring press feedback
+ * - Hairline border bottom (iOS separator style)
+ *
  * Nav labels are translated via useT() per PLAN.md Gap 3. The dev-only
  * "Showcase" and "Wireframes" links stay in English (developer surface,
  * not user-facing).
@@ -17,14 +23,22 @@ export default function Layout() {
 
   return (
     <div className="flex min-h-full flex-col">
-      <header className="sticky top-0 z-sticky border-b border-surface-border bg-surface/95 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <a href="/" className="flex items-center gap-2">
+      <header
+        className="sticky top-0 z-sticky border-b border-surface-border"
+        style={{
+          backgroundColor: 'var(--color-glass)',
+          backdropFilter: 'blur(var(--blur-md)) saturate(180%)',
+          WebkitBackdropFilter: 'blur(var(--blur-md)) saturate(180%)',
+        }}
+      >
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3">
+          <a href="/" className="flex items-center gap-2.5">
             <span
               aria-hidden
-              className="inline-block h-8 w-8 rounded-md bg-primary shadow-glow"
+              className="inline-block h-9 w-9 rounded-xl bg-primary"
+              style={{ boxShadow: 'var(--shadow-glow)' }}
             />
-            <span className="text-base font-semibold tracking-tight">
+            <span className="text-base font-bold tracking-tighter text-surface-fg">
               Calisthenics Tree
             </span>
           </a>
@@ -33,7 +47,11 @@ export default function Layout() {
               to="/"
               end
               className={({ isActive }) =>
-                `btn-ghost ${isActive ? 'bg-surface-muted' : ''}`
+                `rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-surface-muted text-surface-fg'
+                    : 'text-surface-fg-muted hover:bg-surface-muted hover:text-surface-fg'
+                }`
               }
             >
               {t('nav.home')}
@@ -41,7 +59,11 @@ export default function Layout() {
             <NavLink
               to="/workout"
               className={({ isActive }) =>
-                `btn-ghost ${isActive ? 'bg-surface-muted' : ''}`
+                `rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-surface-muted text-surface-fg'
+                    : 'text-surface-fg-muted hover:bg-surface-muted hover:text-surface-fg'
+                }`
               }
             >
               {t('nav.workout')}
@@ -49,7 +71,11 @@ export default function Layout() {
             <NavLink
               to="/feed"
               className={({ isActive }) =>
-                `btn-ghost ${isActive ? 'bg-surface-muted' : ''}`
+                `rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-surface-muted text-surface-fg'
+                    : 'text-surface-fg-muted hover:bg-surface-muted hover:text-surface-fg'
+                }`
               }
             >
               {t('nav.feed')}
@@ -57,7 +83,11 @@ export default function Layout() {
             <NavLink
               to="/history"
               className={({ isActive }) =>
-                `btn-ghost ${isActive ? 'bg-surface-muted' : ''}`
+                `rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-surface-muted text-surface-fg'
+                    : 'text-surface-fg-muted hover:bg-surface-muted hover:text-surface-fg'
+                }`
               }
             >
               History
@@ -65,7 +95,11 @@ export default function Layout() {
             <NavLink
               to="/settings"
               className={({ isActive }) =>
-                `btn-ghost ${isActive ? 'bg-surface-muted' : ''}`
+                `rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-surface-muted text-surface-fg'
+                    : 'text-surface-fg-muted hover:bg-surface-muted hover:text-surface-fg'
+                }`
               }
             >
               {t('nav.settings')}
@@ -73,7 +107,11 @@ export default function Layout() {
             <NavLink
               to="/insights/tendon"
               className={({ isActive }) =>
-                `btn-ghost ${isActive ? 'bg-surface-muted' : ''}`
+                `rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-surface-muted text-surface-fg'
+                    : 'text-surface-fg-muted hover:bg-surface-muted hover:text-surface-fg'
+                }`
               }
             >
               {t('nav.insights')}
@@ -81,7 +119,11 @@ export default function Layout() {
             <NavLink
               to="/components"
               className={({ isActive }) =>
-                `btn-ghost ${isActive ? 'bg-surface-muted' : ''} text-primary`
+                `rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-surface-muted text-primary'
+                    : 'text-primary/70 hover:bg-surface-muted hover:text-primary'
+                }`
               }
               title="T35 component showcase"
             >
@@ -90,7 +132,11 @@ export default function Layout() {
             <NavLink
               to="/wireframes"
               className={({ isActive }) =>
-                `btn-ghost ${isActive ? 'bg-surface-muted' : ''} text-primary`
+                `rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-surface-muted text-primary'
+                    : 'text-primary/70 hover:bg-surface-muted hover:text-primary'
+                }`
               }
               title="T37 wireframe review surface"
             >
@@ -102,13 +148,13 @@ export default function Layout() {
 
       <main
         id="main"
-        className="mx-auto w-full max-w-5xl flex-1 px-4 py-8"
+        className="mx-auto w-full max-w-5xl flex-1 px-5 py-8"
         tabIndex={-1}
       >
         <Outlet />
       </main>
 
-      <footer className="border-t border-surface-border px-4 py-6 text-center text-xs text-surface-fg-subtle">
+      <footer className="border-t border-surface-border px-5 py-6 text-center text-xs text-surface-fg-subtle">
         <p>Calisthenics Tree — train smarter, not just harder.</p>
       </footer>
     </div>
