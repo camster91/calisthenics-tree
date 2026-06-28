@@ -369,12 +369,45 @@ class UnlockEvent(Base):
     )
 
 
+class MagicLinkConsumed(Base):
+    """Sprint 38 hardening RED-6 — magic-link replay protection.
+
+    Every successful /auth/verify inserts the SHA-256 of the magic-link
+    token here inside the same transaction. Subsequent verify calls with
+    the same token find a row and 400 out as 'token already used'. Closes
+    the 15-min replay window that previously let an intercepted magic-link
+    email mint arbitrary JWT pairs.
+
+    Schema:
+        token_hash  PK — SHA-256 hex of the token (never the raw token).
+        consumed_at — when the verify call succeeded.
+        user_id     — FK to the user who consumed it.
+
+    Storage: tiny. One row per successful verify. No TTL needed.
+    """
+
+    __tablename__ = "magic_link_consumed"
+
+    token_hash: Mapped[str] = mapped_column(String(128), primary_key=True)
+    consumed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+
+    __table_args__ = (
+        Index("ix_magic_link_consumed_user_time", "user_id", "consumed_at"),
+    )
+
+
 __all__ = [
     "Base",
     "EdgeType",
     "Exercise",
     "Friendship",
     "JointPathway",
+    "MagicLinkConsumed",
     "MovementType",
     "ProgressionEdge",
     "ProgressionNode",

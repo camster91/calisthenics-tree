@@ -27,6 +27,7 @@ import {
   type SyncedWorkout,
 } from '../lib/api';
 import { Button } from '../components/ui/button';
+import { track } from '../lib/analytics';
 import { Card } from '../components/ui/card';
 import { BigNumber } from '../components/ui/big-number';
 import { RepCounter } from '../components/workout/RepCounter';
@@ -143,6 +144,16 @@ export default function WorkoutLogPage() {
       const response = await syncWorkouts({
         sync_client_timestamp: new Date().toISOString(),
         workouts: [workout],
+      });
+      // Sprint 38 YELLOW fix: funnel analytics — workouts are the
+      // critical conversion event. Fire-and-forget; never block the UX.
+      track('workout_logged', {
+        node_id: node.node_id,
+        exercise_name: node.exercise_name,
+        movement_type: node.movement_type,
+        sets_completed: completed.length,
+        promoted: response.state_updates.promotions.length,
+        regressed: response.state_updates.regressions.length,
       });
       navigate(`/workout/${encodeURIComponent(node.node_id)}/done`, {
         state: { response, exerciseName: node.exercise_name },
@@ -348,7 +359,7 @@ export default function WorkoutLogPage() {
       />
 
       {/* Sticky-feel save bar — full-width primary CTA at the bottom */}
-      <div className="sticky bottom-0 -mx-5 mt-4 border-t border-surface-border bg-surface/90 px-5 py-4 backdrop-blur-md">
+      <div className="sticky bottom-0 -mx-5 mt-4 border-t border-surface-border bg-surface/90 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 backdrop-blur-md">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
           <Button asChild variant="ghost" size="md">
             <a href="/" className="text-surface-fg-muted">

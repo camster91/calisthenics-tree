@@ -463,4 +463,3 @@ def test_history_isolated_per_user(client):
     assert r2.status_code == 200
     # User 2 has no workouts of their own
     assert r2.json()["total_workouts"] == 0
-    assert "/healthz" in spec["paths"]

@@ -443,6 +443,18 @@ POSTGRES_LOG_STATEMENT=all
 4. If the migration is broken → restore from backup (section 5), then write a corrective forward migration.
 5. If the migration is fine but the **new code** can't run → rollback to previous image (section 4).
 
+### Recovering a DB stamped at the deleted `0005_subscriptions`
+
+Sprint 22 deleted migration `0005_subscriptions` (paywall teardown). A DB that was stamped at `0005_subscriptions` before Sprint 22 cannot run `alembic upgrade head` — the script map now reads `0006_soft_delete.down_revision = "0006_placeholder"` (via the `0007_placeholder` no-op), but `0005_subscriptions` is unknown. To recover:
+
+```bash
+docker exec -it calisthenics-tree-db psql -U calisthenics -d calisthenics \
+  -c "UPDATE alembic_version SET version_num='0006_soft_delete';"
+docker exec calisthenics-tree-api alembic upgrade head
+```
+
+This forces the DB past the deleted 0005 and onto the new chain (`0006 → 0007_placeholder → 0008_magic_link_consumed` after Sprint 38). Data preserved.
+
 ---
 
 ## 8. Secrets management

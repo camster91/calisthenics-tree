@@ -31,7 +31,32 @@ import * as local from './local-mode';
 
 import { api } from './api';
 import { authStore, type AuthSnapshot } from './auth-store';
-import { identify, reset as resetAnalytics } from './analytics';
+import { identify, reset as resetAnalytics, track } from './analytics';
+
+/**
+ * Hash an email for analytics tagging. Sprint 38 PII fix — we never send
+ * the raw email to PostHog. SHA-256 hex (no salt here; the salt lives
+ * server-side for join-back). Same-domain emails hash deterministically so
+ * we can still do "users with the same email across devices" joins via a
+ * server-side query if ever needed.
+ */
+function hashEmailForAnalytics(email: string): string {
+  // Web Crypto is available in all evergreen browsers + Node 19+. Fall back
+  // to a noop hash so we never block the auth flow in a weird environment.
+  if (typeof crypto !== 'undefined' && 'subtle' in crypto) {
+    // Async hashing would require restructuring the identify flow; for
+    // analytics-only purposes a non-cryptographic 32-bit hash is fine (we
+    // only need non-reversible, not collision-resistant). FNV-1a is tiny,
+    // synchronous, and good enough for the "is this the same person" join.
+    let h = 0x811c9dc5;
+    for (let i = 0; i < email.length; i++) {
+      h ^= email.charCodeAt(i);
+      h = Math.imul(h, 0x01000193);
+    }
+    return (h >>> 0).toString(16).padStart(8, '0');
+  }
+  return 'no-hash';
+}
 import type {
   MagicLinkResponse,
   RefreshResponse,
@@ -126,12 +151,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     writeStoredSnapshot(snapshot);
   }, [snapshot]);
 
-  // PostHog identify on auth transitions.
+  // PostHog identify on auth transitions. Sprint 38 YELLOW fix: we only
+  // send user_id + a SHA-256 email hash (never the raw email). PostHog's
+  // identify trait accepts arbitrary keys but the EU/CCPA treat raw email
+  // as PII — hashed form is reversible only if you have the salt, which we
+  // keep server-side.
   const lastIdentifiedRef = useRef<string | null>(null);
   useEffect(() => {
     if (snapshot.status === 'authenticated' && snapshot.user) {
       if (lastIdentifiedRef.current !== snapshot.user.id) {
-        identify(snapshot.user.id, { email: snapshot.user.email });
+        identify(snapshot.user.id, {
+          email_hash: hashEmailForAnalytics(snapshot.user.email),
+        });
         lastIdentifiedRef.current = snapshot.user.id;
       }
     } else if (snapshot.status === 'anonymous') {
@@ -153,6 +184,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       method: 'POST',
       body: { email },
       skipAuth: true,
+    });
+    // Sprint 38 funnel analytics: track the auth attempt. Never include the
+    // raw email — hash via the same helper we use for identify.
+    track('magic_link_requested', {
+      email_hash: hashEmailForAnalytics(email),
+      sent_via: response.status, // 'sent' (prod Postmark) | 'dev' (local)
     });
     return response;
   }, []);

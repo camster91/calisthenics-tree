@@ -124,6 +124,31 @@ def test_verify_returns_400_on_bad_signature(client: TestClient) -> None:
     assert response.status_code == 400
 
 
+def test_verify_replay_returns_400(client: TestClient, dev_token: str) -> None:
+    """Sprint 38 hardening RED-6: a magic-link token must be single-use.
+
+    First verify succeeds. Re-submitting the same token within the 15-min
+    TTL must 400 out as 'token already used' (closes the replay window
+    where an intercepted magic-link email could mint arbitrary JWT pairs).
+
+    Requires DATABASE_URL (writes to `magic_link_consumed` table)."""
+    import os
+
+    if not os.environ.get("DATABASE_URL"):
+        import pytest
+
+        pytest.skip("DATABASE_URL not set; magic_link_consumed replay test needs DB")
+
+    # First verify: succeeds, returns JWT pair.
+    r1 = client.get(f"/api/v1/auth/verify?token={dev_token}")
+    assert r1.status_code == 200, f"first verify should succeed, got {r1.text}"
+
+    # Replay: same token, should 400.
+    r2 = client.get(f"/api/v1/auth/verify?token={dev_token}")
+    assert r2.status_code == 400
+    assert "already used" in r2.json()["detail"].lower()
+
+
 def test_verify_returns_400_on_missing_token(client: TestClient) -> None:
     response = client.get("/api/v1/auth/verify")
     assert response.status_code == 422

@@ -24,7 +24,7 @@ export default function Layout() {
   return (
     <div className="flex min-h-full flex-col">
       <header
-        className="sticky top-0 z-sticky border-b border-surface-border"
+        className="sticky top-0 z-sticky border-b border-surface-border pt-[env(safe-area-inset-top)]"
         style={{
           backgroundColor: 'var(--color-glass)',
           backdropFilter: 'blur(var(--blur-md)) saturate(180%)',

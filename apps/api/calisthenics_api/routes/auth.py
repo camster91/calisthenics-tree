@@ -156,9 +156,11 @@ async def verify_magic_link(
 ) -> VerifyResponse:
     """Consume a magic-link token. Returns a JWT pair + the user record.
 
-    In a real production system, magic-link tokens would be single-use (stored
-    in DB and deleted on consume). For v1 we accept a 15-min window without
-    revocation — see security.py module docstring.
+    Sprint 38 hardening RED-6: magic-link is now single-use. We store the
+    SHA-256 of the token in `magic_link_consumed` and 400 on any
+    re-submission within the 15-minute TTL window. The token itself is
+    never stored — only its hash — so a DB dump doesn't leak live magic
+    links.
     """
     try:
         email = security.verify_magic_link_token(token)
@@ -168,10 +170,41 @@ async def verify_magic_link(
             detail=str(exc),
         ) from exc
 
+    # Hash the raw token to check / record consumption. Use SHA-256 hex —
+    # 64 hex chars, fits the column (String(128) has headroom for algorithm
+    # changes). sha256 is sufficient: this is an integrity check, not a
+    # credential — even a rainbow table of every magic-link hash doesn't
+    # help an attacker since the underlying token (signed via itsdangerous
+    # HMAC) is still the actual credential.
+    import hashlib
+
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+
     user = await _get_or_create_user(email, session)
+
+    # Check + insert in one transaction so two concurrent verifies can't
+    # both succeed. IntegrityError on the second insert is the "already
+    # used" signal.
+    from sqlalchemy.exc import IntegrityError
+
+    from calisthenics_api.db.models import MagicLinkConsumed
+
+    consumed = MagicLinkConsumed(token_hash=token_hash, user_id=user.id)
+    session.add(consumed)
+    try:
+        await session.flush()
+    except IntegrityError:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Magic link already used. Request a new one.",
+        ) from None
+
+    await session.commit()
+
     tokens = security.issue_token_pair(user_id=str(user.id), email=user.email)
 
-    logger.info("Issued JWT pair for user_id=%s email=%s", user.id, email)
+    logger.info("Issued JWT pair for user_id=%s", user.id)
 
     return VerifyResponse(
         access_token=tokens["access_token"],  # type: ignore[arg-type]
