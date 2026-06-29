@@ -15,11 +15,16 @@ import logging
 import uuid
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from calisthenics_api import security
+from calisthenics_api.auth import (
+    clear_session_cookie,
+    get_current_user,
+    set_session_cookie,
+)
 from calisthenics_api.config import get_settings
 from calisthenics_api.db import get_session
 from calisthenics_api.db.models import User
@@ -194,6 +199,7 @@ async def _get_or_create_user(email: str, session: AsyncSession) -> User:
 
 @router.get("/verify", response_model=VerifyResponse)
 async def verify_magic_link(
+    response: Response,  # Sprint 38 RED-7: Set-Cookie target
     token: str = Query(..., min_length=10, max_length=512),
     session: AsyncSession = Depends(get_session),
 ) -> VerifyResponse:
@@ -249,6 +255,20 @@ async def verify_magic_link(
 
     logger.info("Issued JWT pair for user_id=%s", user.id)
 
+    # Sprint 38 RED-7: Set the session cookies alongside the JSON response.
+    # The browser now carries both tokens in HttpOnly+Secure+SameSite=Lax
+    # cookies. The SPA never sees them in JS — /auth/whoami hydrates on
+    # mount and /auth/refresh rotates the cookies via a cookieless POST.
+    # Tokens STILL appear in the JSON body for backward compat with
+    # scripts / Postman; the SPA ignores them.
+    from calisthenics_api.auth import set_session_cookie  # local import to avoid cycle
+
+    set_session_cookie(
+        response,
+        access_token=tokens["access_token"],  # type: ignore[arg-type]
+        refresh_token=tokens["refresh_token"],  # type: ignore[arg-type]
+    )
+
     return VerifyResponse(
         access_token=tokens["access_token"],  # type: ignore[arg-type]
         access_expires_at=tokens["access_expires_at"],  # type: ignore[arg-type]
@@ -265,12 +285,34 @@ async def verify_magic_link(
 
 @router.post("/refresh", response_model=RefreshResponse, dependencies=[Depends(rate_limit_per_ip("refresh"))])
 async def refresh_tokens(
-    payload: RefreshRequest,
+    response: Response,  # Sprint 38 RED-7: rotate the session cookie
+    payload: RefreshRequest | None = None,
+    request: Request = None,  # type: ignore[assignment]
     session: AsyncSession = Depends(get_session),
 ) -> RefreshResponse:
-    """Exchange a refresh token for a fresh access+refresh pair (rotation)."""
+    """Exchange a refresh token for a fresh access+refresh pair (rotation).
+
+    Sprint 38 RED-7: prefers the refresh token from the `ct_session_refresh`
+    cookie (set by /auth/verify when the SPA is in cookie mode). Falls back
+    to the JSON body's `refresh_token` for scripts/Postman that can't carry
+    cookies. The response both updates the cookie AND echoes the JSON so
+    both surfaces continue to work.
+    """
+    settings = get_settings()
+    # Cookie path first (production). The body field is optional.
+    refresh_token = None
+    if request is not None:
+        refresh_token = request.cookies.get(settings.session_cookie_refresh_name)
+    if not refresh_token and payload is not None and payload.refresh_token:
+        refresh_token = payload.refresh_token
+    if not refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing refresh token.",
+        )
+
     try:
-        claims = security.decode_jwt(payload.refresh_token, expected_typ="refresh")
+        claims = security.decode_jwt(refresh_token, expected_typ="refresh")
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -287,9 +329,72 @@ async def refresh_tokens(
         )
 
     tokens = security.issue_token_pair(user_id=str(user.id), email=user.email)
+
+    # Sprint 38 RED-7: rotate BOTH cookies so the SPA stays signed in
+    # without juggling any tokens client-side. Only when the cookie was
+    # actually used by the request — JSON-token callers (legacy / scripts)
+    # shouldn't get cookies planted on them.
+    refresh_cookie_present = (
+        request is not None
+        and request.cookies.get(settings.session_cookie_refresh_name) is not None
+    )
+    set_session_cookie(
+        response,
+        access_token=tokens["access_token"],  # type: ignore[arg-type]
+        refresh_token=tokens["refresh_token"] if refresh_cookie_present else None,  # type: ignore[arg-type]
+        settings=settings,
+    )
+
     return RefreshResponse(
         access_token=tokens["access_token"],  # type: ignore[arg-type]
         access_expires_at=tokens["access_expires_at"],  # type: ignore[arg-type]
         refresh_token=tokens["refresh_token"],  # type: ignore[arg-type]
         refresh_expires_at=tokens["refresh_expires_at"],  # type: ignore[arg-type]
     )
+
+
+# -----------------------------------------------------------------------------#
+# POST /api/v1/auth/signout
+# -----------------------------------------------------------------------------#
+
+
+@router.post("/signout", status_code=status.HTTP_204_NO_CONTENT)
+async def signout(response: Response) -> Response:
+    """Sprint 38 RED-7: clear the session cookies.
+
+    Idempotent — 204 whether or not a cookie was actually set. No DB write
+    needed (the JWT inside the cookie is still cryptographically valid
+    until exp; the cookie deletion makes the browser stop sending it).
+    """
+    clear_session_cookie(response)
+    response.status_code = status.HTTP_204_NO_CONTENT
+    return response
+
+
+# -----------------------------------------------------------------------------#
+# GET /api/v1/auth/whoami
+# -----------------------------------------------------------------------------#
+
+
+@router.get("/whoami", response_model=UserPublic)
+async def whoami(
+    user=Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> UserPublic:
+    """Sprint 38 RED-7: hydrate the SPA from the cookie.
+
+    Returns the current user if the session cookie (or bearer) is valid,
+    401 otherwise. The SPA calls this on mount via `credentials: 'include'`
+    so it can re-attach the authenticated view after a hard refresh.
+    HttpOnly cookies can't be read from JS, hence the dedicated endpoint.
+    """
+    # user is AuthContext; fetch the User row so we return UserPublic
+    user_uuid = user.user_id
+    result = await session.execute(select(User).where(User.id == user_uuid))
+    db_user = result.scalar_one_or_none()
+    if db_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User no longer exists.",
+        )
+    return UserPublic.model_validate(db_user)

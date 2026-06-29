@@ -59,7 +59,11 @@ class VerifyResponse(BaseModel):
 
 
 class RefreshRequest(BaseModel):
-    refresh_token: str
+    """Refresh request body. Optional in Sprint 38 RED-7 — the refresh
+    token now lives in the `ct_session_refresh` HttpOnly cookie, but we
+    still accept it in the body so Postman / scripts / CI don't break."""
+
+    refresh_token: str | None = None
 
 
 class RefreshResponse(BaseModel):

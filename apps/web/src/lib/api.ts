@@ -1,13 +1,24 @@
 /**
  * API client — typed fetch wrapper for the FastAPI backend.
  *
- * Backend lives in apps/api/ (FastAPI + Postgres). Auth is JWT (Phase 2).
+ * Backend lives in apps/api/ (FastAPI + Postgres).
+ *
+ * Sprint 38 RED-7: Auth now rides on HttpOnly+Secure+SameSite=Lax cookies
+ * set by /auth/verify. The browser sends them automatically; this client
+ * just uses `credentials: 'include'`. The Authorization header path is
+ * preserved only for the bearer fallback (dev/CI/external scripts).
  *
  * Auth flow:
- *   - Reads access token from authStore (set by AuthProvider)
+ *   - Cookie is sent on every request via credentials: 'include'. The
+ *     backend's get_current_user prefers the cookie, falls back to bearer.
  *   - On 401, calls authStore.handleUnauthorized() which triggers a
  *     refresh + retry-once via the AuthProvider's registered handler.
+ *     Refresh reads the refresh cookie; the rotated cookies are set in
+ *     the response, the browser keeps them automatically.
  *   - If refresh fails, the original 401 surfaces to the caller.
+ *
+ * Local-mode sentinel ('local-dev-mode') is detected from authStore and
+ * short-circuits to localMockRoute; cookies aren't involved.
  *
  * Base URL: import.meta.env.VITE_API_URL (defaults to '/api' in dev via
  * the Vite proxy, which forwards to http://localhost:8000).
@@ -34,24 +45,28 @@ export class ApiError extends Error {
 
 interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;
-  /** Skip auth header (for /healthz, /auth/magic-link, /auth/verify, /auth/refresh). */
-  skipAuth?: boolean;
-  /** Skip the auto-refresh-on-401 retry. Useful for the auth endpoints themselves. */
+  /** Sprint 38 RED-7 marker: skip the auto-refresh-on-401 retry. Useful for
+   *  the auth endpoints themselves, which shouldn't be auto-refreshed.
+   *  Header injection is gone — cookies carry credentials now. */
   skipRefresh?: boolean;
+  /** Sprint 38 RED-7 marker: send cookies on a request that should NOT
+   *  rely on a session (e.g. /auth/magic-link, /auth/verify). Mostly here
+   *  for symmetry / future-proofing; today the browser sends cookies to
+   *  anything matching the cookie's Path/Domain anyway, so this is a
+   *  no-op in practice. */
+  skipAuth?: boolean;
 }
 
 function buildHeaders(opts: RequestOptions): HeadersInit {
-  const { skipAuth, headers } = opts;
-  const token = authStore.get().accessToken;
+  const { headers } = opts;
   return {
     'Content-Type': 'application/json',
-    ...(skipAuth || !token ? {} : { Authorization: `Bearer ${token}` }),
     ...headers,
   };
 }
 
 export async function api<T = unknown>(path: string, opts: RequestOptions = {}): Promise<T> {
-  const { body, skipAuth, skipRefresh, headers, ...rest } = opts;
+  const { body, skipRefresh, headers, ...rest } = opts;
 
   // Local-mode intercept: when the user signed in via "Continue without
   // account", the accessToken is 'local-dev-mode' and we serve everything
@@ -61,22 +76,35 @@ export async function api<T = unknown>(path: string, opts: RequestOptions = {}):
     return localMockRoute<T>(path, body, rest.method ?? 'GET');
   }
 
+  // Sprint 38 RED-7 cookie-mode: the auth provider fires /auth/whoami
+  // once on mount, but the existing React-hydration dance was already
+  // good enough on test runs — the cookie lives on the browser so it's
+  // available even before the React-side hydrates. We don't gate api()
+  // on `authStore.ready()` because that adds a render race in dev where
+  // the cookie isn't actually consulted by the dev-server. The cookie
+  // being absent produces a 401 → 401 handler triggers refresh →
+  // refresh also fails without cookie → signOut runs. We accept that
+  // brief window for tests; production has the cookie on the wire
+  // from the very first request.
+
   const doFetch = (): Promise<Response> =>
     fetch(`${API_BASE}${path}`, {
       ...rest,
-      headers: {
-        ...buildHeaders({ skipAuth, headers }),
-      },
+      credentials: 'include', // Sprint 38 RED-7: send the session cookie
+      headers: buildHeaders({ headers }),
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
 
   let res = await doFetch();
 
   // Auto-refresh on 401 (once), unless caller opted out (auth endpoints).
-  if (res.status === 401 && !skipAuth && !skipRefresh) {
+  // The refresh request itself relies on the ct_session_refresh cookie
+  // since the access cookie may have already expired.
+  if (res.status === 401 && !skipRefresh) {
     const newToken = await authStore.handleUnauthorized();
     if (newToken) {
-      // Retry the original request with the fresh token.
+      // Retry the original request — the new access cookie was just set
+      // by /auth/refresh's response Set-Cookie header.
       res = await doFetch();
     }
   }
@@ -422,10 +450,11 @@ export const restoreMe = () =>
  * `Blob` + suggested filename rather than parsing the response body.
  */
 export async function requestExport(): Promise<{ blob: Blob; filename: string }> {
-  const token = authStore.get().accessToken;
+  // Sprint 38 RED-7: cookies only — no Authorization header. The cookie
+  // is sent automatically because `credentials: 'include'`.
   const res = await fetch(`${API_BASE}/users/me/export`, {
     method: 'POST',
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    credentials: 'include',
   });
 
   if (!res.ok) {

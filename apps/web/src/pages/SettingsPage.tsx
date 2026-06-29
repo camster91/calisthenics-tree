@@ -546,10 +546,12 @@ export default function SettingsPage() {
 
         <button
           type="button"
-          onClick={() => {
-            signOut();
-            // signOut() flips status to anonymous; RequireAuth will redirect
-            // to /login on the next render. Force a navigation for clarity.
+          onClick={async () => {
+            // Sprint 38 RED-7: await so the server-side cookie clear
+            // completes before we hard-navigate. Otherwise the next
+            // /auth/whoami call right after navigation could race the
+            // Set-Cookie 'deleted' headers and surface a stale flash.
+            await signOut();
             window.location.href = '/login';
           }}
           className="btn-ghost inline-flex w-full items-center justify-center gap-2 border border-surface-border"

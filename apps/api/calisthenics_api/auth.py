@@ -1,21 +1,26 @@
-"""Bearer token / JWT auth dependency.
+"""Auth dependency — cookie session (Sprint 38 RED-7) OR bearer.
 
-Phase 1 used a single shared bearer token (env: BEARER_TOKEN). Phase 2 adds
-JWT verification (HS256). Both are accepted — the bearer path is preserved
-for local dev / CI / Postman, JWT is the production path.
+Phase 1 used a single shared bearer token (env: BEARER_TOKEN). Phase 2 added
+JWT verification (HS256) via the Authorization header. Phase 3 (Sprint 38
+RED-7) prefers HttpOnly+Secure+SameSite=Lax cookies set on /auth/verify,
+with Authorization: Bearer kept as a fallback for:
+  - Local dev / CI / smoke tests
+  - The /auth/refresh endpoint (rotation uses the refresh cookie)
+  - External API consumers (Postman, scripts)
 
-Auth flow on a request:
-  1. Inspect Authorization: Bearer <credentials>
-  2. Try static bearer (matches settings.bearer_token) → dev user
-  3. Try JWT verification (HS256, expected typ=access) → resolve user_id
-  4. Otherwise 401
+Resolution order on each request:
+  1. Cookie `ct_session` (production path; HttpOnly, sent automatically)
+  2. Authorization: Bearer <credentials> (dev / CI / API consumers)
+     a. Static bearer (matches settings.bearer_token) → dev user
+     b. JWT (HS256, expected typ=access) → resolve user_id
+  3. Otherwise 401
 """
 
 from __future__ import annotations
 
 import uuid
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Cookie, Depends, HTTPException, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,6 +32,85 @@ from calisthenics_api.db.models import User
 from calisthenics_api.schemas import AuthContext
 
 _bearer_scheme = HTTPBearer(auto_error=False)
+
+
+# -----------------------------------------------------------------------------#
+# Cookie helpers — RED-7 session management
+# -----------------------------------------------------------------------------#
+
+
+def set_session_cookie(
+    response: Response,
+    access_token: str,
+    refresh_token: str | None = None,
+    settings=None,
+) -> None:
+    """Sprint 38 RED-7: Set the HttpOnly+Secure+SameSite=Lax session cookies.
+
+    Always HttpOnly. Secure + SameSite=Lax in production. The JWT itself
+    is unchanged (HS256) — we just move storage from localStorage to a
+    cookie the browser sends automatically. Closes the XSS-via-localStorage
+    attack surface: an attacker running JS in our origin can no longer
+    exfiltrate the session token because the cookie is unreadable from JS.
+
+    Two cookies:
+      - `ct_session` holds the access token (15-min-ish JWT, used by every API call)
+      - `ct_session_refresh` holds the refresh token (30-day, used by /auth/refresh)
+    Same max-age for both — they're planted at the same moment and should
+    expire together. Different names so /auth/refresh can read the
+    refresh-typed JWT cookie without ambiguity.
+    """
+    if settings is None:
+        settings = get_settings()
+
+    # Auto-derive Secure from environment at the call site if the operator
+    # hasn't overridden it explicitly via env. Production = Secure; dev/test
+    # = non-Secure so localhost works.
+    secure = settings.session_cookie_secure and settings.environment != "development"
+
+    response.set_cookie(
+        key=settings.session_cookie_name,
+        value=access_token,
+        max_age=settings.session_cookie_max_age,
+        path="/",
+        domain=settings.session_cookie_domain or None,
+        secure=secure,
+        httponly=True,
+        samesite=settings.session_cookie_samesite,
+    )
+    if refresh_token is not None:
+        response.set_cookie(
+            key=settings.session_cookie_refresh_name,
+            value=refresh_token,
+            max_age=settings.session_cookie_max_age,
+            path="/",
+            domain=settings.session_cookie_domain or None,
+            secure=secure,
+            httponly=True,
+            samesite=settings.session_cookie_samesite,
+        )
+
+
+def clear_session_cookie(response: Response, settings=None) -> None:
+    """Clear both session cookies on signout / token rotation."""
+    if settings is None:
+        settings = get_settings()
+
+    response.delete_cookie(
+        key=settings.session_cookie_name,
+        path="/",
+        domain=settings.session_cookie_domain or None,
+    )
+    response.delete_cookie(
+        key=settings.session_cookie_refresh_name,
+        path="/",
+        domain=settings.session_cookie_domain or None,
+    )
+
+
+# -----------------------------------------------------------------------------#
+# User resolution
+# -----------------------------------------------------------------------------#
 
 
 async def _resolve_dev_user(creds: str, session: AsyncSession) -> AuthContext:
@@ -87,55 +171,72 @@ async def _resolve_jwt_user(creds: str, session: AsyncSession) -> AuthContext:
     return AuthContext(user_id=user.id, email=user.email)
 
 
+# -----------------------------------------------------------------------------#
+# FastAPI dependency — RED-7 cookie OR bearer fallback
+# -----------------------------------------------------------------------------#
+
+
 async def get_current_user(
+    request: Request,
     creds: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
     session: AsyncSession = Depends(get_session),
 ) -> AuthContext:
-    """Validate bearer credentials (static token OR JWT) and resolve to AuthContext.
+    """Validate session cookie OR bearer credentials, return AuthContext.
 
-    Order: static bearer first (cheap string compare) → JWT fallback.
-    Both paths return the same AuthContext shape, so downstream routes don't
-    care which auth method was used.
+    Resolution order:
+      1. Session cookie (production path; HttpOnly, sent by browser)
+      2. Authorization: Bearer (dev / CI / API consumers)
+         a. Static bearer
+         b. JWT
+
+    Sprint 38 RED-7: cookie path is now the production primary; bearer
+    fallback preserved for compatibility with scripts / Postman / CI.
     """
+    settings = get_settings()
+
+    # 1) Cookie path — RED-7 production.
+    cookie_token = request.cookies.get(settings.session_cookie_name)
+    if cookie_token:
+        return await _resolve_jwt_user(cookie_token, session)
+
+    # 2) Bearer fallback — dev / CI / API consumers.
     if creds is None or creds.scheme.lower() != "bearer":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing bearer token",
+            detail="Missing session cookie or bearer token",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    settings = get_settings()
-
-    # Static bearer path (dev / CI / smoke tests). Skip JWT decode entirely
-    # when the credentials match the configured dev token.
     if creds.credentials == settings.bearer_token:
         return await _resolve_dev_user(creds.credentials, session)
 
-    # JWT path (production).
     return await _resolve_jwt_user(creds.credentials, session)
 
 
 async def get_current_user_optional(
+    request: Request,
     creds: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
     session: AsyncSession = Depends(get_session),
 ) -> AuthContext | None:
     """Same as get_current_user but returns None instead of 401 when no
     credentials are provided. Used by endpoints that personalize when
-    authed (e.g. highlighting the user's current node on the DAG) but
-    don't require auth.
+    authed but don't require auth."""
+    settings = get_settings()
 
-    Static bearer still validated when present; invalid bearer still
-    raises — we just don't *require* it.
-    """
+    # Cookie path
+    cookie_token = request.cookies.get(settings.session_cookie_name)
+    if cookie_token:
+        try:
+            return await _resolve_jwt_user(cookie_token, session)
+        except HTTPException:
+            return None
+
+    # Bearer fallback
     if creds is None or creds.scheme.lower() != "bearer":
         return None
-    settings = get_settings()
     if creds.credentials == settings.bearer_token:
         return await _resolve_dev_user(creds.credentials, session)
     try:
         return await _resolve_jwt_user(creds.credentials, session)
     except HTTPException:
-        # Invalid/expired bearer on an optional-auth route → treat as anonymous.
-        # The caller can still serve the public view; the auth-required routes
-        # would reject this caller separately.
         return None

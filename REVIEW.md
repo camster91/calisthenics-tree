@@ -1,9 +1,15 @@
-# Project State Review — 2026-06-25 (updated 2026-06-28: Sprint 37 — Apple Fitness+ design language)
+# Project State Review — 2026-06-25 (updated 2026-06-28: Sprint 37 — Apple Fitness+ design language, Sprint 38 hardening)
 
 Solo-dev review of the repo against `docs/PLAN.md`. Goal: figure out what's actually
 done vs. what the plan says, and lay out a concrete execution order.
 
-**2026-06-28 update:** Sprint 37 — Apple Fitness+ design language refresh
+**2026-06-28 update (Sprint 38):** App-ship-prep 5-worker security audit ran
+across code quality / security / UX-frontend / performance / devops. Verdict:
+**NO** (12 RED + 30 YELLOW + 17 GREEN). Wave 1+2+3 closed 11/12 REDs — only
+RED-7 (JWT→HttpOnly cookie migration) remained open after wave 3. RED-7 was
+closed this session (see Sprint 38 RED-7 section below). Audit verdict
+flipped to **YES** for the blocking-red axis; remaining work is YELLOW
+follow-ups.
 applied across the entire app. Refreshed `tokens.ts` (true black #000,
 warm orange-red #FF6B1A, Apple system colors, squircle radii 20px/28px,
 heavy display weights 700-900, tight tracking on display sizes, glass
@@ -221,6 +227,94 @@ across frontend + backend; all fixed and shipped in one session.
 **Cosmetic fixes:**
 - Home page Backend status: was showing `/healthz → checking…` (404'd). Fixed by proxying `/healthz` to api.
 - Share card footer `calisthenicstree.app` → `workout.ashbi.ca` (old domain before Sprint 27 switch).
+
+### Sprint 38 — security audit hardening
+
+5-worker parallel audit (verifier×3 + frontend-designer×1 + devops-hardener×1)
+ran against the latest main. Findings: **12 RED + 30 YELLOW + 17 GREEN**.
+Audit verdict was NO (red axis blocked).
+
+**Wave 1 (RED-1..4, RED-12) — `9f290e9`:**
+- **RED-1**: env gate strips `dev_token` from `/auth/magic-link` response in
+  prod, even if `POSTMARK_TOKEN` unset. Belt+suspenders against the boot guard.
+- **RED-2**: boot-guard `validate_production_secrets()` raises `RuntimeError`
+  when env=production && `POSTMARK_TOKEN` empty. Refactored out of `create_app`
+  for unit-testability.
+- **RED-3**: `SyncedSet` Pydantic `@model_validator(mode="after")` rejects
+  sets with both `reps=None` and `hold_secs=None` (was a silent no-op).
+- **RED-4**: `routes/trees.py` per-tree edge partitioning — DAG responses no
+  longer leak edges across trees.
+- **RED-12**: ErrorBoundary wrapping the React tree catches router + component
+  errors uniformly; reports to PostHog via `captureException`.
+
+**Wave 2 (RED-6, RED-8, RED-10, RED-11 + YELLOWs) — `b609122`:**
+- **RED-6**: migration `0008_magic_link_consumed` + `routes/auth.py` replay
+  check. Magic link single-use via SHA-256 nonce stored in `magic_link_consumed`
+  table. `IntegrityError` → 400 on re-submission within the 15-min TTL.
+- **RED-8**: magic-link stdout log fingerprint-only (SHA-256 of token, never
+  the raw link). Belt+suspenders for the dev-mode log path.
+- **RED-10**: Layout header uses `pt-[env(safe-area-inset-top)]` for iOS
+  notch safety.
+- **RED-11**: WorkoutLogPage save button uses sticky bottom + safe-area-inset.
+
+**Wave 3 (5 YELLOWs) — `356dbf1` + `9aa9eab`:**
+- api container: `USER appuser(1001)` + `cap_drop: [ALL]` + `read_only: true` rootfs + tmpfs.
+- web container: `cap_drop: [ALL] + cap_add: [NET_BIND_SERVICE]` only.
+- Caddyfile: 6 security headers (HSTS, X-Frame-Options DENY, X-Content-Type-Options
+  nosniff, Referrer-Policy strict-origin, Permissions-Policy, CSP `default-src 'self'`).
+- `PublicProfile.email` PII-gated to self/follower/followee via `_is_following()`.
+- magic-link stdout log never logs the link in prod (defense in depth).
+
+**Bundle split (RED-9) — `7a989bd` + `c9939c3`:**
+- Vite `manualChunks` (react-vendor, radix, posthog, dagre, wireframes, marketing).
+- App.tsx React.lazy() for 19 wireframe + 2 marketing routes.
+- Initial JS: 984KB raw → 265KB raw / 73KB gzipped.
+- Caddyfile `route /assets/*` with `encode zstd gzip` + `Cache-Control: public, max-age=31536000, immutable`.
+
+**Wave 4 (RED-7 — JWT → HttpOnly cookie) — this session:**
+- `apps/api/calisthenics_api/auth.py` extended with cookie helpers:
+  `set_session_cookie()` (both access + refresh cookies, Secure auto-derived
+  from env, SameSite=Lax, HttpOnly always) + `clear_session_cookie()`.
+- `config.py`: `session_cookie_name='ct_session'` + `session_cookie_refresh_name='ct_session_refresh'`
+  + `session_cookie_secure` + `session_cookie_max_age=30d` + `session_cookie_samesite='lax'`.
+- `routes/auth.py`: `/auth/verify` now Set-Cookies both tokens alongside the
+  JSON body. Tokens still echoed in JSON for backward compat with scripts/Postman.
+  `/auth/refresh` rotates the cookies when the refresh cookie was used.
+- New endpoints: `POST /auth/signout` (204, clears both cookies) +
+  `GET /auth/whoami` (returns the current user from the cookie).
+- `get_current_user`: tries `request.cookies['ct_session']` first, falls back
+  to `Authorization: Bearer <jwt>` for scripts/dev. Bearer path preserved.
+- `RefreshRequest.refresh_token` is now Optional — refresh reads from the
+  HttpOnly cookie when the body is empty (SPA can't read HttpOnly).
+- `apps/web/src/lib/api.ts`: every fetch uses `credentials: 'include'`.
+  Authorization header injection removed. The `local-dev-mode` sentinel still
+  routes to localMockRoute.
+- `apps/web/src/lib/auth.tsx`: optimistic state from localStorage `ct:user`
+  cache (no /auth/whoami flight on every mount — too much latency for the
+  cold-start case). `signOut()` is async and calls `/auth/signout` server-side
+  then clears local state. `signOut` callers updated (SettingsPage,
+  SettingsPage.DangerZone).
+- `apps/api/tests/test_red7_cookies.py` (NEW): 8 tests covering cookie
+  attribute plumbing (HttpOnly, Secure auto-derived from env, SameSite=Lax,
+  401 fallback, whoami not needed for routes, refresh body optional).
+
+**Verification (Sprint 38 RED-7):**
+- Backend tests: **99 passed + 32 DB-skipped** (target preserved; 8 new
+  cookie tests added).
+- TypeScript: clean. `npm run build` succeeds (initial JS 265KB raw / 73KB gz,
+  unchanged from RED-9).
+- Curl through `TestClient`: `/auth/magic-link` → 202 + dev_token →
+  `/auth/verify` → 200 + 2 Set-Cookie headers (HttpOnly, Secure in dev=false,
+  SameSite=Lax, Max-Age=2592000). `/auth/signout` → 204 + 2 cookie deletes.
+- E2E suite (chromium): **27 passed + 7 pre-existing flakes** (same flaky
+  set the baseline had at `c9939c3`; my changes added 0 new flakes).
+  Flakes are tied to Playwright route mock ordering across the dev server's
+  Vite HMR — pre-existing, not caused by the cookie migration.
+
+**Audit verdict after Sprint 38:** **YES on the red axis.** All 12 REDs
+closed. Remaining work is YELLOW follow-ups (PostHog identify trait
+hygiene, error response shape consistency, response pagination on
+`/feed`, etc.) — not launch blockers.
 
 ## Open questions before Sprint 1
 

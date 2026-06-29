@@ -46,6 +46,12 @@ export async function seedAuthedSession(page: Page): Promise<void> {
             'ct:onboarding',
             JSON.stringify(onboarding),
           );
+          // Sprint 38 RED-7: cache the user info so AuthProvider's
+          // optimistic auth state fires from useState's initializer
+          // instead of waiting on /auth/whoami. Tests run against a
+          // mock, but we still want the optimistic path to match
+          // production behavior.
+          window.localStorage.setItem('ct:user', JSON.stringify(auth.user));
           sessionStorage.setItem('__e2e_seeded', '1');
         }
       } catch {

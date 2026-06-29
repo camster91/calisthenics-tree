@@ -206,9 +206,11 @@ export function DangerZone() {
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => {
+              onClick={async () => {
                 setPendingDeletion(null);
-                signOut();
+                // Sprint 38 RED-7: await so server-side cookie clear
+                // completes before navigation.
+                await signOut();
                 navigate('/login', { replace: true });
               }}
             >
