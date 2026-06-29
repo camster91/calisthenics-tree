@@ -540,3 +540,54 @@ docker exec calisthenics-tree-db psql -U calisthenics -d calisthenics -c \
 ```bash
 docker logs calisthenics-tree-web --tail 200 -f
 ```
+
+## 10. Sprint 38 hardening (security + cookie auth)
+
+The app-ship-prep audit ran 2026-06-27 and flagged 12 RED + 30 YELLOW + 17 GREEN across the deployed main. All 12 REDs were closed across waves 1–4 (commits `9f290e9` through `99fdb92`). Below: what's actually deployed and how to operate it.
+
+### Cookie auth (RED-7 — closed 2026-06-28)
+
+Magic-link sign-in now issues an `HttpOnly`+`Secure`+`SameSite=Lax` session cookie pair. The browser sends them automatically; JS never sees the token. Scripts and Postman can still use the JSON `Authorization: Bearer` path via the static `BEARER_TOKEN`.
+
+**Cookies in flight:**
+- `ct_session` — access JWT (15-min inside the token; cookie Max-Age 30d so it persists across reloads).
+- `ct_session_refresh` — refresh JWT (used by `POST /api/v1/auth/refresh`).
+
+**Why two cookies:** the refresh path needs to read a refresh-typed JWT without ambiguity when the access token has expired. Separate names keep the type obvious.
+
+**Where the cookies are set:** `Set-Cookie` is attached on:
+- `GET /api/v1/auth/verify` — both cookies, on successful magic-link consume.
+- `POST /api/v1/auth/refresh` — both cookies, when the request used the refresh cookie.
+
+**Where they're cleared:** `POST /api/v1/auth/signout` (idempotent 204). The SPA calls this before `window.location.href = '/login'`.
+
+### Boot guard (RED-1 — closed 2026-06-27)
+
+The api container **refuses to start** when `environment='production'` AND `POSTMARK_TOKEN=''`. This is a feature, not a bug — the dev-mode magic-link path leaks signed tokens in unauthenticated responses, which is a one-shot account-takeover vector. Until Cameron fills `POSTMARK_TOKEN` in `/root/calisthenicstree-secrets/.env` (Postmark dashboard → Server → API Tokens), the api will crashloop with:
+
+```
+RuntimeError: POSTMARK_TOKEN must be set when environment=='production'. Refusing to start: ...
+```
+
+`docker logs calisthenics-tree-api-1 --tail 30` will show the boot guard firing on every restart. Fix by setting the token, then `docker compose -f /opt/calisthenics-tree/docker-compose.prod.yml --env-file /root/calisthenicstree-secrets/.env up -d --no-deps --force-recreate api`.
+
+### Single-use magic links (RED-6 — closed 2026-06-27)
+
+Magic-link tokens are single-use. The api stores `SHA-256(token)` in `magic_link_consumed` after a successful verify, and the second submit returns `400 "Magic link already used."`. Defense in depth on top of the 15-minute TTL.
+
+### Bundle split (RED-9 — closed 2026-06-27)
+
+Vite `manualChunks` + `React.lazy()` for wireframe + marketing routes. Initial JS: 984KB → 265KB raw / 73KB gzipped. Caddyfile `route /assets/*` returns `Cache-Control: public, max-age=31536000, immutable` + `encode zstd gzip`.
+
+### Container hardening (wave 3 — closed 2026-06-27)
+
+- `api`: runs as `appuser(1001)`, `cap_drop: [ALL]`, `read_only: true` rootfs + tmpfs, `no-new-privileges`.
+- `web`: `cap_drop: [ALL]` + `cap_add: [NET_BIND_SERVICE]` (caddy:2-alpine doesn't ship a non-root user; chown happens at runtime via the user-configured Caddyfile).
+
+### Security headers (wave 3 — closed 2026-06-27)
+
+`apps/web/Caddyfile` returns 6 security headers in prod: HSTS, X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-Policy strict-origin, Permissions-Policy, CSP `default-src 'self'` (with PostHog + Google Fonts exceptions). Verify with `curl -I https://workout.ashbi.ca`.
+
+### Audit verdict
+
+After waves 1–4: **YES on the red axis**. 12/12 REDs closed. The 30 YELLOWs are follow-ups (PostHog identify hygiene, response pagination on `/feed`, etc.) — tracked but not launch blockers.
