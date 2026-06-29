@@ -85,7 +85,12 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-calisthenics}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-calisthenics}
       BEARER_TOKEN: ${BEARER_TOKEN}
-      ENVIRONMENT: production
+      # ENVIRONMENT controls the boot guard. Default 'production' (refuses
+      # to start without POSTMARK_TOKEN). Set ENVIRONMENT=development in
+      # .env to bypass the guard during staging / QA — required because
+      # the dev-mode magic-link path log goes to stdout + returns the
+      # token in the response (no real Postmark pipeline wired yet).
+      ENVIRONMENT: ${ENVIRONMENT:-production}
       JWT_SECRET: ${JWT_SECRET}
       MAGIC_LINK_SECRET: ${MAGIC_LINK_SECRET}
       POSTMARK_TOKEN: ${POSTMARK_TOKEN:-}

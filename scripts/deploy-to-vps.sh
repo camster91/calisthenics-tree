@@ -98,9 +98,16 @@ set +a
 # from the api container being torn down before the new one starts.
 # Uses docker-compose.prod.yml (TLS, named volumes, resource limits)
 # rather than docker-compose.yml (local dev shape).
-docker compose -f docker-compose.prod.yml pull --ignore-pull-failures || true
-docker compose -f docker-compose.prod.yml build --pull
-docker compose -f docker-compose.prod.yml up -d --no-deps --remove-orphans
+# We use --env-file explicitly because `docker compose` does NOT inherit
+# `set -a; source .env` shell vars — it spawns sub-shells for interpolation,
+# so the secret exports don't reach the compose resolver. With --env-file
+# the secrets travel inside the docker compose process boundary.
+docker compose -f docker-compose.prod.yml --env-file "$VPS_SECRETS_DIR/.env" \
+    pull --ignore-pull-failures || true
+docker compose -f docker-compose.prod.yml --env-file "$VPS_SECRETS_DIR/.env" \
+    build --pull
+docker compose -f docker-compose.prod.yml --env-file "$VPS_SECRETS_DIR/.env" \
+    up -d --no-deps --remove-orphans
 docker image prune -f
 EOF
 log "Containers restarted."
