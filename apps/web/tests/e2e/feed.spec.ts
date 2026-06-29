@@ -41,8 +41,10 @@ test('feed empty state when no items', async ({ page }) => {
       /* ignore */
     }
   });
-  // Override the mock for this test only
-  await page.route('**/api/v1/feed**', (route) =>
+  // Override the mock for this test only. Register at context level so it
+  // survives the full test lifecycle (see _helpers.ts comment for the bug
+  // this works around).
+  await page.context().route(/\/api\/v1\/feed/, (route) =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',

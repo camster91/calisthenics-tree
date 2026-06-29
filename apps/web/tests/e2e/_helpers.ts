@@ -70,14 +70,42 @@ export async function mockRoutes(
   page: Page,
   handlers: Array<{ method: string; path: RegExp; body: unknown }>,
 ): Promise<void> {
-  await page.route('**/api/v1/**', async (route: Route) => {
+  const debug = process.env.E2E_DEBUG === '1';
+  if (debug) {
+    page.on('request', (req) => {
+      if (req.url().includes('/api/')) {
+        // eslint-disable-next-line no-console
+        console.log(`[page REQ] ${req.method()} ${req.url()}`);
+      }
+    });
+    page.on('response', async (res) => {
+      if (res.url().includes('/api/')) {
+        const ct = res.headers()['content-type'] || '';
+        let bodyPreview = '';
+        try {
+          const body = await res.text();
+          bodyPreview = body.slice(0, 60).replace(/\n/g, '\\n');
+        } catch {}
+        // eslint-disable-next-line no-console
+        console.log(`[page RES] ${res.status()} ${ct} ${res.url()} body[0..60]=${JSON.stringify(bodyPreview)}`);
+      }
+    });
+  }
+  // Use page.context().route() instead of page.route(). Playwright's page-level
+  // route has a quirk where after fulfilling a request, subsequent requests
+  // for the same URL can bypass the handler and hit the real network (the
+  // browser cache then locks in the first response — usually HTML from Vite
+  // when the mock didn't fire for the very first request). Context-level
+  // routing sidesteps this and matches every request consistently across the
+  // test's full lifecycle (including navigation + StrictMode re-fetches).
+  const ctx = page.context();
+  await ctx.route('**/api/v1/**', async (route: Route) => {
     const req = route.request();
     const url = req.url();
-    // Strip query string for matching — the route pattern shouldn't
-    // need to anticipate ?limit=20 etc.
     const urlNoQuery = url.split('?')[0];
     for (const h of handlers) {
       if (req.method() === h.method && h.path.test(urlNoQuery)) {
+        if (debug) console.log(`[mock HIT] ${req.method()} ${urlNoQuery}`);
         return route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -85,8 +113,24 @@ export async function mockRoutes(
         });
       }
     }
-    // Default: 404 for unmatched /api/v1 calls.
+    if (debug) console.log(`[mock MISS] ${req.method()} ${urlNoQuery}`);
     return route.fulfill({ status: 404, body: 'mocked: no handler' });
+  });
+
+  // `getHealth()` does a bare `fetch('/healthz')` (no /api/v1 prefix) because
+  // Caddy proxies it from the SPA host to the api container directly so the
+  // backend's `/healthz` (mounted at root) is reachable in production without
+  // the /api/v1 versioning. Tests run against Vite dev which has no proxy, so
+  // we mock the bare path here to keep the page happy.
+  await ctx.route('**/healthz', async (route: Route) => {
+    const body = handlers
+      .find((h) => /healthz/i.test(h.path.source))
+      ?.body ?? { status: 'ok' };
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(body),
+    });
   });
 }
 
