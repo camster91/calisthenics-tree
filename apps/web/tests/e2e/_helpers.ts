@@ -70,27 +70,6 @@ export async function mockRoutes(
   page: Page,
   handlers: Array<{ method: string; path: RegExp; body: unknown }>,
 ): Promise<void> {
-  const debug = process.env.E2E_DEBUG === '1';
-  if (debug) {
-    page.on('request', (req) => {
-      if (req.url().includes('/api/')) {
-        // eslint-disable-next-line no-console
-        console.log(`[page REQ] ${req.method()} ${req.url()}`);
-      }
-    });
-    page.on('response', async (res) => {
-      if (res.url().includes('/api/')) {
-        const ct = res.headers()['content-type'] || '';
-        let bodyPreview = '';
-        try {
-          const body = await res.text();
-          bodyPreview = body.slice(0, 60).replace(/\n/g, '\\n');
-        } catch {}
-        // eslint-disable-next-line no-console
-        console.log(`[page RES] ${res.status()} ${ct} ${res.url()} body[0..60]=${JSON.stringify(bodyPreview)}`);
-      }
-    });
-  }
   // Use page.context().route() instead of page.route(). Playwright's page-level
   // route has a quirk where after fulfilling a request, subsequent requests
   // for the same URL can bypass the handler and hit the real network (the
@@ -105,7 +84,6 @@ export async function mockRoutes(
     const urlNoQuery = url.split('?')[0];
     for (const h of handlers) {
       if (req.method() === h.method && h.path.test(urlNoQuery)) {
-        if (debug) console.log(`[mock HIT] ${req.method()} ${urlNoQuery}`);
         return route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -113,7 +91,6 @@ export async function mockRoutes(
         });
       }
     }
-    if (debug) console.log(`[mock MISS] ${req.method()} ${urlNoQuery}`);
     return route.fulfill({ status: 404, body: 'mocked: no handler' });
   });
 

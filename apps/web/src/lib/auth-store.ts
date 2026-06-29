@@ -9,9 +9,15 @@
  *
  * Pattern:
  * - `AuthProvider` (apps/web/src/lib/auth.tsx) writes to this store on every
- *   state change and hydrates from localStorage on mount.
- * - `api.ts` reads `authStore.get().accessToken` and registers a refresh
- *   handler at app boot via `authStore.setUnauthorizedHandler`.
+ *   state change. Initial state is seeded from localStorage (`ct:user` cache)
+ *   synchronously in the provider's useState initializer, so non-React code
+ *   that reads `authStore.get()` on first render sees the hydrated state.
+ * - `api.ts` no longer reads the token from JS — auth rides on HttpOnly
+ *   cookies (Sprint 38 RED-7). The store keeps the `accessToken` /
+ *   `refreshToken` fields as sentinels for the local-mode escape hatch
+ *   (`'local-dev-mode'`) and to drive apiStore.handleUnauthorized() retries.
+ * - `authStore.setUnauthorizedHandler` registers a 401-refresh handler so
+ *   the api() helper can re-issue calls when a cookie goes stale.
  *
  * The store is intentionally tiny — no zustand / redux / jotai dependency.
  */
@@ -40,34 +46,6 @@ let _snapshot: AuthSnapshot = initial;
 const listeners = new Set<(s: AuthSnapshot) => void>();
 
 /**
- * Hydration-tracking machinery.
- *
- * Sprint 38 RED-7: the auth source of truth is now the session cookie,
- * not localStorage. AuthProvider fires `/auth/whoami` once on mount to
- * resolve the cookie. Other modules (api.ts) that need to dispatch a
- * request before that resolves await `authReady()` so they don't:
- *   - bounce anonymous to /login mid-flight (RequireAuth), or
- *   - race the auth determination.
- *
- * The promise is single-shot — first call creates it, future calls
- * await the same instance. Once `_snapshot.status !== 'loading'` the
- * promise resolves.
- */
-let _readyPromise: Promise<void> | null = null;
-let _readyResolve: (() => void) | null = null;
-function _ensureReadyPromise(): Promise<void> {
-  if (_readyPromise) return _readyPromise;
-  _readyPromise = new Promise<void>((resolve) => {
-    if (_snapshot.status !== 'loading') {
-      resolve();
-      return;
-    }
-    _readyResolve = resolve;
-  });
-  return _readyPromise;
-}
-
-/**
  * Called by api.ts when a request returns 401. Returns a fresh access
  * token (via refresh) or null if the user must re-authenticate.
  */
@@ -81,26 +59,7 @@ export const authStore = {
 
   set(next: AuthSnapshot): void {
     _snapshot = next;
-    // Wake up waiters the moment auth leaves the loading state.
-    if (next.status !== 'loading') {
-      // Replace the promise so future awaits also resolve immediately
-      // (the previous one was a one-shot; if the consumer raced and
-      // never heard about it, we don't want a stale deferred rejection).
-      _readyResolve?.();
-      _readyPromise = Promise.resolve();
-      _readyResolve = null;
-    }
     for (const l of listeners) l(next);
-  },
-
-  /**
-   * Sprint 38 RED-7: returns a promise that resolves once auth has
-   * left the loading state (authed or anonymous). Used by api() to
-   * avoid racing the /auth/whoami hydration. Resolves immediately if
-   * hydration has already completed.
-   */
-  ready(): Promise<void> {
-    return _ensureReadyPromise();
   },
 
   /**
@@ -118,7 +77,7 @@ export const authStore = {
   /**
    * Register a handler called when an API request returns 401. The handler
    * should attempt to refresh the access token using the refresh token;
-   * returning a new access token causes the original request to be retried,
+   * returning a non-null token causes the original request to be retried,
    * returning null causes the 401 to surface to the caller.
    */
   setUnauthorizedHandler(handler: UnauthorizedHandler | null): void {
