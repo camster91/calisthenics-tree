@@ -10,9 +10,15 @@
 #       web service route workout.ashbi.ca → this container.
 #
 # Path routing inside this container:
-#   - /api/*    → reverse-proxy to api:8000
-#   - /healthz  → reverse-proxy to api:8000 (real healthz payload;
-#                 Docker's HEALTHCHECK still sees 200)
+#   - /api/*        → reverse-proxy to api:8000
+#   - /healthz      → reverse-proxy to api:8000 (real healthz payload;
+#                     Docker's HEALTHCHECK still sees 200)
+#   - /sitemap.xml  → reverse-proxy to api:8000 (Google / Bing discover
+#                     the apex-domain sitemap here; the api has it at
+#                     root mount via apps/api/calisthenics_api/main.py
+#                     include_router(seo.router) — NOT under /api/v1)
+#   - /robots.txt   → reverse-proxy to api:8000 (same seo module;
+#                     Disallow rules for private routes)
 #   - /share/<id>.png → static PNG from public/share/ (committed in Sprint 18)
 #   - /share/<unlockId> → SPA fallback → ShareRenderPage React component
 #   - everything else → SPA fallback → index.html
@@ -58,6 +64,17 @@
     # {"status":"ok","version":...} payload. Docker's HEALTHCHECK just
     # looks at the status code (200) so the JSON body is fine for it too.
     route /healthz {
+        reverse_proxy api:8000
+    }
+
+    # SEO endpoints — proxied to api so Google + Bing discover them
+    # at the apex domain, not just at the api hostname. The api module
+    # is mounted at root (not under /api/v1) for exactly this reason.
+    # MUST come BEFORE the SPA fallback or index.html wins.
+    route /sitemap.xml {
+        reverse_proxy api:8000
+    }
+    route /robots.txt {
         reverse_proxy api:8000
     }
 

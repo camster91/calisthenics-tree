@@ -115,3 +115,53 @@ def test_csp_report_handler_accepts_csp_report_envelope(caplog) -> None:
     assert resp.status_code == 200
     assert resp.json() == {"status": "logged"}
     assert any("csp-violation" in r.message for r in caplog.records)
+
+
+def test_sitemap_uses_xml_response_class() -> None:
+    """Sprint 39: /sitemap.xml was returning 'text/plain; charset=utf-8'
+    via PlainTextResponse. Crawlers accept it visually but expect
+    application/xml per the sitemaps.org spec and Google's indexing
+    speed benefits from the correct MIME.
+
+    Verify via route metadata + the live OpenAPI that the response
+    builder is now a plain Response that sets media_type explicitly
+    (rather than the auto-detection from a plain text string). The
+    runtime content-type assertion needs a live DB (sitemap does an
+    actual select on progression_nodes), so we keep this test pure.
+    """
+    from calisthenics_api.routes import seo
+
+    sitemap_route = next(
+        r for r in seo.router.routes if getattr(r, "path", "") == "/sitemap.xml"
+    )
+    assert sitemap_route is not None, "sitemap route must be registered"
+    # response_class must not be PlainTextResponse anymore.
+    rc = sitemap_route.response_class
+    assert rc is not None
+    assert rc is not __import__("fastapi.responses", fromlist=["PlainTextResponse"]).PlainTextResponse, (
+        f"sitemap must NOT use PlainTextResponse (would emit text/plain); got {rc}"
+    )
+
+
+def test_sitemap_route_in_openapi() -> None:
+    """Verify the route is exposed at /sitemap.xml (root) in OpenAPI,
+    not at /api/v1/sitemap.xml. Crawlers hit the apex domain so this
+    matters for SEO even though Googlebot will eventually find the
+    canonical from sitemap->robots->sitemap recursion."""
+    from calisthenics_api.main import create_app
+
+    app = create_app()
+    paths = set(app.openapi()["paths"].keys())
+    assert "/sitemap.xml" in paths, f"sitemap missing from routes: {paths}"
+    # And NO /api/v1/sitemap.xml (that's the wrong mount).
+    assert "/api/v1/sitemap.xml" not in paths
+
+
+def test_robots_route_in_openapi() -> None:
+    """Same as sitemap — must be at the root, not under /api/v1."""
+    from calisthenics_api.main import create_app
+
+    app = create_app()
+    paths = set(app.openapi()["paths"].keys())
+    assert "/robots.txt" in paths, f"robots missing from routes: {paths}"
+    assert "/api/v1/robots.txt" not in paths
