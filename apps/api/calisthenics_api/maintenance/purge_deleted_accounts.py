@@ -29,10 +29,10 @@ import logging
 import sys
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, select
 
 from calisthenics_api.config import get_settings
-from calisthenics_api.db import get_engine, get_session_factory
+from calisthenics_api.db import get_session_factory
 from calisthenics_api.db.models import User
 
 logger = logging.getLogger("calisthenics_api.maintenance")
@@ -53,7 +53,6 @@ async def purge_once() -> int:
     unlock_events, friendships, tendon_strain_scores in one DELETE.
     """
     settings = get_settings()
-    engine = get_engine()
     cutoff = datetime.now(timezone.utc) - timedelta(days=GRACE_PERIOD_DAYS)
 
     factory = get_session_factory()

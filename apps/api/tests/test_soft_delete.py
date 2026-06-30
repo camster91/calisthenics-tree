@@ -16,9 +16,7 @@ Pure unit tests where possible; integration tests gated on DATABASE_URL.
 from __future__ import annotations
 
 import os
-import uuid
 from datetime import datetime, timedelta, timezone
-from types import SimpleNamespace
 
 import pytest
 

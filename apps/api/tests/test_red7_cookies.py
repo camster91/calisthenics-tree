@@ -11,10 +11,8 @@ is set. Here we focus on what's actually exerciseable without DB.
 
 from __future__ import annotations
 
-import os
 from unittest.mock import MagicMock
 
-import pytest
 
 
 def test_session_cookie_settings_defaults() -> None:

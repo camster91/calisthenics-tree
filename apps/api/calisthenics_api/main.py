@@ -10,7 +10,6 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
 
 from calisthenics_api import __version__
 from calisthenics_api.config import get_settings

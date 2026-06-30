@@ -21,7 +21,7 @@ from calisthenics_api.main import create_app
 
 # The placeholder is committed to apps/web/public/share/. Resolve once and
 # assert on real bytes so the test catches accidental truncation.
-PLACEHOLDER_FILENAME = "example-tuck-front-lever-001.png"
+PLACEHOLDER_FILENAME = "tuck-front-lever-001.png"
 
 
 def _expected_png_path() -> Path:

@@ -8,8 +8,6 @@ the web UI doesn't change when friends ship.
 
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
@@ -22,7 +20,6 @@ from calisthenics_api.db.models import (
     ProgressionNode,
     ProgressionTree,
     UnlockEvent,
-    User,
 )
 from calisthenics_api.schemas import AuthContext
 

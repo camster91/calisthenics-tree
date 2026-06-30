@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 
 import pytest
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 
 from calisthenics_api.rate_limit import (

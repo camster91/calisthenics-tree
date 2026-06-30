@@ -7,7 +7,6 @@ the api from a caller passing an unbounded query parameter.
 
 from __future__ import annotations
 
-from fastapi.testclient import TestClient
 
 
 # These tests rely on the unit test conftest pattern that creates the

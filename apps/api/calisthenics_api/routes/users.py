@@ -16,13 +16,21 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from calisthenics_api.auth import get_current_user
 from calisthenics_api.db import get_session
-from calisthenics_api.db.models import User
+from calisthenics_api.db.models import (
+    Friendship,
+    SetLog,
+    UnlockEvent,
+    UserNodeState,
+    User,
+    Workout,
+)
 from calisthenics_api.schemas import AuthContext, UserPublic
 
 logger = logging.getLogger("calisthenics_api.users")
@@ -134,17 +142,6 @@ async def restore_me(
 # Future migration to async export (when data volumes justify it):
 # - Swap the JSONResponse for a 202 + job_id + email (D19 §data export)
 # - The frontend already poll-checks for the response shape.
-
-
-from fastapi.responses import JSONResponse
-
-from calisthenics_api.db.models import (
-    Friendship,
-    SetLog,
-    UnlockEvent,
-    UserNodeState,
-    Workout,
-)
 
 
 def _export_filename(email: str) -> str:

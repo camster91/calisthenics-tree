@@ -11,11 +11,8 @@ These tests do NOT need DATABASE_URL — they're pure schema/config checks.
 
 from __future__ import annotations
 
-import os
-from unittest.mock import patch
 
 import pytest
-from fastapi.testclient import TestClient
 
 
 # RED-3: SyncedSet validator rejects garbage data

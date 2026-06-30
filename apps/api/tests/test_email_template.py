@@ -65,7 +65,6 @@ def test_html_omits_executable_javascript() -> None:
     fallback <p>) shows the link verbatim, which is safe — browsers
     don't execute text content. Only href="..." attributes are
     dangerous."""
-    import re
 
     html = render_magic_link_html("javascript:alert(1)")
     assert "<script" not in html.lower()
@@ -118,7 +117,6 @@ def test_html_href_rejects_javascript_url() -> None:
     html = render_magic_link_html(link)
     # Look ONLY at the href attribute values, not text content
     # (text content shows the link verbatim for copy/paste — safe).
-    import re
     hrefs = re.findall(r'href="([^"]+)"', html)
     # html.escape() converts : to &#58; — but the colon alone in a
     # javascript: URL is still dangerous because some clients follow

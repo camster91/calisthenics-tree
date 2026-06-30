@@ -14,10 +14,7 @@ tests/scripts/spin_up_postgres.sh. Skipped if neither is available.
 from __future__ import annotations
 
 import os
-import subprocess
-import sys
 import uuid
-from pathlib import Path
 
 import pytest
 import pytest_asyncio
