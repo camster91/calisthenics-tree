@@ -13,7 +13,7 @@ import uuid
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -37,12 +37,21 @@ from calisthenics_api.schemas import (
 
 router = APIRouter(prefix="/users", tags=["history"])
 
-# Cap recent workouts so a power user doesn't blow up the page.
-_RECENT_LIMIT = 200
+# Sprint 39: hard cap on per-request history size. Mirrors the other
+# list endpoints (feed=100, unlocks=100). Even a power user with
+# thousands of workouts can paginate; the old code returned a fixed
+# 200 every time, payload bloat for everyone.
+_HISTORY_MAX_LIMIT = 200
 
 
 @router.get("/me/history", response_model=HistoryResponse)
 async def my_history(
+    limit: int = Query(
+        default=50,
+        ge=1,
+        le=_HISTORY_MAX_LIMIT,
+        description="Max number of recent workouts to return. Default 50, max 200.",
+    ),
     auth: AuthContext = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> HistoryResponse:
@@ -66,7 +75,7 @@ async def my_history(
             .join(ProgressionTree, ProgressionTree.id == ProgressionNode.tree_id)
             .where(Workout.user_id == user_id)
             .order_by(Workout.completed_at.desc())
-            .limit(_RECENT_LIMIT)
+            .limit(limit)
         )
     ).all()
 

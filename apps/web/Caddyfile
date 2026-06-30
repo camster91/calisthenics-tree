@@ -42,7 +42,7 @@
         # inlines; unsafe-eval allowed for the dev-mode Vite client (harmless
         # in prod since the bundle is pre-built). PostHog + Google Fonts
         # explicitly allowed. upgrade-insecure-requests forces HTTPS.
-        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://us.i.posthog.com https://api.workout.ashbi.ca; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://us.i.posthog.com https://api.workout.ashbi.ca; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; report-uri /api/v1/_csp_report; upgrade-insecure-requests"
         # Cross-origin isolation (defense in depth; required for SharedArrayBuffer if we ever need it).
         Cross-Origin-Opener-Policy "same-origin"
         # Don't leak the full URL in Referer.

@@ -187,6 +187,10 @@ class FriendSummary(BaseModel):
 
 @router.get("/friends", response_model=None)
 async def list_friends(
+    # Sprint 39 YELLOW: bound the list. Was unbounded — a power user
+    # following thousands of people would get a massive payload every
+    # call. Default 50, max 200 (matches /me/history).
+    limit: int = Query(default=50, ge=1, le=200),
     auth: AuthContext = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> dict:
@@ -197,6 +201,7 @@ async def list_friends(
             .join(User, User.id == Friendship.followee_id)
             .where(Friendship.follower_id == auth.user_id)
             .order_by(Friendship.created_at.desc())
+            .limit(limit)
         )
     ).all()
     items = [

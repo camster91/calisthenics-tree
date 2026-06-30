@@ -16,6 +16,7 @@ from calisthenics_api.config import get_settings
 from calisthenics_api.db import dispose_engine
 from calisthenics_api.routes import (
     auth,
+    csp,
     feed,
     friends,
     health,
@@ -104,6 +105,7 @@ def create_app() -> FastAPI:
     app.include_router(friends.router, prefix=settings.api_v1_prefix)
     app.include_router(share.router, prefix=settings.api_v1_prefix)
     app.include_router(history.router, prefix=settings.api_v1_prefix)
+    app.include_router(csp.router, prefix=settings.api_v1_prefix)
 
     # SEO endpoints (sitemap.xml + robots.txt) — mounted at ROOT (not
     # under /api/v1) so they're at the canonical /sitemap.xml and

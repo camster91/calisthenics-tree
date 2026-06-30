@@ -6,13 +6,16 @@ sync script run from cron / CI schedule.
 
 Usage (from VPS, after deployment):
 
-    cd /opt/calisthenicstree
-    uv run --directory apps/api python -m calisthenics_api.maintenance.purge_deleted_accounts
+    # Run inside the API container — env, db URL, and Python deps
+    # are already wired. Preferred over host-side uv/make because the
+    # host has neither uv nor make installed.
+    docker exec calisthenics-tree-api-1 \
+        python -m calisthenics_api.maintenance.purge_deleted_accounts
 
 Add to the host crontab:
 
     # Daily 03:17 UTC — purge soft-deleted accounts past grace period
-    17 3 * * * cd /opt/calisthenicstree && uv run --directory apps/api python -m calisthenics_api.maintenance.purge_deleted_accounts >> /var/log/calisthenicstree/purge.log 2>&1
+    17 3 * * * /usr/bin/docker exec calisthenics-tree-api-1 python -m calisthenics_api.maintenance.purge_deleted_accounts >> /var/log/calisthenicstree/purge.log 2>&1
 
 Idempotent: re-running in the same day finds zero candidates.
 Reports counts to stdout (log line + exit code) for monitoring.
@@ -20,6 +23,13 @@ Reports counts to stdout (log line + exit code) for monitoring.
 Imports intentionally use the same SQLAlchemy 2.0 async setup
 the api uses — sharing the connection pool via get_engine() means
 the script benefits from any pool tuning already in place.
+
+Sprint 39: the old cron line used `cd /opt/calisthenics-tree && make
+purge-deleted`. That failed every night because the AlmaLinux 10 host
+has neither `make` nor `uv` on PATH — the log file at
+/var/log/calisthenicstree/purge.log was full of `/bin/sh: line 1:
+make: command not found` and accounts were never purged. Migrated to
+`docker exec` which is path-stable and self-contained.
 """
 
 from __future__ import annotations

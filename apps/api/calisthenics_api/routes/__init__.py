@@ -2,6 +2,7 @@
 
 from calisthenics_api.routes import (
     auth,
+    csp,
     feed,
     friends,
     health,
@@ -19,6 +20,7 @@ from calisthenics_api.routes import (
 
 __all__ = [
     "auth",
+    "csp",
     "feed",
     "friends",
     "health",

@@ -50,3 +50,68 @@ def test_unlocks_endpoint_has_upper_limit() -> None:
     assert le is not None and le.le == 100, (
         f"limit upper bound must be 100 (le=100), got le={le}"
     )
+
+def test_history_endpoint_has_limit_query_bound() -> None:
+    """Sprint 39 YELLOW: /api/v1/users/me/history had a hardcoded
+    _RECENT_LIMIT = 200 with no client override. Power users with
+    thousands of workouts got a 200-row payload every time. Now
+    client-controllable with default 50, max 200."""
+    from calisthenics_api.routes.history import my_history
+    import inspect
+    from annotated_types import Ge, Le
+
+    sig = inspect.signature(my_history)
+    limit_param = sig.parameters["limit"]
+    query = limit_param.default
+    ge = next((m for m in query.metadata if isinstance(m, Ge)), None)
+    le = next((m for m in query.metadata if isinstance(m, Le)), None)
+    assert ge is not None and ge.ge == 1, f"lower bound ge=1, got {ge}"
+    assert le is not None and le.le == 200, f"upper bound le=200, got {le}"
+    assert query.default == 50, f"default limit 50, got {query.default}"
+
+
+def test_friends_endpoint_has_limit_query_bound() -> None:
+    """Sprint 39 YELLOW: /api/v1/friends returned ALL follows with no
+    limit. Power user following thousands of people would get a
+    massive payload every call. Now bounded: default 50, max 200."""
+    from calisthenics_api.routes.friends import list_friends
+    import inspect
+    from annotated_types import Ge, Le
+
+    sig = inspect.signature(list_friends)
+    limit_param = sig.parameters["limit"]
+    query = limit_param.default
+    ge = next((m for m in query.metadata if isinstance(m, Ge)), None)
+    le = next((m for m in query.metadata if isinstance(m, Le)), None)
+    assert ge is not None and ge.ge == 1, f"lower bound ge=1, got {ge}"
+    assert le is not None and le.le == 200, f"upper bound le=200, got {le}"
+    assert query.default == 50, f"default limit 50, got {query.default}"
+
+
+def test_csp_route_module_importable() -> None:
+    """Sprint 39 YELLOW: CSP report-uri was set in the Caddyfile but
+    the FastAPI endpoint didn't exist — reports from the browser were
+    404'd and silently dropped. Now /api/v1/_csp_report accepts the
+    POST and logs it to docker logs."""
+    from calisthenics_api.routes import csp
+    from fastapi import APIRouter
+
+    assert isinstance(csp.router, APIRouter)
+    assert csp.router.prefix == "/_csp_report"
+    assert hasattr(csp, "csp_report"), "csp_report handler must be exported"
+
+
+def test_csp_report_handler_accepts_csp_report_envelope(caplog) -> None:
+    """End-to-end check: the endpoint accepts both shapes browsers
+    send (legacy csp-report + new reports+json) and logs violations."""
+    import logging
+    from starlette.testclient import TestClient
+    from calisthenics_api.main import app
+
+    client = TestClient(app)
+    payload = {"csp-report": {"violated-directive": "script-src", "blocked-uri": "https://evil.example/x.js"}}
+    with caplog.at_level(logging.WARNING, logger="calisthenics_api.routes.csp"):
+        resp = client.post("/api/v1/_csp_report", json=payload)
+    assert resp.status_code == 200
+    assert resp.json() == {"status": "logged"}
+    assert any("csp-violation" in r.message for r in caplog.records)
