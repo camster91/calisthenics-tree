@@ -145,9 +145,9 @@ else
     exit 1
 fi
 
-WEB=$(ssh "$VPS_HOST" "curl -kfsSL -o /dev/null -w '%{http_code}' https://localhost/healthz || true")
+WEB=$(ssh "$VPS_HOST" "curl -fsS -o /dev/null -w '%{http_code}' http://127.0.0.1:3025/healthz || true")
 if [[ "$WEB" == "200" ]]; then
-    log "Web /healthz: 200 (https via Traefik)"
+    log "Web /healthz: 200 (host-bind port 3025)"
 else
     log "Web /healthz unexpected: $WEB"
     exit 1
