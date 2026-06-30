@@ -33,9 +33,13 @@
 #
 # HEREDOC QUOTING: ssh bash -s <<'EOF' (with single quotes) prevents
 # shell variable expansion of the body BEFORE sending it to the remote.
-# Without the quotes, variables like $VPS_DEPLOY_DIR get expanded by the
-# LOCAL shell first, so a missing local var (or a typo) breaks the
-# remote script with confusing errors like ".env: command not found".
+# The body ships verbatim — variables inside get evaluated by the remote
+# bash, so we must either pass them as positional args
+# (ssh HOST bash -s "$VAR" "$VAR2" <<'EOF'; the body reads $1, $2, ...)
+# or hard-code the values we need on the remote. NEVER use an unquoted
+# heredoc terminator (`<<EOF`) here — a missing local var (or a typo)
+# breaks the remote script with confusing errors like
+# "fatal: repository '' does not exist" or ".env: command not found".
 
 set -euo pipefail
 
@@ -69,8 +73,16 @@ read -r answer
 [[ "$answer" == "y" || "$answer" == "Y" ]] || { log "Aborted."; exit 1; }
 
 hr "Syncing repo to VPS"
-ssh "$VPS_HOST" bash -s <<'EOF'
+# Pass the deploy-time vars as positional args to the remote bash -s so
+# the remote shell expands them via $1/$2/$3 instead of trying to find
+# them in its (login-shell-less) environment. Single-quoted heredoc
+# terminator means the body ships verbatim — variables aren't expanded
+# locally, so missing local env doesn't break this script.
+ssh "$VPS_HOST" bash -s "$VPS_DEPLOY_DIR" "$REMOTE_REPO" "$REMOTE_BRANCH" <<'EOF'
 set -e
+VPS_DEPLOY_DIR="$1"
+REMOTE_REPO="$2"
+REMOTE_BRANCH="$3"
 if [[ -d "$VPS_DEPLOY_DIR/.git" ]]; then
     cd "$VPS_DEPLOY_DIR"
     git fetch origin "$REMOTE_BRANCH"
@@ -83,18 +95,20 @@ EOF
 log "Repo synced to $VPS_DEPLOY_DIR"
 
 hr "Restarting services on VPS"
-ssh "$VPS_HOST" bash -s <<'EOF'
+ssh "$VPS_HOST" bash -s "$VPS_DEPLOY_DIR" "$VPS_SECRETS_DIR" <<'EOF'
 set -e
+VPS_DEPLOY_DIR="$1"
+VPS_SECRETS_DIR="$2"
 cd "$VPS_DEPLOY_DIR"
 
 # Secrets travel via --env-file (see scripts/deploy-to-vps.sh file header),
 # so we don't need to source the env into the shell here. The preflight check
 # runs on the host first so a missing secrets file surfaces before we touch
 # compose.
-if [[ ! -f "/root/calisthenicstree-secrets/.env" ]]; then
-    echo "  ERROR: /root/calisthenicstree-secrets/.env not found on VPS." >&2
+if [[ ! -f "$VPS_SECRETS_DIR/.env" ]]; then
+    echo "  ERROR: $VPS_SECRETS_DIR/.env not found on VPS." >&2
     echo "  Copy scripts/.env.production.example and fill in real values:" >&2
-    echo "    scp scripts/.env.production.example \$VPS_HOST:/root/calisthenicstree-secrets/.env" >&2
+    echo "    scp scripts/.env.production.example \$VPS_HOST:\$VPS_SECRETS_DIR/.env" >&2
     exit 1
 fi
 
@@ -106,11 +120,11 @@ fi
 # shell-exported vars — it spawns sub-shells for interpolation, so the
 # secret exports don't reach the compose resolver. With --env-file the
 # secrets travel inside the docker compose process boundary.
-docker compose -f docker-compose.prod.yml --env-file /root/calisthenicstree-secrets/.env \
+docker compose -f docker-compose.prod.yml --env-file "$VPS_SECRETS_DIR/.env" \
     pull --ignore-pull-failures || true
-docker compose -f docker-compose.prod.yml --env-file /root/calisthenicstree-secrets/.env \
+docker compose -f docker-compose.prod.yml --env-file "$VPS_SECRETS_DIR/.env" \
     build --pull
-docker compose -f docker-compose.prod.yml --env-file /root/calisthenicstree-secrets/.env \
+docker compose -f docker-compose.prod.yml --env-file "$VPS_SECRETS_DIR/.env" \
     up -d --no-deps --remove-orphans
 docker image prune -f
 EOF
@@ -131,9 +145,9 @@ else
     exit 1
 fi
 
-WEB=$(ssh "$VPS_HOST" "curl -fsS -o /dev/null -w '%{http_code}' http://localhost/healthz || true")
+WEB=$(ssh "$VPS_HOST" "curl -kfsSL -o /dev/null -w '%{http_code}' https://localhost/healthz || true")
 if [[ "$WEB" == "200" ]]; then
-    log "Web /healthz: 200"
+    log "Web /healthz: 200 (https via Traefik)"
 else
     log "Web /healthz unexpected: $WEB"
     exit 1
