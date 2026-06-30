@@ -15,6 +15,11 @@ dependencies = [
     "itsdangerous>=2.2.0",
     "sentry-sdk[fastapi]>=2.0.0",
     "python-dateutil>=2.9.0",
+    # Sprint 39 P2: httpx is now a runtime dep (used by the magic-link
+    # delivery path to talk to Postmark's transactional REST API).
+    # Was previously a dev-only dep for tests; the production image
+    # needs it now too.
+    "httpx>=0.28.0",
 ]
 
 [dependency-groups]
