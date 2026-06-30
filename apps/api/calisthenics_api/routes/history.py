@@ -148,7 +148,7 @@ async def my_history(
 
     # Sort newest first and cap (defensive — SQL already limits).
     recent.sort(key=lambda r: r.logged_at, reverse=True)
-    recent = recent[:_RECENT_LIMIT]
+    recent = recent[:_HISTORY_MAX_LIMIT]
 
     # Streak: walk backwards from today; count consecutive days that
     # have >= 1 workout. If the most recent workout is older than yesterday,
