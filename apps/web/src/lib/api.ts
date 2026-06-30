@@ -73,7 +73,12 @@ export async function api<T = unknown>(path: string, opts: RequestOptions = {}):
   // from localStorage instead of hitting the network. Keeps the app
   // fully usable when email / Postmark isn't wired up.
   if (local.isLocalMode()) {
-    return localMockRoute<T>(path, body, rest.method ?? 'GET');
+    // Sprint 39: localMockRoute returns `unknown` to keep the local-mode
+    // type assertions in one place. Real callers trust that the local
+    // helpers (in local-mode.ts) already return wire-shape objects; if
+    // a branch ever drifts we want it visible here, not buried in a
+    // cast that nobody scans.
+    return localMockRoute(path, body, rest.method ?? 'GET') as T;
   }
 
   // Sprint 38 RED-7 cookie-mode: the auth provider fires /auth/whoami
@@ -127,14 +132,18 @@ export async function api<T = unknown>(path: string, opts: RequestOptions = {}):
  * localMockRoute — handle every endpoint the app calls when in local mode.
  * Routes without a real local equivalent return safe empty shapes so the
  * UI shows empty states instead of crashing.
+ *
+ * Returns `unknown` and is cast at the api() boundary instead of
+ * spreading `as T` casts across every branch (Sprint 39 cleanup —
+ * dropped 22 casts).
  */
-async function localMockRoute<T>(path: string, body: unknown, method: string): Promise<T> {
+async function localMockRoute(path: string, body: unknown, method: string): Promise<unknown> {
   const p = path.replace(/^\/api\/v1/, '');
 
   // Auth — return success shapes so the auth flow doesn't break if
   // someone hits them in local mode.
   if (p === '/auth/magic-link' && method === 'POST') {
-    return { status: 'sent', expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(), dev_token: null } as T;
+    return { status: 'sent', expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(), dev_token: null };
   }
   if (p.startsWith('/auth/verify')) {
     const snapshot = local.buildLocalAuthSnapshot();
@@ -144,7 +153,7 @@ async function localMockRoute<T>(path: string, body: unknown, method: string): P
       refresh_token: snapshot.refreshToken,
       refresh_expires_at: snapshot.accessExpiresAt,
       user: snapshot.user,
-    } as T;
+    };
   }
   if (p === '/auth/refresh' && method === 'POST') {
     const snapshot = local.buildLocalAuthSnapshot();
@@ -153,7 +162,7 @@ async function localMockRoute<T>(path: string, body: unknown, method: string): P
       access_expires_at: snapshot.accessExpiresAt,
       refresh_token: snapshot.refreshToken,
       refresh_expires_at: snapshot.accessExpiresAt,
-    } as T;
+    };
   }
 
   // Onboarding placement — mirrors the backend's placement.py logic
@@ -172,12 +181,12 @@ async function localMockRoute<T>(path: string, body: unknown, method: string): P
       starting_rank: archetype.startRank,
     }));
     local.setLocalPlacements(archetype.label, placements);
-    return { archetype: archetype.label, rir2_offset: rir2Offset, placements } as T;
+    return { archetype: archetype.label, rir2_offset: rir2Offset, placements };
   }
 
   // Progressions
   if (p === '/users/me/progressions' && method === 'GET') {
-    return local.getLocalProgressions() as T;
+    return local.getLocalProgressions();
   }
 
   // Nodes
@@ -185,7 +194,7 @@ async function localMockRoute<T>(path: string, body: unknown, method: string): P
     const nodeId = decodeURIComponent(p.replace('/nodes/', ''));
     const node = local.getLocalNode(nodeId);
     if (!node) throw new ApiError(404, { detail: `Node ${nodeId} not found.` }, `404 on ${path}`);
-    return node as T;
+    return node;
   }
 
   // Trees
@@ -193,27 +202,27 @@ async function localMockRoute<T>(path: string, body: unknown, method: string): P
     const treeId = decodeURIComponent(p.replace('/trees/', ''));
     const tree = local.getLocalTree(treeId);
     if (!tree) throw new ApiError(404, { detail: `Tree ${treeId} not found.` }, `404 on ${path}`);
-    return tree as T;
+    return tree;
   }
 
   // Insights
-  if (p === '/tendon-strain') return local.getLocalTendonStrain() as T;
+  if (p === '/tendon-strain') return local.getLocalTendonStrain();
 
   // Profile / settings
-  if (p === '/users/me' && method === 'GET') return local.getLocalProfile(local.buildLocalAuthSnapshot().user.id) as T;
-  if (p === '/users/me' && method === 'PATCH') return local.updateLocalDisplayName((body as { display_name?: string })?.display_name ?? '') as T;
-  if (p === '/users/me' && method === 'DELETE') { local.softDeleteLocal(); return { deleted: true } as T; }
-  if (p === '/users/me/restore' && method === 'POST') return local.restoreLocal() as T;
-  if (p === '/users/me/export' && method === 'POST') return local.exportLocalData() as T;
+  if (p === '/users/me' && method === 'GET') return local.getLocalProfile(local.buildLocalAuthSnapshot().user.id);
+  if (p === '/users/me' && method === 'PATCH') return local.updateLocalDisplayName((body as { display_name?: string })?.display_name ?? '');
+  if (p === '/users/me' && method === 'DELETE') { local.softDeleteLocal(); return { deleted: true }; }
+  if (p === '/users/me/restore' && method === 'POST') return local.restoreLocal();
+  if (p === '/users/me/export' && method === 'POST') return local.exportLocalData();
 
   // Feed
-  if (p.startsWith('/feed')) return local.getLocalFeed() as T;
+  if (p.startsWith('/feed')) return local.getLocalFeed();
 
   // History (local-mode only — no backend equivalent yet)
-  if (p === '/users/me/history') return local.getLocalHistory() as T;
+  if (p === '/users/me/history') return local.getLocalHistory();
 
   // Friends
-  if (p.startsWith('/friends')) return local.getLocalFriends() as T;
+  if (p.startsWith('/friends')) return local.getLocalFriends();
 
   // Workouts — mirror the real /workouts/sync response shape so the
   // WorkoutDonePage renders without changes.
@@ -258,17 +267,17 @@ async function localMockRoute<T>(path: string, body: unknown, method: string): P
         promotions,
         regressions: [],
       },
-    } as T;
+    };
   }
 
   // Public profile / unlocks
-  if (p.startsWith('/users/') && p.endsWith('/unlocks')) return local.getLocalUnlocks('') as T;
-  if (p.startsWith('/users/')) return local.getLocalProfile(local.buildLocalAuthSnapshot().user.id) as T;
+  if (p.startsWith('/users/') && p.endsWith('/unlocks')) return local.getLocalUnlocks('');
+  if (p.startsWith('/users/')) return local.getLocalProfile(local.buildLocalAuthSnapshot().user.id);
 
   // Fallback: empty success so the app doesn't crash on unmocked routes.
   // eslint-disable-next-line no-console
   console.warn(`[local-mode] unmocked endpoint: ${method} ${path}`);
-  return {} as T;
+  return {};
 }
 
 // --- local placement helpers ---

@@ -103,10 +103,19 @@ fi
 # ---------------------------------------------------------------------
 hr "Web tests"
 if [[ -d apps/web/node_modules ]]; then
-    if (cd apps/web && npx playwright test --reporter=line 2>&1 | tail -5) ; then
+    # Capture playwright's exit code via ${PIPESTATUS[0]} — tail always
+    # exits 0, so without this the preflight always sees "tests pass"
+    # even on test failures or missing browser binaries. Confirm with
+    # `cd apps/web && npx playwright install chromium firefox webkit`
+    # if exit code is 1.
+    set +e
+    (cd apps/web && npx playwright test --reporter=line 2>&1 | tail -20)
+    PW_EXIT=${PIPESTATUS[0]}
+    set -e
+    if [[ $PW_EXIT -eq 0 ]]; then
         ok "playwright tests pass"
     else
-        fail "playwright tests failing"
+        fail "playwright tests failing (exit=$PW_EXIT — try 'cd apps/web && npx playwright install' for missing browser binary)"
     fi
 else
     skip "playwright tests (apps/web/node_modules not installed)"

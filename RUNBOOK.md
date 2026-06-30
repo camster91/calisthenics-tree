@@ -591,3 +591,52 @@ Vite `manualChunks` + `React.lazy()` for wireframe + marketing routes. Initial J
 ### Audit verdict
 
 After waves 1–4: **YES on the red axis**. 12/12 REDs closed. The 30 YELLOWs are follow-ups (PostHog identify hygiene, response pagination on `/feed`, etc.) — tracked but not launch blockers.
+
+## 11. Sprint 39 hardening — YELLOW close-out (2026-06-30)
+
+Closed 5 audit YELLOWs + 4 follow-on bugs. Commits `d16ec82` (cookie Domain), `f2523ea` (history/friends bound + CSP report-uri + cron wrapper), `b4492e5` (history downstream-reference hotfix), plus uncommitted (in this session) deploy-script + preflight + `as T` cast refactor + dynamic-import warning fix.
+
+### Cookie scope (`effective_session_cookie_domain`)
+
+`apps/api/calisthenics_api/config.py` has a `Settings.effective_session_cookie_domain` property that derives the leading-dot eTLD+1 from `web_base_url` (e.g. `workout.ashbi.ca` → `.ashbi.ca`). Cookies set on `api.workout.ashbi.ca` work for SPA fetches from `workout.ashbi.ca` because the browser scopes by domain suffix. Naive last-2-labels — multi-part TLDs (`.co.uk`, `.com.au`) need an explicit override.
+
+Verify live: `curl -I https://api.workout.ashbi.ca/...` — Set-Cookie should include `Domain=.ashbi.ca`.
+
+### Bound list endpoints (history + friends)
+
+`/api/v1/users/me/history` and `/api/v1/friends` now both take `limit: int = Query(default=50, ge=1, le=200)`. Replaces the history's hardcoded `_RECENT_LIMIT=200` and the friend's unbounded response. Matches the unlocks endpoint's pattern.
+
+Verify live: `curl -H "Cookie: ct_session=$T" '<url>?limit=0'` → 422; `?limit=201` → 422; `?limit=50` → 200.
+
+### CSP report endpoint
+
+`POST /api/v1/_csp_report` accepts `Content-Type: application/csp-report` or `application/reports+json` payloads and logs to stderr (visible in `docker logs calisthenics-tree-api-1`). Caddyfile CSP header added `report-uri /api/v1/_csp_report`.
+
+Verify live: `curl -X POST https://api.workout.ashbi.ca/api/v1/_csp_report -H 'Content-Type: application/csp-report' -d '{"csp-report":{"violated-directive":"script-src","blocked-uri":"https://evil.example/x.js"}}'` → 200 `{"status":"logged"}`.
+
+### Soft-delete cron (VPS-only — not in repo)
+
+Root's crontab has `17 3 * * * /usr/local/bin/purge_soft_deleted_calisthenicstree.sh >> /var/log/calisthenicstree/purge.log 2>&1`. The wrapper script (mode 755) docker-execs into the running api container:
+
+```bash
+docker exec calisthenics-tree-api-1 \
+  python -m calisthenics_api.maintenance.purge_deleted_accounts
+```
+
+The previous `cd /opt/calisthenics-tree && make purge-deleted` cron failed every night because the AlmaLinux 10 host has neither `make` nor `uv` on PATH. Wrapper pattern mirrors the existing `pg_dump_calisthenicstree.sh` in `/usr/local/bin/`.
+
+If the cron stops producing `PURGED=N` lines in `/var/log/calisthenicstree/purge.log`, check the container is up (`docker inspect calisthenics-tree-api-1 --format='{{.State.Running}}'`) and run the wrapper by hand.
+
+### Deploy script heredoc quoting fix
+
+Both `ssh "$VPS_HOST" bash -s <<EOF` heredocs in `scripts/deploy-to-vps.sh` were unquoted, so the LOCAL shell was expanding `$VPS_DEPLOY_DIR` etc. before sending to the remote. Now `<<'EOF'` (single-quoted heredoc terminator) so the body is sent verbatim. Also dropped the vestigial `set -a; source $VPS_SECRETS_DIR/.env` block — `--env-file` already passes the secrets through docker compose's process boundary.
+
+Verify by reading the script's heredoc terminators: both should be `<<'EOF'` (single-quoted).
+
+### Preflight playwright fix
+
+The playwright check in `scripts/preflight.sh` was reading `tail`'s exit code (always 0), so it always reported "tests pass" even on failures or missing browser binaries. Refactored to use `${PIPESTATUS[0]}` and now distinguishes:
+- exit 0 → "playwright tests pass"
+- exit 1 → "playwright tests failing" (real failure)
+- exit 124 → timed out
+- non-zero non-1 → "missing browser binary (run `cd apps/web && npx playwright install`)"

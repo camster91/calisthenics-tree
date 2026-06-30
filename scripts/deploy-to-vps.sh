@@ -17,20 +17,25 @@
 #
 # What this does:
 #   1. Run preflight.sh locally (validates docker build + tests)
-#   2. rsync the repo to /opt/calisthenicstree/ on the VPS
+#   2. Sync the repo to /opt/calisthenics-tree/ on the VPS
 #   3. SSH in and:
-#        - source /root/calisthenicstree-secrets/.env
-#        - pull the new image (or source-build)
-#        - run docker compose up -d --no-deps --build
-#        - tail logs for the first 30 seconds to catch startup errors
+#        - verify the secrets file exists
+#        - run docker compose up -d --no-deps --build with --env-file
+#          so secrets travel inside docker's process boundary instead
+#          of through shell interpolation
 #        - curl /healthz on the new api to confirm
 #
-# CHAT-LAYER REDACTION: this script NEVER inlines secrets in commands. All
-# secrets live at /root/calisthenicstree-secrets/.env on the VPS. The
-# script sources them via 'set -a; source ...' so they're exported as
-# environment variables to docker compose, not interpolated into command
-# strings. If you find yourself adding `${SECRET}` to a heredoc, stop
-# and pass it via env file instead.
+# CHAT-LAYER REDACTION: this script NEVER inlines secrets in commands or
+# heredocs. All secrets live at /root/calisthenicstree-secrets/.env on
+# the VPS and are passed to docker compose via --env-file (no shell
+# interpolation of secrets). If you find yourself adding `${SECRET}` to
+# a heredoc, stop and pass it via --env-file instead.
+#
+# HEREDOC QUOTING: ssh bash -s <<'EOF' (with single quotes) prevents
+# shell variable expansion of the body BEFORE sending it to the remote.
+# Without the quotes, variables like $VPS_DEPLOY_DIR get expanded by the
+# LOCAL shell first, so a missing local var (or a typo) breaks the
+# remote script with confusing errors like ".env: command not found".
 
 set -euo pipefail
 
@@ -64,7 +69,7 @@ read -r answer
 [[ "$answer" == "y" || "$answer" == "Y" ]] || { log "Aborted."; exit 1; }
 
 hr "Syncing repo to VPS"
-ssh "$VPS_HOST" bash -s <<EOF
+ssh "$VPS_HOST" bash -s <<'EOF'
 set -e
 if [[ -d "$VPS_DEPLOY_DIR/.git" ]]; then
     cd "$VPS_DEPLOY_DIR"
@@ -78,35 +83,34 @@ EOF
 log "Repo synced to $VPS_DEPLOY_DIR"
 
 hr "Restarting services on VPS"
-ssh "$VPS_HOST" bash -s <<EOF
+ssh "$VPS_HOST" bash -s <<'EOF'
 set -e
 cd "$VPS_DEPLOY_DIR"
 
-# Source the secrets (NEVER inline them into a command — see file header)
-if [[ ! -f "$VPS_SECRETS_DIR/.env" ]]; then
-    echo "  ERROR: $VPS_SECRETS_DIR/.env not found on VPS." >&2
+# Secrets travel via --env-file (see scripts/deploy-to-vps.sh file header),
+# so we don't need to source the env into the shell here. The preflight check
+# runs on the host first so a missing secrets file surfaces before we touch
+# compose.
+if [[ ! -f "/root/calisthenicstree-secrets/.env" ]]; then
+    echo "  ERROR: /root/calisthenicstree-secrets/.env not found on VPS." >&2
     echo "  Copy scripts/.env.production.example and fill in real values:" >&2
-    echo "    scp scripts/.env.production.example \$VPS_HOST:$VPS_SECRETS_DIR/.env" >&2
+    echo "    scp scripts/.env.production.example \$VPS_HOST:/root/calisthenicstree-secrets/.env" >&2
     exit 1
 fi
-
-set -a
-source "$VPS_SECRETS_DIR/.env"
-set +a
 
 # Build images + restart in place. --no-deps avoids a brief outage
 # from the api container being torn down before the new one starts.
 # Uses docker-compose.prod.yml (TLS, named volumes, resource limits)
 # rather than docker-compose.yml (local dev shape).
 # We use --env-file explicitly because `docker compose` does NOT inherit
-# `set -a; source .env` shell vars — it spawns sub-shells for interpolation,
-# so the secret exports don't reach the compose resolver. With --env-file
-# the secrets travel inside the docker compose process boundary.
-docker compose -f docker-compose.prod.yml --env-file "$VPS_SECRETS_DIR/.env" \
+# shell-exported vars — it spawns sub-shells for interpolation, so the
+# secret exports don't reach the compose resolver. With --env-file the
+# secrets travel inside the docker compose process boundary.
+docker compose -f docker-compose.prod.yml --env-file /root/calisthenicstree-secrets/.env \
     pull --ignore-pull-failures || true
-docker compose -f docker-compose.prod.yml --env-file "$VPS_SECRETS_DIR/.env" \
+docker compose -f docker-compose.prod.yml --env-file /root/calisthenicstree-secrets/.env \
     build --pull
-docker compose -f docker-compose.prod.yml --env-file "$VPS_SECRETS_DIR/.env" \
+docker compose -f docker-compose.prod.yml --env-file /root/calisthenicstree-secrets/.env \
     up -d --no-deps --remove-orphans
 docker image prune -f
 EOF

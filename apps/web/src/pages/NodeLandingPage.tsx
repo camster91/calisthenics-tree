@@ -23,7 +23,7 @@ import {
   Play,
 } from 'lucide-react';
 
-import { ApiError, type DagTree, type DagNode } from '../lib/api';
+import { ApiError, api, type DagTree, type DagNode } from '../lib/api';
 import { Button } from '../components/ui/button';
 
 type Status = 'loading' | 'ready' | 'notfound' | 'error';
@@ -77,37 +77,35 @@ export default function NodeLandingPage() {
     // (The /api/v1/trees list-all endpoint doesn't return current_node_id,
     // and a node landing page doesn't need a current node — just data.)
     // To keep this simple: fetch /api/v1/trees (the list endpoint).
-    import('../lib/api').then(({ api }) => {
-      api<{ trees: DagTree[] }>('/trees', { skipAuth: true })
-        .then((r) => {
-          if (cancelled) return;
-          setTrees(r.trees);
-          // Build regression index: from_node_id → [to_node_id, ...]
-          const idx = new Map<string, string[]>();
-          for (const tree of r.trees) {
-            for (const e of tree.edges) {
-              if (e.edge_type === 'regression') {
-                const arr = idx.get(e.from_node_id) ?? [];
-                arr.push(e.to_node_id);
-                idx.set(e.from_node_id, arr);
-              }
+    api<{ trees: DagTree[] }>('/trees', { skipAuth: true })
+      .then((r) => {
+        if (cancelled) return;
+        setTrees(r.trees);
+        // Build regression index: from_node_id → [to_node_id, ...]
+        const idx = new Map<string, string[]>();
+        for (const tree of r.trees) {
+          for (const e of tree.edges) {
+            if (e.edge_type === 'regression') {
+              const arr = idx.get(e.from_node_id) ?? [];
+              arr.push(e.to_node_id);
+              idx.set(e.from_node_id, arr);
             }
           }
-          setRegressionIndex(idx);
-          setStatus('ready');
-        })
-        .catch((err) => {
-          if (cancelled) return;
-          if (err instanceof ApiError && err.status === 404) {
-            setStatus('notfound');
-            return;
-          }
-          setErrorMsg(
-            err instanceof Error ? err.message : 'Failed to load trees',
-          );
-          setStatus('error');
-        });
-    });
+        }
+        setRegressionIndex(idx);
+        setStatus('ready');
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        if (err instanceof ApiError && err.status === 404) {
+          setStatus('notfound');
+          return;
+        }
+        setErrorMsg(
+          err instanceof Error ? err.message : 'Failed to load trees',
+        );
+        setStatus('error');
+      });
 
     return () => {
       cancelled = true;

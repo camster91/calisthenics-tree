@@ -319,6 +319,80 @@ closed. Remaining work is YELLOW follow-ups (PostHog identify trait
 hygiene, error response shape consistency, response pagination on
 `/feed`, etc.) — not launch blockers.
 
+### Sprint 39 — YELLOW close-out (commits `d16ec82` … `b4492e5`)
+
+Followed the Sprint 38 audit's YELLOW list. Closed 5 of them in this session:
+
+- **P2 cookie Domain scope (`d16ec82`)** — `effective_session_cookie_domain`
+  property in `config.py` derives the eTLD+1 from `web_base_url`, so cookies
+  set on `api.workout.ashbi.ca` work for SPA fetches from `workout.ashbi.ca`.
+  Live-verified `Domain=.ashbi.ca` in the Set-Cookie header.
+
+- **`/api/v1/users/me/history` bound (`f2523ea`)** — replaced hardcoded
+  `_RECENT_LIMIT=200` with `Query(default=50, ge=1, le=200)`. Power users
+  can request fewer rows; nobody gets more than 200. Same bound as the
+  unlocks endpoint.
+
+- **`/api/v1/friends` bound (`f2523ea`)** — added `Query(default=50, ge=1, le=200)`.
+  Was returning every follow in one shot. Now matches the other list endpoints.
+
+- **CSP `report-uri` (`f2523ea`)** — added `POST /api/v1/_csp_report` endpoint
+  that logs violations to stderr (visible in docker logs). Caddyfile CSP
+  header now has `report-uri /api/v1/_csp_report`. Was 404'd silently.
+
+- **VPS soft-delete purge cron (`f2523ea` + ops)** — root's crontab line was
+  `cd /opt/calisthenics-tree && make purge-deleted`, but neither `make` nor
+  `uv` is installed on the AlmaLinux 10 host. `/var/log/calisthenicstree/purge.log`
+  showed 3 nights of `/bin/sh: line 1: make: command not found`. Migrated to
+  `/usr/local/bin/purge_soft_deleted_calisthenicstree.sh` wrapper that
+  `docker exec`s into the running api container (mirrors the existing
+  `pg_dump_calisthenicstree.sh` pattern). End-to-end verified manually;
+  next 03:17 UTC cron will land a clean `PURGED=N` line in the log.
+
+**Live-QA results (`b4492e5` hotfix):**
+
+| Endpoint | Out-of-range | In-range |
+| --- | --- | --- |
+| `GET /api/v1/users/me/history?limit=0` | 422 ("greater than or equal to 1") | — |
+| `GET /api/v1/users/me/history?limit=201` | 422 ("less than or equal to 200") | — |
+| `GET /api/v1/users/me/history?limit=50` (real user) | — | 200 |
+| `GET /api/v1/friends?limit=0` | 422 ("greater than or equal to 1") | — |
+| `GET /api/v1/friends?limit=201` | 422 ("less than or equal to 200") | — |
+| `GET /api/v1/friends?limit=50` | — | 200 |
+| `POST /api/v1/_csp_report` | — | 200, `{"status":"logged"}`, log line visible |
+
+**Hotfix `b4492e5`:** renamed `_RECENT_LIMIT` to `_HISTORY_MAX_LIMIT` on the
+constant declaration but missed a downstream `recent[:_RECENT_LIMIT]` reference
+on line 151. Local tests passed (empty DB, didn't reach that line). Live deploy
+caught it as a 500 on `/history?limit=50` for real users. Hotfixed and redeployed.
+
+**Lesson:** live deploy always wins over green CI. Empty-fixture unit tests
+can't catch code paths that only run on populated data. Saved to
+`~/.mavis/agents/mavis/memory/devops-gotchas.md` (cron/Makefile note) and to
+this file's "Hard rule: live > CI" note for Sprint 40+.
+
+**Sprint 39 + follow-on cleanup (this session, unstaged as `f2523ea5`):**
+
+- `apps/web/src/lib/api.ts` — refactored `localMockRoute<T>` to return
+  `unknown` and cast once at the `api<T>()` boundary. Dropped 22 `as T`
+  casts → 3 (at fetch boundaries where TS genuinely can't verify the shape).
+  Build clean, TS strict clean.
+- `apps/web/src/pages/NodeLandingPage.tsx` — replaced the ineffective
+  `import('../lib/api').then(...)` (Rollup emits
+  `[INEFFECTIVE_DYNAMIC_IMPORT]` warning) with a static `import` of `api`.
+  Bundle size dropped 0.43 KB. Build clean (no warnings).
+- `scripts/deploy-to-vps.sh` — both `ssh ... bash -s <<EOF` heredocs were
+  unquoted, so the LOCAL shell was expanding `$VPS_DEPLOY_DIR` etc. BEFORE
+  sending to the remote (which broke when the var wasn't set locally:
+  literal `.env: command not found`). Quoted both heredocs as
+  `<<'EOF'` (no local expansion) and removed the vestigial `set -a; source …`
+  block — `--env-file` already passes secrets through docker compose's
+  process boundary.
+- `scripts/preflight.sh` — the playwright check always saw `tail`'s exit
+  code (always 0) instead of playwright's. Refactored to use
+  `${PIPESTATUS[0]}` so the failure message correctly distinguishes test
+  failures from missing browser binaries (with a remediation hint).
+
 ### Sprint 38 wave 5 — Playwright route quirk fix (commit `7d7daf6`)
 
 After RED-7 landed, the e2e suite still had 6 intermittently-failing tests
