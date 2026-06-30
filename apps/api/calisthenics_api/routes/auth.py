@@ -61,10 +61,15 @@ def _build_magic_link(token: str, settings) -> str:
 async def _send_magic_link_email(to_email: str, link: str) -> None:
     """Send via Postmark when configured, otherwise log to stdout (dev).
 
-    The `postmarker` package is OPTIONAL — only required when POSTMARK_TOKEN
-    is set. We keep it out of the default dependency list so dev / CI don't
-    need to install it. Add `postmarker>=1.0` to apps/api/pyproject.toml when
-    you're ready to wire up real email.
+    Sprint 39 P2: uses Postmark's transactional REST API directly via
+    httpx instead of pulling the `postmarker` (or `postmark`) PyPI
+    package. Both names on PyPI are stale placeholders or unrelated
+    forks; the official SDK is an openapi-generator auto-built artifact
+    that requires `urllib3` + a vendored api_client. A direct POST to
+    `https://api.postmarkapp.com/email` with the JSON shape from
+    https://postmarkapp.com/developer/api/email-api is one request,
+    zero deps beyond `httpx` (already a project dep), and matches the
+    audit team's request: no extra packages, no version surprises.
     """
     settings = get_settings()
     if not settings.postmark_token:
@@ -96,24 +101,35 @@ async def _send_magic_link_email(to_email: str, link: str) -> None:
             )
         return
 
-    try:
-        from postmarker import PostmarkClient  # type: ignore[import-not-found]
-    except ImportError as exc:
-        raise RuntimeError(
-            "POSTMARK_TOKEN is set but the 'postmarker' package is not installed. "
-            "Add 'postmarker>=1.0' to apps/api/pyproject.toml or unset "
-            "POSTMARK_TOKEN for dev."
-        ) from exc
+    # Direct REST call. Postmark's transactional endpoint accepts JSON
+    # exactly like this. Raise on non-2xx so the caller's outer
+    # try/except logs the failure with token_fpr (no PII).
+    import httpx
 
-    client = PostmarkClient(server_token=settings.postmark_token)
     expiry_minutes = settings.magic_link_ttl_secs // 60
-    client.send_email(
-        From=settings.postmark_from_email,
-        To=to_email,
-        Subject="Sign in to Calisthenics Tree",
-        HtmlBody=render_magic_link_html(link, expiry_minutes),
-        TextBody=render_magic_link_text(link, expiry_minutes),
-    )
+    payload = {
+        "From": settings.postmark_from_email,
+        "To": to_email,
+        "Subject": "Sign in to Calisthenics Tree",
+        "HtmlBody": render_magic_link_html(link, expiry_minutes),
+        "TextBody": render_magic_link_text(link, expiry_minutes),
+        "MessageStream": "outbound",
+    }
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "X-Postmark-Server-Token": settings.postmark_token,
+    }
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        response = await client.post(
+            "https://api.postmarkapp.com/email",
+            json=payload,
+            headers=headers,
+        )
+    if response.status_code >= 300:
+        raise RuntimeError(
+            f"Postmark returned {response.status_code}: {response.text[:200]}"
+        )
 
 
 @router.post(
@@ -197,7 +213,7 @@ async def _get_or_create_user(email: str, session: AsyncSession) -> User:
     return user
 
 
-@router.get("/verify", response_model=VerifyResponse)
+@router.get("/verify", response_model=VerifyResponse, dependencies=[Depends(rate_limit_per_ip("verify"))])
 async def verify_magic_link(
     response: Response,  # Sprint 38 RED-7: Set-Cookie target
     token: str = Query(..., min_length=10, max_length=512),
@@ -358,13 +374,17 @@ async def refresh_tokens(
 # -----------------------------------------------------------------------------#
 
 
-@router.post("/signout", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/signout", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(rate_limit_per_ip("signout"))])
 async def signout(response: Response) -> Response:
     """Sprint 38 RED-7: clear the session cookies.
 
     Idempotent — 204 whether or not a cookie was actually set. No DB write
     needed (the JWT inside the cookie is still cryptographically valid
     until exp; the cookie deletion makes the browser stop sending it).
+
+    Sprint 39 P1: rate-limited per IP. The endpoint is anonymous (no auth
+    required) so an attacker could spam it to create auth churn on
+    legitimate clients' browsers. Cheap to gate.
     """
     clear_session_cookie(response)
     response.status_code = status.HTTP_204_NO_CONTENT

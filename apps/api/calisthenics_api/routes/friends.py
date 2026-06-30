@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Path, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -310,7 +310,10 @@ async def get_public_profile(
 @router.get("/users/{user_id}/unlocks", response_model=None)
 async def get_user_unlocks(
     user_id: str = Path(...),
-    limit: int = 20,
+    # Sprint 39 P1: bound the unlock limit. Was `int = 20` (no upper
+    # bound) — a caller could pass ?limit=10000 and DOS the api or pull
+    # an entire user's history. Mirror the /feed cap.
+    limit: int = Query(default=20, ge=1, le=100),
     _auth: AuthContext = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> dict:

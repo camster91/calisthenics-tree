@@ -81,6 +81,13 @@ class Settings(BaseSettings):
     # limits are applied (bucket name → settings attr convention).
     rate_limit_magic_link_per_min: int = Field(default=5, ge=1)
     rate_limit_refresh_per_min: int = Field(default=30, ge=1)
+    # Sprint 39 P1: cap /auth/verify attempts (token brute force would
+    # otherwise be limited only by magic_link issuance). Cap is generous
+    # because the legitimate SPA flow can hit verify once per sign-in +
+    # a few retries on slow connections, but unbounded is too loose.
+    rate_limit_verify_per_min: int = Field(default=30, ge=1)
+    # /auth/signout is anonymous — anyone can hit it. Cheap to gate.
+    rate_limit_signout_per_min: int = Field(default=30, ge=1)
 
     # Trust X-Forwarded-For header for client IP resolution. Set to
     # True in production (we're behind Cloudflare + Caddy). Set to
