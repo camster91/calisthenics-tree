@@ -73,7 +73,12 @@ def set_session_cookie(
         value=access_token,
         max_age=settings.session_cookie_max_age,
         path="/",
-        domain=settings.session_cookie_domain or None,
+        # Sprint 39 P2: use effective_session_cookie_domain (derives
+        # .workout.ashbi.ca from web_base_url) so the cookie is shared
+        # across workout.ashbi.ca and api.workout.ashbi.ca. Without
+        # this the SPA's fetch from workout.ashbi.ca can't see the
+        # cookie that the api's /auth/verify set on api.workout.ashbi.ca.
+        domain=settings.effective_session_cookie_domain,
         secure=secure,
         httponly=True,
         samesite=settings.session_cookie_samesite,
@@ -84,7 +89,7 @@ def set_session_cookie(
             value=refresh_token,
             max_age=settings.session_cookie_max_age,
             path="/",
-            domain=settings.session_cookie_domain or None,
+            domain=settings.effective_session_cookie_domain,
             secure=secure,
             httponly=True,
             samesite=settings.session_cookie_samesite,
@@ -99,12 +104,12 @@ def clear_session_cookie(response: Response, settings=None) -> None:
     response.delete_cookie(
         key=settings.session_cookie_name,
         path="/",
-        domain=settings.session_cookie_domain or None,
+        domain=settings.effective_session_cookie_domain,
     )
     response.delete_cookie(
         key=settings.session_cookie_refresh_name,
         path="/",
-        domain=settings.session_cookie_domain or None,
+        domain=settings.effective_session_cookie_domain,
     )
 
 

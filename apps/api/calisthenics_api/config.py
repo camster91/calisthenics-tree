@@ -141,6 +141,43 @@ class Settings(BaseSettings):
         ),
     )
 
+    @property
+    def effective_session_cookie_domain(self) -> str | None:
+        """Sprint 39 P2: derive the cookie Domain attribute from web_base_url.
+
+        The API is served at api.workout.ashbi.ca but the SPA at
+        workout.ashbi.ca makes fetch requests to `/api/v1/...` (via
+        Caddy's /api/* proxy). Cookies set on `api.workout.ashbi.ca`
+        are host-only by default — they're NOT sent on requests
+        originating from `workout.ashbi.ca`.
+
+        Setting Domain=`.workout.ashbi.ca` (leading dot per RFC 6265)
+        makes the cookie valid for BOTH subdomains. We extract the
+        registrable parent domain from web_base_url so the operator
+        doesn't have to configure it separately.
+
+        Falls back to the explicit setting if web_base_url is dev
+        (localhost / 127.0.0.1) — leading-dot domains don't apply to
+        loopback or single-label hosts.
+        """
+        if self.session_cookie_domain:
+            return self.session_cookie_domain
+        # Local development: leave host-only so localhost cookies work.
+        host = (self.web_base_url or "").split("://", 1)[-1].split("/", 1)[0]
+        if not host or "." not in host or host.split(":")[0] in ("localhost", "127.0.0.1"):
+            return None
+        # e.g. workout.ashbi.ca -> .workout.ashbi.ca
+        #      api.workout.ashbi.ca -> .workout.ashbi.ca (one level up from 2-label)
+        #      staging.workout.ashbi.ca -> .workout.ashbi.ca
+        parts = host.split(":")[0].split(".")
+        if len(parts) < 2:
+            return None
+        # Use the last 2 labels as the registrable parent (handles
+        # `co.uk` / `com.au` poorly but workout.ashbi.ca is fine).
+        # For multi-label TLDs, the operator should override
+        # session_cookie_domain explicitly.
+        return "." + ".".join(parts[-2:])
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

@@ -160,3 +160,46 @@ def test_refresh_request_accepts_empty_body() -> None:
     # Body with token still allowed.
     r = RefreshRequest(refresh_token="abc")
     assert r.refresh_token == "abc"
+
+
+def test_effective_session_cookie_domain_from_web_base_url() -> None:
+    """Sprint 39 P2: the cookie Domain attribute must span both
+    api.<domain> and <domain> subdomains, or the SPA's fetch from the
+    apex won't carry the cookie that /auth/verify set on the api
+    subdomain.
+
+    Derived from web_base_url automatically (last 2 labels = eTLD+1,
+    which works for simple TLDs like `.ca`, `.com`, `.io`):
+    - https://api.workout.ashbi.ca -> ".ashbi.ca"
+    - http://localhost:5173 -> None (host-only, dev)
+    - 127.0.0.1 -> None (host-only)
+
+    For multi-part TLDs (`co.uk`, `com.au`) or sub-subdomains
+    (`staging.api.workout.ashbi.ca`), operators must override via
+    `session_cookie_domain` explicitly. The naive last-2-labels
+    heuristic can't detect eTLD+1 without a public-suffix list.
+    """
+    from calisthenics_api.config import Settings
+
+    # Production: eTLD+1 of `workout.ashbi.ca` is `ashbi.ca`.
+    s = Settings(web_base_url="https://workout.ashbi.ca")
+    assert s.effective_session_cookie_domain == ".ashbi.ca"
+
+    # Same domain derived from api subdomain.
+    s = Settings(web_base_url="https://api.workout.ashbi.ca")
+    assert s.effective_session_cookie_domain == ".ashbi.ca"
+
+    # Dev: leave host-only.
+    s = Settings(web_base_url="http://localhost:5173")
+    assert s.effective_session_cookie_domain is None
+
+    # 127.0.0.1 also host-only.
+    s = Settings(web_base_url="http://127.0.0.1:8000")
+    assert s.effective_session_cookie_domain is None
+
+    # Explicit override beats derivation.
+    s = Settings(
+        web_base_url="https://workout.ashbi.ca",
+        session_cookie_domain=".custom.example.com",
+    )
+    assert s.effective_session_cookie_domain == ".custom.example.com"
