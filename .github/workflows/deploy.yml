@@ -38,6 +38,32 @@ jobs:
       name: production
       url: https://workout.ashbi.ca
     steps:
+      - name: Preflight — validate secrets
+        # Fail fast with a clear, actionable error if any required secret is
+        # missing. Without this check, an empty $VPS_HOST secret produces
+        # the cryptic "ssh: Could not resolve hostname : Name or service not
+        # known" (because `ssh user@` with empty host resolves as "").
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_DEPLOY_DIR: ${{ secrets.VPS_DEPLOY_DIR }}
+        run: |
+          MISSING=()
+          [ -z "$VPS_SSH_KEY" ] && MISSING+=("VPS_SSH_KEY")
+          [ -z "$VPS_HOST" ] && MISSING+=("VPS_HOST")
+          [ -z "$VPS_DEPLOY_DIR" ] && MISSING+=("VPS_DEPLOY_DIR")
+          if [ ${#MISSING[@]} -gt 0 ]; then
+            echo "::error::Missing required repo secrets: ${MISSING[*]}"
+            echo "::error::Add them at: https://github.com/camster91/calisthenics-tree/settings/secrets/actions"
+            echo "::error::Required secrets and example values:"
+            echo "::error::  VPS_SSH_KEY     = private SSH key for the deploy user (chmod 600, no passphrase for unattended use)"
+            echo "::error::  VPS_HOST        = user@host, e.g. root@187.77.26.99"
+            echo "::error::  VPS_DEPLOY_DIR  = target path on VPS, e.g. /opt/calisthenicstree"
+            echo "::error::Optional:"
+            echo "::error::  VPS_SECRETS_DIR = path to a directory of .env files NOT synced to git, e.g. /root/calisthenicstree-secrets"
+            exit 1
+          fi
+
       - uses: actions/checkout@v4
 
       - name: Setup SSH
