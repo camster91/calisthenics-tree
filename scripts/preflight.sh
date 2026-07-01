@@ -99,6 +99,24 @@ else
 fi
 
 # ---------------------------------------------------------------------
+# Backend type check (mypy)
+# ---------------------------------------------------------------------
+# Sprint 40 audit: catches column-name mismatches (e.g. `Friendship.id`
+# on a composite-PK table) and missing rowcount semantics that the
+# pytest suite doesn't exercise. mypy is installed on demand via
+# `uv run --with` so it's not in pyproject.toml's runtime deps.
+hr "Backend mypy"
+if [[ -d apps/api/.venv ]]; then
+    if (cd apps/api && uv run --with mypy python -m mypy calisthenics_api/ --ignore-missing-imports --no-strict-optional 2>&1 | tail -3) ; then
+        ok "mypy clean"
+    else
+        fail "mypy errors above"
+    fi
+else
+    skip "mypy (apps/api/.venv not present)"
+fi
+
+# ---------------------------------------------------------------------
 # Web tests (a11y + e2e)
 # ---------------------------------------------------------------------
 hr "Web tests"

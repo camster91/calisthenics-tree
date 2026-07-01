@@ -61,8 +61,11 @@ async def _is_following(
     `follower_id` follows `followee_id`."""
     if follower_id == followee_id:
         return True  # self-follow counts for the PII gate
+    # Friendship has composite PK (follower_id, followee_id) — no
+    # standalone .id column. Select either key of the PK; the test
+    # is whether any row matches, not what column we project.
     result = await session.execute(
-        select(Friendship.id).where(
+        select(Friendship.follower_id).where(
             Friendship.follower_id == follower_id,
             Friendship.followee_id == followee_id,
         )

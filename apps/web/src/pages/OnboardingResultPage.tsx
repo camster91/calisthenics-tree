@@ -133,10 +133,13 @@ export default function OnboardingResultPage() {
   }
 
   const r = fetchState.result;
-  // i18next returns a Record<string, string> for nested keys (en.json's
-  // resultArchetype is an object map). Cast through unknown because the
-  // generic t() overload doesn't know about nested shapes.
-  const archetypeLabels = t('onboarding.resultArchetype') as unknown as Record<string, string>;
+  // i18next returns the nested object as `string` by default — ask
+  // for `returnObjects: true` so the type is the object shape, then
+  // we get a clean Record<string, string> with no cast through unknown.
+  const archetypeLabels = t(
+    'onboarding.resultArchetype',
+    { returnObjects: true },
+  ) as Record<string, string>;
   const archetypeLabel = archetypeLabels[r.archetype] ?? r.archetype;
 
   return (

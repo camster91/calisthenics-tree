@@ -80,6 +80,13 @@ jobs:
         working-directory: apps/api
         run: uv run --group dev ruff check .
 
+      - name: mypy check
+        working-directory: apps/api
+        # Sprint 40: catches column-name + rowcount bugs the pytest
+        # suite doesn't exercise. mypy is installed on demand via
+        # `uv run --with` so it's not in pyproject.toml's runtime deps.
+        run: uv run --with mypy python -m mypy calisthenics_api/ --ignore-missing-imports --no-strict-optional
+
   # ---------------------------------------------------------------------
   web-build:
     name: Web typecheck + build + share PNGs

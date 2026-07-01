@@ -97,13 +97,21 @@ async def purge_once() -> int:
                 deleted_at,
             )
 
-        result = await session.execute(
+        # We already SELECTed the candidates above for the per-row
+        # audit log, so len(candidates) is the exact rowcount. The
+        # previous version read result.rowcount from the AsyncResult,
+        # but that attribute isn't on AsyncResult in SQLAlchemy 2.0 —
+        # it's a mypy false-positive that masked the real bug
+        # (AttributeError at runtime when the AsyncResult is
+        # unconsumed). Using len() is both more reliable and faster
+        # (no extra round trip to count after the DELETE).
+        purged_count = len(candidates)
+        await session.execute(
             delete(User).where(
                 User.deleted_at.is_not(None),
                 User.deleted_at < cutoff,
             )
         )
-        purged_count = result.rowcount or 0
         await session.commit()
 
     logger.info(
