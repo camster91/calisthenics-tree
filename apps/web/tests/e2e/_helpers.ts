@@ -91,7 +91,12 @@ export async function mockRoutes(
         });
       }
     }
-    return route.fulfill({ status: 404, body: 'mocked: no handler' });
+    // No matching handler in THIS test's array — fall through to the
+    // next route (a later test in the file may have registered one,
+    // or this is genuinely unmocked). Without route.fallback() the
+    // first registered route always wins, so tests after the first
+    // would see their handlers shadowed by the initial empty array.
+    await route.fallback();
   });
 
   // `getHealth()` does a bare `fetch('/healthz')` (no /api/v1 prefix) because

@@ -93,13 +93,16 @@ async def search(
 
     pattern = f"%{needle}%"
 
-    # Nodes — join tree so we can show the tree name in the breadcrumb.
-    # Order by rank_level so the earliest-rank hit shows first.
+    # Nodes — join Exercise (for the node's display name) and Tree
+    # (for the breadcrumb). ProgressionNode itself has no `name`
+    # column — that lives on Exercise. Order by rank_level so the
+    # earliest-rank hit shows first.
     node_rows = (
         await session.execute(
-            select(ProgressionNode, ProgressionTree)
+            select(ProgressionNode, Exercise, ProgressionTree)
+            .join(Exercise, Exercise.id == ProgressionNode.exercise_id)
             .join(ProgressionTree, ProgressionTree.id == ProgressionNode.tree_id)
-            .where(ProgressionNode.name.ilike(pattern))
+            .where(Exercise.name.ilike(pattern))
             .order_by(ProgressionTree.slug, ProgressionNode.rank_level)
             .limit(limit)
         )
@@ -152,10 +155,10 @@ async def search(
             SearchResultItem(
                 kind="node",
                 id=f"node_{n.node_id}",
-                name=n.name,
+                name=exercise.name,
                 breadcrumb=f"{tree.name} · rank {n.rank_level}",
             )
-            for n, tree in node_rows
+            for n, exercise, tree in node_rows
         ],
         exercises=[
             SearchResultItem(

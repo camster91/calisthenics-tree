@@ -52,7 +52,12 @@ test.describe('search (Sprint 40)', () => {
       },
     ]);
     await page.goto('/search');
-    await page.getByTestId('search-input').fill('push');
+    // Use pressSequentially instead of fill() — fill() in firefox
+    // sometimes sets the value atomically without firing the onChange
+    // event sequence that React's debounce useEffect needs to kick
+    // off the api call. pressSequentially triggers one input event
+    // per character, which is what a real user does.
+    await page.getByTestId('search-input').pressSequentially('push', { delay: 30 });
     // Debounce is 300ms; in slower browsers (firefox/webkit) the
     // first paint can take longer, so wait up to 8s for the
     // debounced fetch to resolve + render.
