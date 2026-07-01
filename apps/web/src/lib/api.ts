@@ -41,6 +41,36 @@ export class ApiError extends Error {
     this.status = status;
     this.body = body;
   }
+
+  /** Server-supplied detail string when available.
+   *
+   * FastAPI emits `{"detail":"..."}` for HTTPException and
+   * `{"detail":[...validation errors...]}` for Pydantic validation.
+   * For the validation case we join the messages with `; ` so the
+   * caller sees something like "Input should be >= 1; Input should
+   * be <= 200" rather than the raw nested array.
+   *
+   * Returns undefined when the body isn't an object with a `detail`
+   * field (e.g. plain-text 500s) so callers can fall back to `message`.
+   */
+  get detail(): string | undefined {
+    if (!this.body || typeof this.body !== 'object') return undefined;
+    const d = (this.body as { detail?: unknown }).detail;
+    if (typeof d === 'string') return d;
+    if (Array.isArray(d)) {
+      return d
+        .map((entry) => {
+          if (entry && typeof entry === 'object' && 'msg' in entry) {
+            const msg = (entry as { msg?: unknown }).msg;
+            if (typeof msg === 'string') return msg;
+          }
+          return null;
+        })
+        .filter((s): s is string => s !== null)
+        .join('; ');
+    }
+    return undefined;
+  }
 }
 
 interface RequestOptions extends Omit<RequestInit, 'body'> {

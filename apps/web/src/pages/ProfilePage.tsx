@@ -109,7 +109,7 @@ export default function ProfilePage() {
     } catch (err) {
       setErrorMsg(
         err instanceof ApiError
-          ? `${err.status} ${err.message}`
+          ? `${err.status}${err.detail ? ` ${err.detail}` : ` ${err.message}`}`
           : err instanceof Error
             ? err.message
             : 'Unknown error',

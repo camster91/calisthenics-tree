@@ -96,7 +96,7 @@ export default function WorkoutLogPage() {
         if (cancelled) return;
         const msg =
           err instanceof ApiError
-            ? `${err.status} ${err.message}`
+            ? `${err.status}${err.detail ? ` ${err.detail}` : ` ${err.message}`}`
             : err instanceof Error
               ? err.message
               : 'Unknown error';
@@ -161,7 +161,7 @@ export default function WorkoutLogPage() {
     } catch (err) {
       const msg =
         err instanceof ApiError
-          ? `${err.status} ${err.message}`
+          ? `${err.status}${err.detail ? ` ${err.detail}` : ` ${err.message}`}`
           : err instanceof Error
             ? err.message
             : 'Unknown error';

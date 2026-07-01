@@ -365,7 +365,7 @@ export default function SettingsPage() {
     } catch (err) {
       setNameError(
         err instanceof ApiError
-          ? `${err.status} ${err.message}`
+          ? `${err.status}${err.detail ? ` ${err.detail}` : ` ${err.message}`}`
           : err instanceof Error
             ? err.message
             : 'Unknown error',

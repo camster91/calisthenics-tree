@@ -270,6 +270,13 @@ class Friendship(Base):
 
     __table_args__ = (
         CheckConstraint("follower_id <> followee_id", name="ck_friendships_not_self"),
+        # Sprint 40: covering index for /api/v1/friends. The composite
+        # PK (follower_id, followee_id) handles uniqueness + prefix
+        # lookups but doesn't preserve created_at order — Postgres had
+        # to sort in-memory. This index lets the bounded list query
+        # (ORDER BY created_at DESC LIMIT N) become an Index Scan
+        # Backward with no Sort node. Migration: 0009.
+        Index("ix_friendships_follower_time", "follower_id", "created_at"),
     )
 
 

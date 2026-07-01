@@ -41,7 +41,7 @@ export default function InsightsPage() {
         if (cancelled) return;
         const msg =
           err instanceof ApiError
-            ? `${err.status} ${err.message}`
+            ? `${err.status}${err.detail ? ` ${err.detail}` : ` ${err.message}`}`
             : err instanceof Error
               ? err.message
               : 'Unknown error';

@@ -58,7 +58,7 @@ export function DangerZone() {
     } catch (err) {
       setExportMsg(
         err instanceof ApiError
-          ? `${err.status} ${err.message}`
+          ? `${err.status}${err.detail ? ` ${err.detail}` : ` ${err.message}`}`
           : err instanceof Error
             ? err.message
             : 'Unknown error',
@@ -86,7 +86,7 @@ export function DangerZone() {
     } catch (err) {
       setDeleteError(
         err instanceof ApiError
-          ? `${err.status} ${err.message}`
+          ? `${err.status}${err.detail ? ` ${err.detail}` : ` ${err.message}`}`
           : err instanceof Error
             ? err.message
             : 'Unknown error',
