@@ -68,7 +68,7 @@ export async function seedAuthedSession(page: Page): Promise<void> {
  */
 export async function mockRoutes(
   page: Page,
-  handlers: Array<{ method: string; path: RegExp; body: unknown }>,
+  handlers: Array<{ method: string; path: RegExp; body: unknown }> = [],
 ): Promise<void> {
   // Use page.context().route() instead of page.route(). Playwright's page-level
   // route has a quirk where after fulfilling a request, subsequent requests
@@ -100,7 +100,7 @@ export async function mockRoutes(
   // the /api/v1 versioning. Tests run against Vite dev which has no proxy, so
   // we mock the bare path here to keep the page happy.
   await ctx.route('**/healthz', async (route: Route) => {
-    const body = handlers
+    const body = (handlers ?? [])
       .find((h) => /healthz/i.test(h.path.source))
       ?.body ?? { status: 'ok' };
     return route.fulfill({

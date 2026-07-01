@@ -48,6 +48,7 @@ import NodeLandingPage from './pages/NodeLandingPage';
 import FeedPage from './pages/FeedPage';
 import ProfilePage from './pages/ProfilePage';
 import HistoryPage from './pages/HistoryPage';
+import SearchPage from './pages/SearchPage';
 import Layout from './components/layout/Layout';
 import { RequireAuth } from './components/RequireAuth';
 import { RequireOnboarded } from './components/RequireOnboarded';
@@ -131,6 +132,10 @@ export default function App() {
         <Route path="welcome" element={<LandingPage />} />
         <Route path="privacy" element={<PrivacyPage />} />
         <Route path="terms" element={<TermsPage />} />
+
+        {/* Search — public, no chrome. Lives at root so signed-out
+            users can search the public catalog. */}
+        <Route path="search" element={<SearchPage />} />
 
         {/* T39 — public share-card render. Social-media bots (Slack,
             Twitter, iMessage) crawl these without auth; the FastAPI

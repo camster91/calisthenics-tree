@@ -14,7 +14,23 @@ export interface UserPublic {
 export interface MagicLinkResponse {
   status: 'sent' | 'dev';
   expires_at: string;
-  dev_token: string | null;
+  dev_token?: string | null;
+}
+
+/** Mirrors apps/api/calisthenics_api/routes/search.py SearchResultItem. */
+export type SearchKind = 'node' | 'exercise' | 'user';
+export interface SearchResultItem {
+  kind: SearchKind;
+  id: string;
+  name: string;
+  breadcrumb: string;
+}
+/** Mirrors apps/api/calisthenics_api/routes/search.py SearchResponse. */
+export interface SearchResponse {
+  query: string;
+  nodes: SearchResultItem[];
+  exercises: SearchResultItem[];
+  users: SearchResultItem[];
 }
 
 export interface VerifyResponse {

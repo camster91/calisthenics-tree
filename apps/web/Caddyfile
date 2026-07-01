@@ -44,18 +44,22 @@
         Referrer-Policy "strict-origin-when-cross-origin"
         # Disable unused powerful features.
         Permissions-Policy "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
-        # Content-Security-Policy. Inline styles allowed because Tailwind v4
-        # inlines its utility classes via style="" attributes. PostHog +
-        # Google Fonts explicitly allowed. upgrade-insecure-requests
-        # forces HTTPS.
+        # Content-Security-Policy. PostHog + Google Fonts explicitly
+        # allowed. upgrade-insecure-requests forces HTTPS.
         #
-        # Sprint 40: dropped 'unsafe-eval' from script-src. Production
-        # bundle has zero `eval()` or `new Function()` calls (verified
-        # by grepping dist/assets/), so the only thing the eval directive
-        # was protecting was the dev-mode Vite HMR client — and that's
-        # never present in the pre-built image that Caddy serves.
-        # Removing it tightens the CSP without breaking anything.
-        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://us.i.posthog.com https://api.workout.ashbi.ca; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; report-uri /api/v1/_csp_report; upgrade-insecure-requests"
+        # Sprint 40: dropped BOTH 'unsafe-inline' (from script-src AND
+        # style-src) AND 'unsafe-eval'. The production bundle has:
+        #   - 0 eval() / new Function() calls (verified dist/assets/)
+        #   - 0 inline <script> tags (vite emits only <script type=module src=...>)
+        #   - 0 inline style="" attributes (Tailwind v4 builds classes into
+        #     external .css files at build time)
+        #   - 0 inline <style> blocks
+        # The 'unsafe-inline' was only relevant for the dev-mode Vite
+        # HMR client, never present in the pre-built image Caddy serves.
+        # Browser auto-emits `style="display:none"` on the noscript
+        # fallback if needed; we don't use a noscript on the SPA so
+        # no nonce required.
+        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://us.i.posthog.com https://api.workout.ashbi.ca; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; report-uri /api/v1/_csp_report; upgrade-insecure-requests"
         # Cross-origin isolation (defense in depth; required for SharedArrayBuffer if we ever need it).
         Cross-Origin-Opener-Policy "same-origin"
         # Don't leak the full URL in Referer.

@@ -165,3 +165,35 @@ def test_robots_route_in_openapi() -> None:
     paths = set(app.openapi()["paths"].keys())
     assert "/robots.txt" in paths, f"robots missing from routes: {paths}"
     assert "/api/v1/robots.txt" not in paths
+
+
+def test_search_route_in_openapi() -> None:
+    """Sprint 40: /api/v1/search is exposed. The frontend uses it for the
+    header search bar + the /search page."""
+    from calisthenics_api.main import create_app
+
+    app = create_app()
+    paths = set(app.openapi()["paths"].keys())
+    assert "/api/v1/search" in paths, f"search missing: {paths}"
+
+
+def test_search_query_bounds() -> None:
+    """q must be 1-64 chars; limit must be 1-20. Mirrors the bound pattern
+    from history/friends so a typo'd huge query can't DOS the api."""
+    from calisthenics_api.routes.search import search
+    import inspect
+    from annotated_types import Ge, Le, MinLen, MaxLen
+
+    sig = inspect.signature(search)
+    q = sig.parameters["q"]
+    assert q.default.metadata is not None
+    q_minlen = next((m for m in q.default.metadata if isinstance(m, MinLen)), None)
+    q_maxlen = next((m for m in q.default.metadata if isinstance(m, MaxLen)), None)
+    assert q_minlen is not None and q_minlen.min_length == 1
+    assert q_maxlen is not None and q_maxlen.max_length == 64
+
+    limit = sig.parameters["limit"]
+    ge = next((m for m in limit.default.metadata if isinstance(m, Ge)), None)
+    le = next((m for m in limit.default.metadata if isinstance(m, Le)), None)
+    assert ge is not None and ge.ge == 1
+    assert le is not None and le.le == 20

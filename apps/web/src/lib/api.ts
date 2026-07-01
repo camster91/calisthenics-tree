@@ -28,6 +28,7 @@ import { authStore } from './auth-store';
 import * as local from './local-mode';
 
 export * from './api-types';
+import type { SearchResponse } from './api-types';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
 
@@ -201,7 +202,7 @@ async function localMockRoute(path: string, body: unknown, method: string): Prom
     const a = (body as { answers?: { can_pull_up?: boolean; support_hold_15s?: boolean; active_hang_10s?: boolean; rir2_pushup_reps?: number } })?.answers;
     const archetype = computeArchetype(a);
     const rir2Offset = computeRir2Offset(a?.rir2_pushup_reps ?? 0);
-    const placements = (['push', 'pull', 'core'] as const).map((slug) => ({
+    const placements = LOCAL_PLACEMENT_SLUGS.map((slug) => ({
       tree_id: `tree-${slug}`,
       tree_name: TREE_DISPLAY_NAMES[slug],
       // Match the wire format used everywhere else (TREES nodes,
@@ -327,19 +328,30 @@ function computeRir2Offset(reps: number): number {
   return 2;
 }
 
-const TREE_DISPLAY_NAMES: Record<'push' | 'pull' | 'core', string> = {
+// Sprint 40: 4th tree (legs/pistol-squat) added in migration 0010.
+// The local-mode mock now matches what the api would return so a
+// "Continue without account" user gets the same onboarding result
+// shape as a server-mode user.
+type LocalTreeSlug = 'push' | 'pull' | 'core' | 'legs';
+
+const TREE_DISPLAY_NAMES: Record<LocalTreeSlug, string> = {
   push: 'Vertical Push (Handstand Push-Up Path)',
   pull: 'Horizontal Pull (Front Lever Path)',
   core: 'Core (Dragon Flag Path)',
+  legs: 'Legs (Single-Leg Squat Path)',
 };
 
-const TREE_RANK_NAMES: Record<'push' | 'pull' | 'core', string[]> = {
+const TREE_RANK_NAMES: Record<LocalTreeSlug, string[]> = {
   push: ['Wall Push-Up', 'Incline Push-Up', 'Standard Push-Up', 'Diamond Push-Up', 'Pike Push-Up', 'Wall Handstand Hold', 'Wall Handstand Push-Up', 'Freestanding Handstand Hold', 'Freestanding Handstand Push-Up', 'Planche Push-Up (Rings)'],
   pull: ['Dead Hang', 'Active Hang', 'Scapular Pulls', 'Negative Pull-Up', 'Pull-Up', 'Tuck Front Lever Hold', 'Advanced Tuck Front Lever Hold', 'Straddle Front Lever Hold', 'Full Front Lever Hold', 'Front Lever Pull'],
   core: ['Plank', 'Side Plank', 'Hollow Body Hold', 'L-Sit on Floor', 'L-Sit on Bars', 'Hanging Leg Raise', 'Toes-to-Bar', 'Dragon Flag (Tucked)', 'Dragon Flag', 'Maltese (Rings)'],
+  legs: ['Bodyweight Squat', 'Box Pistol Squat (Assisted)', 'Assisted Pistol Squat (Counter)', 'Negative Pistol Squat', 'Bulgarian Split Squat', 'Shrimp Squat', 'Pistol Squat (Both Legs Parallel)', 'Pistol Squat (Full)', 'Weighted Pistol Squat (Light)', 'Weighted Pistol Squat (Heavy)'],
 };
 
-function nameForRank(treeSlug: 'push' | 'pull' | 'core', rank: number): string {
+// Local-mode placement order. Server-mode gets this from the api.
+const LOCAL_PLACEMENT_SLUGS: readonly LocalTreeSlug[] = ['push', 'pull', 'core', 'legs'];
+
+function nameForRank(treeSlug: LocalTreeSlug, rank: number): string {
   return TREE_RANK_NAMES[treeSlug][rank - 1] ?? `Node ${rank}`;
 }
 
@@ -445,6 +457,17 @@ export interface TendonStrainResponse {
 
 /** GET /api/v1/tendon-strain — per-pathway 4-week sparkline + status. */
 export const getTendonStrain = () => api<TendonStrainResponse>('/tendon-strain');
+
+/* ------------------------------------------------------------------ */
+/* Search                                                             */
+/* ------------------------------------------------------------------ */
+
+/** GET /api/v1/search — public for nodes/exercises, authed for users. */
+export const search = (q: string, limit = 5) =>
+  api<SearchResponse>(
+    `/search?q=${encodeURIComponent(q)}&limit=${limit}`,
+    { skipAuth: true }, // nodes + exercises are public; users are gated server-side by cookie
+  );
 
 /* ------------------------------------------------------------------ */
 /* User account (PATCH/DELETE/POST /api/v1/users/me)                   */
