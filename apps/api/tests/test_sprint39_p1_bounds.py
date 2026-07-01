@@ -197,3 +197,30 @@ def test_search_query_bounds() -> None:
     le = next((m for m in limit.default.metadata if isinstance(m, Le)), None)
     assert ge is not None and ge.ge == 1
     assert le is not None and le.le == 20
+
+
+def test_search_uses_wire_format_helpers() -> None:
+    """Sprint 40 audit: the search route must use the canonical wire
+    helpers (to_node_wire) instead of string-concatting 'node_' + id.
+    A direct f-string would break if the wire format ever changed
+    (e.g. to 'node-v2_<uuid>'). This test guards against the regression
+    where the route referenced `n.node_id` (the column doesn't exist;
+    the column is `id`) and a hand-rolled `f"node_{n.id}"` instead
+    of the wire helper."""
+    import inspect
+    from calisthenics_api.routes import search as search_module
+    from calisthenics_api.schemas import node_id as to_node_wire
+
+    source = inspect.getsource(search_module)
+    # Must import the wire helper.
+    assert "node_id as to_node_wire" in source, (
+        "search route should import the wire helper for consistent id format"
+    )
+    # Must NOT have any hand-rolled `f\"node_` string concat (would
+    # silently diverge from the rest of the api if the format changed).
+    assert 'f"node_' not in source, (
+        "search route uses hand-rolled f-string 'node_<id>' instead of the wire helper"
+    )
+    # And the wire helper itself must produce the canonical format.
+    sample = "fb47078b-9021-4773-b531-aa7892ecb52e"
+    assert to_node_wire(sample) == f"node_{sample}"

@@ -38,7 +38,7 @@ from calisthenics_api.db.models import (
     ProgressionTree,
     User,
 )
-from calisthenics_api.schemas import AuthContext
+from calisthenics_api.schemas import AuthContext, node_id as to_node_wire
 
 router = APIRouter(prefix="/search", tags=["search"])
 
@@ -154,7 +154,10 @@ async def search(
         nodes=[
             SearchResultItem(
                 kind="node",
-                id=f"node_{n.node_id}",
+                # Use the wire-format helper so the id is the
+                # canonical `node_<uuid>` form the rest of the
+                # api uses (history, feed, share, etc.).
+                id=to_node_wire(n.id),
                 name=exercise.name,
                 breadcrumb=f"{tree.name} · rank {n.rank_level}",
             )
