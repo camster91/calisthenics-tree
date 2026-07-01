@@ -25,7 +25,10 @@ test.describe('search (Sprint 40)', () => {
     await mockRoutes(page, [
       {
         method: 'GET',
-        path: /\/api\/v1\/search(\?|$)/,
+        // The mock helper strips the query string before testing
+        // (see _helpers.ts: `urlNoQuery`), so the regex must
+        // match the path WITHOUT the `?...` suffix.
+        path: /\/api\/v1\/search$/,
         body: {
           query: 'push',
           nodes: [
@@ -50,9 +53,11 @@ test.describe('search (Sprint 40)', () => {
     ]);
     await page.goto('/search');
     await page.getByTestId('search-input').fill('push');
-    // Debounce is 300ms; wait for the results to render.
-    await expect(page.getByTestId('search-result-node')).toBeVisible();
-    await expect(page.getByTestId('search-result-exercise')).toBeVisible();
+    // Debounce is 300ms; in slower browsers (firefox/webkit) the
+    // first paint can take longer, so wait up to 8s for the
+    // debounced fetch to resolve + render.
+    await expect(page.getByTestId('search-result-node')).toBeVisible({ timeout: 8000 });
+    await expect(page.getByTestId('search-result-exercise')).toBeVisible({ timeout: 8000 });
     // Groups are labelled — use the group h2's aria-labelledby to be
     // unambiguous (the literal word "Skills" also appears in the
     // header copy + on the result kind badge).
