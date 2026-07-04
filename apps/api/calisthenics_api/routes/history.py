@@ -14,7 +14,7 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from calisthenics_api.auth import get_current_user
@@ -58,10 +58,16 @@ async def my_history(
     user_id = auth.user_id
 
     # Total count (cheap).
-    total_row = await session.execute(
-        select(Workout.id).where(Workout.user_id == user_id)
-    )
-    total_workouts = len(total_row.all())
+    # Sprint 41 perf R-4: was `len((select(Workout.id).where(user_id=?).all()))`
+    # which fetches all PK rows into Python just to count them. func.count()
+    # pushes the count into SQL.
+    total_workouts = (
+        await session.execute(
+            select(func.count())
+            .select_from(Workout)
+            .where(Workout.user_id == user_id)
+        )
+    ).scalar_one()
 
     # Recent workouts + set_logs + node + exercise, all in one query.
     # Order by completed_at desc so the frontend's first page is the
@@ -88,20 +94,9 @@ async def my_history(
         by_workout[workout.id].append((setlog, node, exercise, tree))
         completed_at[workout.id] = workout.completed_at
 
-    # Look up the current target_sets for each unique node so we can
-    # compute sets_completed / sets_target. (Done in a second query so the
-    # main join stays simple.)
-    node_ids = {node.id for entries in by_workout.values() for (_setlog, node, _ex, _tr) in entries}
-    target_sets: dict[uuid.UUID, int] = {}
-    if node_ids:
-        ns_rows = (
-            await session.execute(
-                select(ProgressionNode.id, ProgressionNode.target_sets).where(
-                    ProgressionNode.id.in_(node_ids)
-                )
-            )
-        ).all()
-        target_sets = {nid: ts for nid, ts in ns_rows}
+    # Sprint 41 perf R-5: target_sets is already in the main join above
+    # (node.target_sets), so the redundant `select(ProgressionNode.id,
+    # ProgressionNode.target_sets).where(id.in_(...))` query was dropped.
 
     # Build rows. The frontend expects the LATEST placement node per tree
     # to decide if this workout caused a promotion. We pull the user's
@@ -141,7 +136,7 @@ async def my_history(
                     tree_name=tree.name,
                     node_id=to_node_wire(node.id),
                     sets_completed=1,  # one set_log per row in the join above
-                    sets_target=target_sets.get(node.id, 3),
+                    sets_target=node.target_sets or 3,
                     is_promotion=is_promotion,
                 )
             )

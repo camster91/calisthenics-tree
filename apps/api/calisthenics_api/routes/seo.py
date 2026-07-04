@@ -11,6 +11,8 @@ slug function. Both producer and consumer share the convention:
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends
 from fastapi.responses import PlainTextResponse, Response
 from sqlalchemy import select
@@ -21,6 +23,13 @@ from calisthenics_api.db import get_session
 from calisthenics_api.db.models import Exercise, ProgressionNode, ProgressionTree
 
 router = APIRouter(tags=["seo"])
+
+# Cap at the seed-data maximum plus a generous headroom. Today: 40
+# nodes across 4 trees. A bound at 500 protects against a buggy
+# bulk-import leaving the sitemap slow while not restricting real
+# growth (a future "skill: parkour" tree might add dozens of nodes).
+# Module-scope so it doesn't re-bind on every request.
+_SITEMAP_NODE_LIMIT = 500
 
 
 def _slugify(s: str) -> str:
@@ -49,7 +58,11 @@ async def sitemap(
     """
     settings = get_settings()
     base = settings.web_base_url.rstrip("/")
-    today = "2026-06-25"
+    # Sprint 41 audit fix: previously hardcoded to "2026-06-25" so
+    # every <lastmod> in the response was that date forever — Google
+    # stops re-crawling when lastmod looks stale. Now derived from
+    # build/request time (UTC).
+    today = datetime.now(timezone.utc).date().isoformat()
 
     static_pages = [
         ("/", "daily", "1.0"),
@@ -58,14 +71,6 @@ async def sitemap(
         ("/privacy", "yearly", "0.3"),
         ("/terms", "yearly", "0.3"),
     ]
-
-    # Cap at the seed-data maximum plus a generous headroom. Today: 30
-    # nodes across 3 trees. A bound at 500 protects against a buggy
-    # bulk-import leaving the sitemap slow while not restricting real
-    # growth (a future "skill: parkour" tree might add dozens of nodes).
-    # The bound lives here so it's visible in code review rather than
-    # buried in a default value elsewhere.
-    _SITEMAP_NODE_LIMIT = 500
 
     rows = (
         await session.execute(

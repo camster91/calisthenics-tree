@@ -129,10 +129,12 @@ def test_sitemap_uses_xml_response_class() -> None:
     runtime content-type assertion needs a live DB (sitemap does an
     actual select on progression_nodes), so we keep this test pure.
     """
+    from fastapi.routing import APIRoute
     from calisthenics_api.routes import seo
 
     sitemap_route = next(
-        r for r in seo.router.routes if getattr(r, "path", "") == "/sitemap.xml"
+        r for r in seo.router.routes
+        if isinstance(r, APIRoute) and r.path == "/sitemap.xml"
     )
     assert sitemap_route is not None, "sitemap route must be registered"
     # response_class must not be PlainTextResponse anymore.

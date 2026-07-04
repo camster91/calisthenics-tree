@@ -32,6 +32,16 @@ from calisthenics_api.schemas import AuthContext
 
 router = APIRouter(tags=["friends"])
 
+# Sprint 41 audit fix (security MED-5): bound the {user_id} path param to
+# a canonical UUID shape. Other routers (nodes, trees) use the same
+# pattern for their wire-format ids. Without this, a 100KB garbage string
+# on `DELETE /api/v1/friends/{user_id}` is a cheap DoS — the SQL query
+# never runs but the string is parsed, the route matches, and the request
+# is logged at length. 36 chars + hyphens is the canonical UUID4 format.
+_USER_ID_PATH_PATTERN = (
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
+
 
 # -----------------------------------------------------------------------------#
 # POST /api/v1/friends
@@ -151,7 +161,7 @@ async def follow_user(
 
 @router.delete("/friends/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def unfollow_user(
-    user_id: str = Path(...),
+    user_id: str = Path(..., pattern=_USER_ID_PATH_PATTERN),
     auth: AuthContext = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> None:
@@ -236,7 +246,7 @@ class PublicProfile(BaseModel):
 
 @router.get("/users/{user_id}", response_model=None)
 async def get_public_profile(
-    user_id: str = Path(...),
+    user_id: str = Path(..., pattern=_USER_ID_PATH_PATTERN),
     auth: AuthContext = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> dict:
@@ -317,7 +327,7 @@ async def get_public_profile(
 
 @router.get("/users/{user_id}/unlocks", response_model=None)
 async def get_user_unlocks(
-    user_id: str = Path(...),
+    user_id: str = Path(..., pattern=_USER_ID_PATH_PATTERN),
     # Sprint 39 P1: bound the unlock limit. Was `int = 20` (no upper
     # bound) — a caller could pass ?limit=10000 and DOS the api or pull
     # an entire user's history. Mirror the /feed cap.

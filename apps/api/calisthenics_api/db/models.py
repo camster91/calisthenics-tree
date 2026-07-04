@@ -9,6 +9,8 @@ FL OR rings tuck FL OR weighted tuck FL).
 
 from __future__ import annotations
 
+from enum import StrEnum
+
 import uuid
 from datetime import datetime
 
@@ -32,22 +34,26 @@ class Base(DeclarativeBase):
 
 
 # -----------------------------------------------------------------------------#
-# Enums (modeled as Python enums + Postgres ENUMs created in migration)
+# Enums (Sprint 41 audit fix: code-quality O4 — was bare classes masquerading
+# as enums. Now real StrEnum so mypy + IDEs catch typos. Column types in
+# Postgres remain String + CHECK constraints — see migration 0001 for the
+# CHECK clauses. These enums are the single source of truth for the literal
+# values used in INSERTs.)
 # -----------------------------------------------------------------------------#
 
 
-class MovementType:
+class MovementType(StrEnum):
     ISOMETRIC = "isometric"
     ISOTONIC = "isotonic"
 
 
-class EdgeType:
+class EdgeType(StrEnum):
     PROGRESSION = "progression"  # harder variation
     REGRESSION = "regression"  # easier variation (recovery, on-the-fly swap)
     LATERAL = "lateral"  # parallel skill at the same rank_level (e.g., rings vs bar)
 
 
-class JointPathway:
+class JointPathway(StrEnum):
     """Body regions tracked for tendon strain."""
 
     STRAIGHT_ARM_ELBOW = "straight_arm_elbow"  # planche, front-lever elbow loading

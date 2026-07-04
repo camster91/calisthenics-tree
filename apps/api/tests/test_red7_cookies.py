@@ -126,7 +126,12 @@ def test_clear_session_cookie_both_names() -> None:
     clear_session_cookie(response, settings=settings)
     # delete_cookie called twice — once for each cookie name.
     assert response.delete_cookie.call_count == 2
-    deleted_keys = {c.kwargs["key"] for c in response.delete_cookie.call_args_list}
+    # Sprint 41 audit fix (MED-2): key is now the first positional arg
+    # (we expanded the kwargs to mirror set_session_cookie's attrs).
+    deleted_keys = {
+        # arg order: (key, path=...) so the first positional is always key
+        c.args[0] for c in response.delete_cookie.call_args_list
+    }
     assert deleted_keys == {"ct_session", "ct_session_refresh"}
 
 
@@ -134,9 +139,12 @@ def test_routes_registered() -> None:
     """Confirm the new auth routes are mounted on the router. If somebody
     refactors and accidentally drops one, this catches it before SPA
     fetches start 404ing."""
+    from fastapi.routing import APIRoute
     from calisthenics_api.routes.auth import router
 
-    paths = {r.path for r in router.routes}
+    # router.routes contains a mix of APIRoute + Mount/Middleware/etc.
+    # Only APIRoute has `.path`; the type-narrow keeps mypy honest.
+    paths = {r.path for r in router.routes if isinstance(r, APIRoute)}
     # Original endpoints.
     assert "/auth/magic-link" in paths
     assert "/auth/verify" in paths

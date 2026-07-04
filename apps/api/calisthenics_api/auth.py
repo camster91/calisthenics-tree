@@ -97,20 +97,29 @@ def set_session_cookie(
 
 
 def clear_session_cookie(response: Response, settings=None) -> None:
-    """Clear both session cookies on signout / token rotation."""
+    """Clear both session cookies on signout / token rotation.
+
+    Sprint 41 fix (security MED-2): Chrome since 2020 only honors
+    Set-Cookie with Max-Age=0 if the attributes match the original
+    (RFC 6265bis + Chrome behavior). Without secure/httponly/samesite
+    the delete fails silently for Secure cookies, leaving a ghost
+    session the user can't sign out of.
+    """
     if settings is None:
         settings = get_settings()
 
-    response.delete_cookie(
-        key=settings.session_cookie_name,
-        path="/",
-        domain=settings.effective_session_cookie_domain,
-    )
-    response.delete_cookie(
-        key=settings.session_cookie_refresh_name,
-        path="/",
-        domain=settings.effective_session_cookie_domain,
-    )
+    # Mirror the attrs from set_session_cookie so the delete matches
+    # the original cookie exactly.
+    secure = settings.session_cookie_secure and settings.environment != "development"
+    delete_attrs = {
+        "path": "/",
+        "domain": settings.effective_session_cookie_domain,
+        "secure": secure,
+        "httponly": True,
+        "samesite": settings.session_cookie_samesite,
+    }
+    response.delete_cookie(settings.session_cookie_name, **delete_attrs)
+    response.delete_cookie(settings.session_cookie_refresh_name, **delete_attrs)
 
 
 # -----------------------------------------------------------------------------#

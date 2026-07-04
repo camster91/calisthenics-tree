@@ -11,12 +11,15 @@ a working email pipeline.
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import uuid
 from urllib.parse import urlencode
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from calisthenics_api import security
@@ -91,8 +94,6 @@ async def _send_magic_link_email(to_email: str, link: str) -> None:
             # prod without POSTMARK_TOKEN. If we somehow reach this path, log
             # an error WITHOUT the link so we don't leak it via the prod log
             # aggregator.
-            import hashlib
-
             link_token_fpr = hashlib.sha256(link.encode("utf-8")).hexdigest()[:12]
             logger.error(
                 "PROD reached dev-mode magic-link path with POSTMARK_TOKEN unset "
@@ -104,8 +105,6 @@ async def _send_magic_link_email(to_email: str, link: str) -> None:
     # Direct REST call. Postmark's transactional endpoint accepts JSON
     # exactly like this. Raise on non-2xx so the caller's outer
     # try/except logs the failure with token_fpr (no PII).
-    import httpx
-
     expiry_minutes = settings.magic_link_ttl_secs // 60
     payload = {
         "From": settings.postmark_from_email,
@@ -160,8 +159,6 @@ async def request_magic_link(
         # the raw token (PII in observability cluster). NEVER log the full
         # link / token — even in dev mode, log aggregation can be retained
         # longer than the token's 15-min TTL.
-        import hashlib
-
         token_fpr = hashlib.sha256(token.encode("utf-8")).hexdigest()[:12]
         logger.exception(
             "Failed to send magic link (token_fpr=%s): %s",
@@ -173,8 +170,6 @@ async def request_magic_link(
     # join-back. We do NOT log the token or the link in any path — neither
     # info-log nor the dev-mode path. Dev mode exposes dev_token in the
     # HTTP response body only (Sprint 37 RED-1 fix); stdout never sees it.
-    import hashlib
-
     email_fpr = hashlib.sha256(email.encode("utf-8")).hexdigest()[:12]
     logger.info(
         "Magic link issued (email_fpr=%s, sent_via=%s)",
@@ -241,8 +236,6 @@ async def verify_magic_link(
     # credential — even a rainbow table of every magic-link hash doesn't
     # help an attacker since the underlying token (signed via itsdangerous
     # HMAC) is still the actual credential.
-    import hashlib
-
     token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
 
     user = await _get_or_create_user(email, session)
@@ -250,8 +243,6 @@ async def verify_magic_link(
     # Check + insert in one transaction so two concurrent verifies can't
     # both succeed. IntegrityError on the second insert is the "already
     # used" signal.
-    from sqlalchemy.exc import IntegrityError
-
     from calisthenics_api.db.models import MagicLinkConsumed
 
     consumed = MagicLinkConsumed(token_hash=token_hash, user_id=user.id)

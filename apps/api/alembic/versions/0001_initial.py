@@ -429,7 +429,8 @@ def _seed_tree(slug: str, name: str, description: str, nodes: list, temp_table: 
 
     conn.execute(
         sa.text(
-            "INSERT INTO progression_trees (id, name, description, slug) VALUES (:id, :name, :description, :slug)"
+            "INSERT INTO progression_trees (id, name, description, slug) VALUES (:id, :name, :description, :slug) "
+            "ON CONFLICT (id) DO NOTHING"
         ),
         {"id": str(tree_id), "name": name, "description": description, "slug": slug},
     )
@@ -452,7 +453,8 @@ def _seed_tree(slug: str, name: str, description: str, nodes: list, temp_table: 
         conn.execute(
             sa.text(
                 "INSERT INTO exercises (id, name, movement_type, primary_muscles, secondary_muscles, video_url) "
-                "VALUES (:id, :name, :movement, :primary, :secondary, :video)"
+                "VALUES (:id, :name, :movement, :primary, :secondary, :video) "
+                "ON CONFLICT (id) DO NOTHING"
             ),
             {
                 "id": str(ex_id),
@@ -468,7 +470,8 @@ def _seed_tree(slug: str, name: str, description: str, nodes: list, temp_table: 
         conn.execute(
             sa.text(
                 "INSERT INTO progression_nodes (id, tree_id, exercise_id, rank_level, target_sets, target_reps, target_hold_secs, min_fail_threshold_reps, min_fail_threshold_secs, joint_pathways, intensity_factor) "
-                "VALUES (:id, :tree_id, :exercise_id, :rank, :target_sets, :target_reps, :target_hold, :min_fail_reps, :min_fail_secs, :pathways, :intensity)"
+                "VALUES (:id, :tree_id, :exercise_id, :rank, :target_sets, :target_reps, :target_hold, :min_fail_reps, :min_fail_secs, :pathways, :intensity) "
+                "ON CONFLICT (id) DO NOTHING"
             ),
             {
                 "id": str(node_id),

@@ -3,9 +3,10 @@
 Phase 1 used a single static bearer token (BEARER_TOKEN). Phase 2 introduces:
 
 - **Magic-link tokens**: short-lived (default 15min), signed with itsdangerous's
-  URL-safe serializer. Sent via email. Single-use is NOT enforced (15min window
-  is short enough that revocation isn't worth a DB roundtrip — see PLAN.md §
-  Honest read of the source docs, "Auth flow works end-to-end" gate).
+  URL-safe serializer. Sent via email. **Single-use IS enforced** (Sprint 38
+  RED-6): the SHA-256 of the consumed token is inserted into the
+  `magic_link_consumed` table in the same transaction as the JWT pair issuance,
+  so a second verify call with the same token returns 400.
 
 - **Access JWTs**: HS256, default 1h TTL, carry user_id + email. Carried in the
   Authorization: Bearer header on every authenticated request. Short TTL so a
