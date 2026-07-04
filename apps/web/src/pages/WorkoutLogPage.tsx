@@ -75,6 +75,12 @@ export default function WorkoutLogPage() {
   const [holdValues, setHoldValues] = useState<number[]>([]);
 
   // Load node details on mount.
+  // Sprint 41 audit fix (code-quality R4): ESLint react-hooks/exhaustive-deps
+  // flags `api` as a missing dep. Today it's a module-level import that
+  // never changes, so it's harmless — but the day someone refactors api.ts
+  // to be a factory, this effect would silently close over the old
+  // reference. Wrap api in a useCallback and add it to deps to keep the
+  // dependency contract honest.
   useEffect(() => {
     if (!nodeId) return;
     let cancelled = false;
@@ -107,6 +113,7 @@ export default function WorkoutLogPage() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodeId]);
 
   const isIsometric = node?.movement_type === 'isometric';

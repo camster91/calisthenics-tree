@@ -111,7 +111,7 @@ POSTMARK_TOKEN=...              # if real email; unset = dev-mode (link logged)
 SENTRY_DSN=...                  # if error tracking; unset = no-op
 
 # Web (apps/web/.env.local):
-VITE_API_URL=/api
+VITE_API_URL=/api/v1
 VITE_API_TOKEN=dev-bearer-token-replace-me    # dev only
 VITE_POSTHOG_API_KEY=...                      # if analytics; unset = no-op
 ```

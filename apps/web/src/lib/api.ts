@@ -20,8 +20,15 @@
  * Local-mode sentinel ('local-dev-mode') is detected from authStore and
  * short-circuits to localMockRoute; cookies aren't involved.
  *
- * Base URL: import.meta.env.VITE_API_URL (defaults to '/api' in dev via
- * the Vite proxy, which forwards to http://localhost:8000).
+ * Base URL: import.meta.env.VITE_API_URL (defaults to '/api/v1').
+ *
+ * Routes are mounted at '/api/v1/*' on the backend (see
+ * apps/api/calisthenics_api/config.py: api_v1_prefix). In dev, Caddy
+ * (or the dev web container) proxies '/api/*' to the api. In prod
+ * (workout.ashbi.ca) the same proxy chain applies. The '/api/v1'
+ * default is correct; the README comment "VITE_API_URL=/api" is a
+ * leftover from an earlier setup where the prefix was stripped by
+ * a Vite proxy that no longer exists.
  */
 
 import { authStore } from './auth-store';
