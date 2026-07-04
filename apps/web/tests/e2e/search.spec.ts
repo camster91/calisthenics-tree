@@ -51,6 +51,11 @@ test.describe('search (Sprint 40)', () => {
               id: 'node_p1',
               name: 'Push-Up',
               breadcrumb: 'Vertical Push · rank 1',
+              // Sprint 42 fix (UX #2): the new tree_slug + rank fields
+              // let the frontend build `/learn/{slug}` from a search
+              // hit. Without these every Skills click bounced to `/`.
+              tree_slug: 'push_handstand_pushup_path',
+              rank: 1,
             },
           ],
           exercises: [
@@ -59,6 +64,9 @@ test.describe('search (Sprint 40)', () => {
               id: 'ex_pushup',
               name: 'Standard Push-Up',
               breadcrumb: 'isotonic',
+              // exercise/user results have these as null/undefined.
+              tree_slug: null,
+              rank: null,
             },
           ],
           users: [],
@@ -82,6 +90,18 @@ test.describe('search (Sprint 40)', () => {
     // header copy + on the result kind badge).
     await expect(page.locator('#search-group-node')).toHaveText('Skills');
     await expect(page.locator('#search-group-exercise')).toHaveText('Exercises');
+
+    // Sprint 42 fix (UX #2): verify the result link now points at a
+    // real /learn/<slug> route, NOT a silent bounce to `/`.
+    // The data-testid sits on the <li>; the <a> inside is the link
+    // with the href.
+    const nodeLink = page
+      .getByTestId('search-result-node')
+      .locator('a');
+    await expect(nodeLink).toHaveAttribute(
+      'href',
+      '/learn/push_handstand_pushup_path-r1-push-up',
+    );
   });
 
   test('header search bar submits to /search?q=...', async ({ page }) => {
