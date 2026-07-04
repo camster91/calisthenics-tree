@@ -207,9 +207,9 @@ function ResultCard({ item }: { item: SearchResultItem }) {
   // dedicated exercise detail yet); users go to /u/:id.
   const href =
     item.kind === 'node'
-      ? `/learn/${nodeIdToSlug(item.id, item.name)}`
+      ? `/learn/${nodeIdToSlug(item.tree_slug, item.rank, item.name)}`
       : item.kind === 'exercise'
-        ? `/learn/${nodeIdToSlug(item.id, item.name)}`
+        ? `/learn/${nodeIdToSlug(item.tree_slug, item.rank, item.name)}`
         : `/u/${item.id.replace(/^usr_/, '')}`;
 
   return (
@@ -230,19 +230,40 @@ function ResultCard({ item }: { item: SearchResultItem }) {
   );
 }
 
-/** Best-effort slug: search returns node_<uuid> for the id. The
- * learning page uses {tree_slug}-r{rank}-{name-slug}. Without the
- * tree slug we can't reconstruct — fall back to the home page so
- * the click never dead-ends. */
-function nodeIdToSlug(id: string, _name: string): string {
-  // Strip the "node_" prefix and the trailing UUID; the search
-  // response doesn't include the tree slug, so we link to /learn/<id>
-  // which currently 404s but is at least a stable URL we can improve
-  // later by adding the slug to the response.
-  if (id.startsWith('node_')) {
-    // Fall back to home — clicking a node from search today is a
-    // graceful "no detailed landing page yet" rather than a 404.
-    return '';
+/** Build the /learn/<slug> target from the search response metadata.
+ *
+ * Sprint 42 fix (UX #2 ∩ Code-quality R1): the previous helper
+ * returned `''` for every `node_*` id because the search response
+ * didn't include the tree slug or rank. The api now sends both, so
+ * we can build the canonical slug that matches `NodeLandingPage`'s
+ * route param: `{tree_slug}-r{rank}-{name-slug}`.
+ *
+ * Slug rules (mirrored from `apps/api/calisthenics_api/routes/seo.py`):
+ * - tree_slug: kebab-case, lowercased (e.g. `push_handstand_pushup_path`)
+ * - rank: integer
+ * - name: lowercased, alphanumerics + `-` only
+ *
+ * Returns the bare id (`node_<uuid>`) as a fallback when the api
+ * hasn't sent the new metadata yet (e.g. cache miss during deploy
+ * window). NodeLandingPage won't render that, but the route won't
+ * 500.
+ */
+function nodeIdToSlug(
+  treeSlug: string | undefined,
+  rank: number | undefined,
+  name: string,
+): string {
+  if (treeSlug && typeof rank === 'number') {
+    const nameSlug = name
+      .toLowerCase()
+      .replace(/[^a-z0-9-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    return `${treeSlug}-r${rank}-${nameSlug}`;
   }
-  return id;
+  // Defensive fallback — old api response without tree_slug / rank.
+  // /learn/<slug> won't match but the route exists for any param.
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
