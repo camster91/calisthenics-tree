@@ -12,7 +12,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 
 import { useAuth } from '../lib/auth';
-import { ApiError } from '../lib/api';
+import { ApiError, apiErrorToMessage } from '../lib/api';
 import { useT } from '../lib/i18n';
 import { Button } from '../components/ui/button';
 
@@ -70,14 +70,13 @@ export default function AuthVerifyPage() {
         setTimeout(() => navigate(next, { replace: true }), 600);
       })
       .catch((err) => {
-        const msg =
-          err instanceof ApiError
-            ? err.status === 400
-              ? t('auth.verifyInvalidToken')
-              : `${err.status} ${err.message}`
-            : err instanceof Error
-              ? err.message
-              : 'Unknown error';
+        // Sprint 42 fix (UX #5): use the centralised helper. Preserve
+        // the 400 → invalid-token override because that copy is more
+        // specific than the helper's generic 4xx message.
+        const fallback = apiErrorToMessage(err);
+        const msg = err instanceof ApiError && err.status === 400
+          ? t('auth.verifyInvalidToken')
+          : fallback;
         setErrorMsg(msg);
         setStatus('error');
       });

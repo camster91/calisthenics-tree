@@ -57,6 +57,13 @@ class SearchResultItem(BaseModel):
     id: str
     name: str
     breadcrumb: str  # tree name, exercise category, or '@username'
+    # Sprint 42 fix (UX #2 ∩ Code-quality R1): include enough metadata
+    # for the frontend to build a `/learn/<slug>` link from a search
+    # hit. Previously every node result linked to `/` because the
+    # frontend had no tree_slug / rank to build the slug from.
+    # Optional because exercise + user results don't need it.
+    tree_slug: str | None = None
+    rank: int | None = None
 
 
 class SearchResponse(BaseModel):
@@ -160,6 +167,10 @@ async def search(
                 id=to_node_wire(n.id),
                 name=exercise.name,
                 breadcrumb=f"{tree.name} · rank {n.rank_level}",
+                # Sprint 42: surface enough metadata for the frontend
+                # to build `/learn/<slug>` from a search hit.
+                tree_slug=tree.slug,
+                rank=n.rank_level,
             )
             for n, exercise, tree in node_rows
         ],

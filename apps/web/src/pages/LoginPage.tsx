@@ -18,7 +18,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Mail, CheckCircle2, AlertCircle, ArrowRight, Laptop } from 'lucide-react';
 
 import { useAuth } from '../lib/auth';
-import { ApiError } from '../lib/api';
+import { apiErrorToMessage } from '../lib/api';
 import { useT } from '../lib/i18n';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -73,13 +73,9 @@ export default function LoginPage() {
           setDevLink(`${base}/auth/verify?token=${encodeURIComponent(response.dev_token)}`);
         }
       } catch (err) {
-        const msg =
-          err instanceof ApiError
-            ? `${err.status}${err.detail ? ` ${err.detail}` : ` ${err.message}`}`
-            : err instanceof Error
-              ? err.message
-              : 'Unknown error';
-        setErrorMsg(msg);
+        // Sprint 42 fix (UX #5): user-facing message via the centralised
+        // apiErrorToMessage helper instead of raw `${status} ${detail}`.
+        setErrorMsg(apiErrorToMessage(err));
         setStatus('error');
       }
     },

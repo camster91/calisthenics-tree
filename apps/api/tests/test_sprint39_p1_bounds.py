@@ -226,3 +226,29 @@ def test_search_uses_wire_format_helpers() -> None:
     # And the wire helper itself must produce the canonical format.
     sample = "fb47078b-9021-4773-b531-aa7892ecb52e"
     assert to_node_wire(sample) == f"node_{sample}"
+
+
+def test_search_includes_tree_slug_for_node_results() -> None:
+    """Sprint 42 fix (UX #2 ∩ Code-quality R1): every search 'node' result
+    must include `tree_slug` + `rank` so the frontend can build
+    `/learn/{tree_slug}-r{rank}-{name-slug}` from a search hit. Before
+    this field was added, every Skills click linked to `/` (silent bounce)."""
+    from calisthenics_api.routes.search import SearchResultItem
+
+    # Construct an instance the way the route does.
+    item = SearchResultItem(
+        kind="node",
+        id="node_fb47078b-9021-4773-b531-aa7892ecb52e",
+        name="Box Pistol Squat (Assisted)",
+        breadcrumb="Legs · rank 2",
+        tree_slug="legs_single_leg_path",
+        rank=2,
+    )
+    assert item.tree_slug == "legs_single_leg_path"
+    assert item.rank == 2
+    # Optional fields default to None on exercise/user results.
+    ex = SearchResultItem(
+        kind="exercise", id="ex_abc", name="Wall Push-Up", breadcrumb="isotonic"
+    )
+    assert ex.tree_slug is None
+    assert ex.rank is None

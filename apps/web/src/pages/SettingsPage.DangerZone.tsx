@@ -18,7 +18,7 @@ import {
   deleteMe,
   requestExport,
   restoreMe,
-  ApiError,
+  apiErrorToMessage,
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { Button } from '../components/ui/button';
@@ -56,13 +56,8 @@ export function DangerZone() {
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       setExportMsg(`Downloaded ${filename}.`);
     } catch (err) {
-      setExportMsg(
-        err instanceof ApiError
-          ? `${err.status}${err.detail ? ` ${err.detail}` : ` ${err.message}`}`
-          : err instanceof Error
-            ? err.message
-            : 'Unknown error',
-      );
+      // Sprint 42 fix (UX #5): user-facing message via centralised helper.
+      setExportMsg(apiErrorToMessage(err));
     } finally {
       setExporting(false);
     }
@@ -84,13 +79,8 @@ export function DangerZone() {
       setConfirmingDelete(false);
       setDeleteInput('');
     } catch (err) {
-      setDeleteError(
-        err instanceof ApiError
-          ? `${err.status}${err.detail ? ` ${err.detail}` : ` ${err.message}`}`
-          : err instanceof Error
-            ? err.message
-            : 'Unknown error',
-      );
+      // Sprint 42 fix (UX #5): user-facing message via centralised helper.
+      setDeleteError(apiErrorToMessage(err));
     } finally {
       setDeleting(false);
     }

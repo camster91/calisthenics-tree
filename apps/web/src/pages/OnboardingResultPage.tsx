@@ -17,7 +17,7 @@ import { ArrowRight, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 import { useAuth } from '../lib/auth';
 import { useOnboarding } from '../lib/onboarding';
-import { api, ApiError } from '../lib/api';
+import { api, apiErrorToMessage } from '../lib/api';
 import { useT } from '../lib/i18n';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
@@ -84,13 +84,8 @@ export default function OnboardingResultPage() {
         setFetchState({ status: 'success', result: r });
       })
       .catch((err) => {
-        const message =
-          err instanceof ApiError
-            ? `${err.status}${err.detail ? ` ${err.detail}` : ` ${err.message}`}`
-            : err instanceof Error
-              ? err.message
-              : 'Unknown error';
-        setFetchState({ status: 'error', message });
+        // Sprint 42 fix (UX #5): user-facing message via centralised helper.
+        setFetchState({ status: 'error', message: apiErrorToMessage(err) });
       });
   }, [
     isComplete,

@@ -24,6 +24,10 @@ export interface SearchResultItem {
   id: string;
   name: string;
   breadcrumb: string;
+  // Sprint 42 fix (UX #2): optional metadata for `/learn/<slug>`
+  // linking. Populated only for kind="node" results by the api.
+  tree_slug?: string;
+  rank?: number;
 }
 /** Mirrors apps/api/calisthenics_api/routes/search.py SearchResponse. */
 export interface SearchResponse {

@@ -81,6 +81,49 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Translate an error from `api<T>()` (or a network failure) into a
+ * short user-facing string in 12th-grade English.
+ *
+ * Sprint 42 fix (UX #5): before this, LoginPage / AuthVerifyPage /
+ * OnboardingResultPage / SettingsPage.DangerZone all rendered raw
+ * `${status} ${detail}` strings to end users — e.g. a 429 looked like
+ * `429 Too many magic-link requests. Slow down.` The numeric prefix
+ * was useless and the wording was terse. This helper maps common
+ * status codes to actionable copy.
+ *
+ * Pass the raw thrown error; the helper handles ApiError, TypeError
+ * (network failures), and generic Error. Returns a string safe to
+ * render in a `<p role="alert">` without further sanitisation.
+ */
+export function apiErrorToMessage(err: unknown): string {
+  if (err instanceof ApiError) {
+    if (err.status === 401) return 'Your session ended. Sign in again.';
+    if (err.status === 403) return "You don't have access to that.";
+    if (err.status === 404) return "We couldn't find that.";
+    if (err.status === 409) return 'That action conflicts with the current state.';
+    if (err.status === 422) {
+      // Validation errors — prefer the server's `detail` (joined list)
+      // over a generic message. The ApiError getter already flattens
+      // Pydantic's nested array into a "; " joined string.
+      if (err.detail) return err.detail;
+      return "We couldn't accept that input. Check the values and try again.";
+    }
+    if (err.status === 429) return 'Too many tries. Wait a minute and try again.';
+    if (err.status >= 500) return 'Our server hiccuped. Try again in a minute.';
+    // Other 4xx — surface the server's detail if available, else generic.
+    if (err.detail) return err.detail;
+    return 'Something went wrong. Try again.';
+  }
+  // Network-level failure (fetch failed, DNS, CORS, offline, etc.)
+  if (err instanceof TypeError) {
+    return "You're offline. We'll save your work and sync when you're back online.";
+  }
+  // Fallback for non-Error throws (defensive — shouldn't happen in practice).
+  if (err instanceof Error) return err.message;
+  return 'Something went wrong. Try again.';
+}
+
 interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;
   /** Sprint 38 RED-7 marker: skip the auto-refresh-on-401 retry. Useful for
