@@ -2,6 +2,9 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useT } from '../../lib/i18n';
 import { useState } from 'react';
 
+import OfflineBanner from './OfflineBanner';
+import MobileNavBottomTabs, { MobileNavHamburger } from './MobileNav';
+
 /**
  * Layout — shared chrome (header + main + footer).
  *
@@ -45,6 +48,15 @@ export default function Layout() {
               Calisthenics Tree
             </span>
           </a>
+          {/* Sprint 42 fix (UX #1): hamburger trigger for mobile users.
+              Only the trigger renders inside the header — the Sheet
+              portal + bottom tabs come from <MobileNav />'s SECOND
+              call site below the </main>. Splitting them keeps the
+              bottom tabs OUTSIDE the header's backdrop-filter
+              containing block — `position: fixed` would otherwise
+              anchor to the header's top instead of the viewport. */}
+          <MobileNavHamburger />
+
           {/* Header search — compact input + Enter to /search?q=...
               Lives in the chrome so users in any authed route can
               pivot to discovery without leaving their context. */}
@@ -200,9 +212,25 @@ export default function Layout() {
         </div>
       </header>
 
+      {/* Sprint 42 fix (UX #4): offline banner sits just below the
+          header so it appears above the page content without pushing
+          the layout down (it conditionally renders nothing when online). */}
+      <OfflineBanner />
+
+      {/* Sprint 42 fix (UX #1): the bottom-tab nav renders here, OUTSIDE
+          the header's backdrop-filter containing block. If it were
+          inside the header (above the </main>), `position: fixed`
+          would anchor to the header's top instead of the viewport
+          bottom. The Sheet is also rendered here so its portal
+          mounts to body without filter-induced clipping. */}
+      <MobileNavBottomTabs />
+
       <main
         id="main"
-        className="mx-auto w-full max-w-5xl flex-1 px-5 py-8"
+        // Sprint 42 fix (UX #1): on mobile, pad the bottom so the
+        // fixed bottom tab bar doesn't overlap the page content.
+        // `pb-20` = 5rem ≈ tab bar (~3rem) + safe area (~2rem).
+        className="mx-auto w-full max-w-5xl flex-1 px-5 py-8 pb-20 md:pb-8"
         tabIndex={-1}
       >
         <Outlet />

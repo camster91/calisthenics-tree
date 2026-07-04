@@ -48,6 +48,7 @@ import NodeLandingPage from './pages/NodeLandingPage';
 import FeedPage from './pages/FeedPage';
 import ProfilePage from './pages/ProfilePage';
 import HistoryPage from './pages/HistoryPage';
+import NotFoundPage from './pages/NotFoundPage';
 import SearchPage from './pages/SearchPage';
 import Layout from './components/layout/Layout';
 import { RequireAuth } from './components/RequireAuth';
@@ -156,6 +157,13 @@ export default function App() {
         <Route path="onboarding/q2" element={<OnboardingQ2Page />} />
         <Route path="onboarding/test" element={<OnboardingTestPage />} />
         <Route path="onboarding/result" element={<OnboardingResultPage />} />
+
+        {/* Sprint 42 — public 404 catch-all. Mounted at the END of the public
+            routes block (just before RequireAuth) so it only catches unknown
+            URLs in the public surface. Authed + onboarded users have their
+            own catch-all (`<HomePage />`) inside the RequireAuth block below
+            which catches typos in the authed app surface. */}
+        <Route path="*" element={<NotFoundPage />} />
 
         <Route element={<RequireAuth />}>
           {/* Fully-onboarded app — auth + placement required */}

@@ -4,7 +4,8 @@
     "workout": "Workout",
     "feed": "Feed",
     "insights": "Insights",
-    "settings": "Settings"
+    "settings": "Settings",
+    "openMenu": "Open navigation menu"
   },
   "auth": {
     "login": "Sign in",
