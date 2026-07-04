@@ -1,15 +1,16 @@
 # Project State Review — 2026-06-25 (updated 2026-06-28: Sprint 37 — Apple Fitness+ design language, Sprint 38 hardening)
 
-Solo-dev review of the repo against `docs/PLAN.md`. Goal: figure out what's actually
-done vs. what the plan says, and lay out a concrete execution order.
+**Last updated:** 2026-07-02 (Sprint 41 audit + post-audit fixes staged).
 
-**2026-06-28 update (Sprint 38):** App-ship-prep 5-worker security audit ran
-across code quality / security / UX-frontend / performance / devops. Verdict:
-**NO** (12 RED + 30 YELLOW + 17 GREEN). Wave 1+2+3 closed 11/12 REDs — only
-RED-7 (JWT→HttpOnly cookie migration) remained open after wave 3. RED-7 was
-closed this session (see Sprint 38 RED-7 section below). Audit verdict
-flipped to **YES** for the blocking-red axis; remaining work is YELLOW
-follow-ups.
+Sprint 41 = 5-slice parallel audit (security / code-quality / UX / perf / devops) ran 2026-07-02 in ~35 min wall-time. Produced 72 unique findings + 6 cross-slice overlaps. **13 fixes have working local edits (uncommitted in working tree at HEAD `1556d95`).** Synthesis at `swarm-audit-synthesis-2026-07-02.md` (workspace root). Public-launch runbook at `docs/PUBLIC_LAUNCH_CHECKLIST.md`. Sprint 42 scope at `docs/SPRINT_42_PLAN.md`.
+
+**Phase status (refreshed 2026-07-02):**
+- Phase 1 (Backend) — **~95%** (full schema + placement + auth via Sprint 38 RED-7 HttpOnly cookies + magic-link. Remaining: production ENVIRONMENT switch + Postmark token)
+- Phase 1.5 (Brand + UX) — **~95%** (tokens + custom components + wireframes + a11y + share card gen + App Store screenshots)
+- Phase 2 (Web app) — **100%** ✅ (22 routes live, 98 e2e tests green)
+- Phase 3 (SEO landing pages) — **100%** ✅ (40 static nodes, sitemap.xml + robots.txt)
+- Phase 4 (Native shell) — **0%** ⛔ (intentionally paused — blocked on App Store accounts)
+- Phase 5 (Monetization + launch) — **5%** (free app post-Sprint 22 + compliance docs only)
 applied across the entire app. Refreshed `tokens.ts` (true black #000,
 warm orange-red #FF6B1A, Apple system colors, squircle radii 20px/28px,
 heavy display weights 700-900, tight tracking on display sizes, glass
@@ -114,27 +115,24 @@ backend ships with Phase 2 onboarding, Apple Sign-In ships with P4 native.
 apps/web/tests/a11y` run + any failures fixed. T39 wraps the existing renderer
 in a FastAPI route + serves the PNG with proper content-type.
 
-## Phase 2 — Web app (status: 0%)
+## Phase 2 — Web app (status: **100%** ✅ shipped Sprint 14-22)
 
-Nothing built. `HomePage.tsx`, `ComponentsPage.tsx`, `SettingsPage.tsx` exist as
-placeholders. No real backend wiring, no auth UI, no onboarding flow, no DAG
-visualization against real data.
+Full SPA live at workout.ashbi.ca. 22 routes (auth + onboarding + workout log + history + feed + tree browser + tendon insights + settings + share render). 98 e2e tests green. Race-free magic-link auth via HttpOnly cookies (Sprint 38). 3-step onboarding (Q1/Q2/RIR-2 pushup test → node placement). Workout log with rep counter + hold timer + RPE capture. DAG visualization with "unlocked" glow on current node. PostHog wired (short-circuits when `VITE_POSTHOG_API_KEY` empty).
 
-This is the big one — ~2-3 weeks of solo work to land the gate (end-to-end flow
-in browser, screenshots taken, show to 3 calisthenics people).
+## Phase 3 — SEO landing pages (status: **100%** ✅ shipped Sprint 14-22 + Sprint 40)
 
-## Phase 3 — SEO landing pages (status: 0%)
+40 static landing pages (one per skill node across 4 trees: push / pull / core / legs). `/api/v1/sitemap.xml` returns `application/xml; charset=utf-8` with 500-node cap. `/api/v1/robots.txt` at root with `Sitemap:` line pointing at `https://workout.ashbi.ca/sitemap.xml`. Caddyfile proxies both correctly. Each `/learn/:slug` page has the "where you are" calculator + "Track this in the app" CTA. `Sprint 41 1.5` fix switched `lastmod` from hardcoded `"2026-06-25"` to dynamic `datetime.now(timezone.utc).date()` so Google doesn't stop re-crawling on stale timestamps.
 
-Nothing built. Should follow P2 — no point launching SEO pages before the app
-actually works.
+## Phase 4 — Native shell (status: **0%** ⛔ intentionally paused)
 
-## Phase 4 — Native shell (status: 0%)
+Blocked on App Store / Play Store accounts. The SPA is Capacitor-ready (single bundle, no platform deps). HealthKit integration is a Phase 4 task — `tendon/` module is platform-agnostic and the strain logic is shared. Watch app starts a workout session on tap → HKWorkoutSession + CMBatchedSensorManager for sensor streams.
 
-Nothing built. Capacitor wrap of P2 SPA + HealthKit stub + Watch companion.
+## Phase 5 — Monetization + launch (status: **5%** partial)
 
-## Phase 5 — Monetization + launch (status: 0%)
-
-StoreKit paywall, App Store submission, Reddit launch. Cannot start until P4 ships.
+- App is **FREE** (Sprint 22 paywall teardown removed all paywall/subscription/StoreKit scaffold).
+- **Shipped:** GDPR-compliant `/privacy` + `/terms` pages.
+- **Not built (blocked on P4):** StoreKit 2 ($5.99/mo / $29.99/yr / $99 lifetime), paywall gate, App Store Connect listing, brand Reddit launch.
+- **Immediate next step:** `docs/PUBLIC_LAUNCH_CHECKLIST.md` — 30-min silent public launch (Postmark + ENVIRONMENT=production + restart). Low-friction: no Twitter/Reddit announcement needed for first 100 signups.
 
 ## Recommended execution order (solo-dev realistic)
 
@@ -431,3 +429,107 @@ chromium + firefox.
 line. Pure housekeeping, no decisions to make, unblocks P2 immediately.
 
 Say the word and I'll grind Sprint 1 in one sitting.
+
+---
+
+### Sprint 40 — production hardening + 4th tree + search (commits `44f1599` … `1556d95`)
+
+- **Sitemap + robots MIME (Sprint 39 P2 follow-on, `44f1599`)** — `seo.py`
+  returns `Response(media_type="application/xml; charset=utf-8")` for
+  `/sitemap.xml`; `/robots.txt` returns `text/plain` (correct). 500-node cap
+  via `_SITEMAP_NODE_LIMIT`. Caddyfile added `/sitemap.xml` + `/robots.txt`
+  routes (declaration order matters — added BEFORE `/api/*` proxy).
+  Live-verified: Chrome DevTools shows `content-type: application/xml`.
+
+- **CSP report endpoint (`44f1599`)** — `POST /api/v1/_csp_report` accepts
+  both `application/csp-report` (legacy) and `application/reports+json`
+  (Reporting API v1) envelopes. Logs to stderr so Docker captures it.
+  Caddyfile CSP header now has `report-uri /api/v1/_csp_report`.
+
+- **Smoke test (`44f1599`)** — `scripts/smoke-test.sh` 24 checks, ~5s. Covers
+  cookie Domain derivation, /sitemap.xml MIME, /robots.txt content, CSP
+  headers, /healthz, all 4 trees seeded, /search wire format, 4th tree.
+  Run on every deploy to catch regressions.
+
+- **Search endpoint (`17fadc2` + `4532001`)** — `GET /api/v1/search?q=&limit=`
+  with mixed-type results (nodes / exercises / users). `q` 1-64 chars, `limit`
+  1-20. Nodes are public (no auth), exercises public, users requires auth.
+  Wire-format helpers `to_node_wire()` / `to_exercise_wire()` consistent with
+  the rest of the API.
+
+- **Header search bar (`4532001`)** — `<form>` with magnifier icon, hidden
+  below `sm` breakpoint (mobile gets hamburger instead). Enter → `/search?q=`.
+
+- **/search page (`4532001`)** — debounced (300ms) input, URL-synced `?q=`,
+  3 result groups (Skills / Exercises / People), click-to-copy slug.
+  Sprint 40 limitation: `nodeIdToSlug` returns `''` for `node_*` ids so
+  every Skills/Exercises result currently links to `/` (audit R1 — see Sprint 41).
+
+- **4th progression tree — legs (`19ad49d`)** — `legs_single_leg_path` via
+  migration 0010. 10 nodes from bodyweight squat → weighted pistol squat.
+  9 linear edges + 2 regression edges. Proves the architecture supports
+  more than 3 trees without code changes — onboarding, progressions, history,
+  share cards, workout logging, social feed, SEO landing pages all work
+  unmodified with the new tree. Migration uses `ON CONFLICT DO NOTHING`
+  for idempotency on re-runs (uuid5-derived ids collide deterministically).
+
+- **CSP tightened (`ab5c22d`)** — final Caddyfile headers:
+  `script-src 'self'`, `style-src 'self' https://fonts.googleapis.com`,
+  `frame-ancestors 'none'`, `Cross-Origin-Opener-Policy: same-origin`.
+  No `unsafe-inline`, no `unsafe-eval` (verified: 0 inline scripts,
+  0 `eval()`, 0 inline style attrs in `dist/assets/`).
+
+- **Mypy integrated (`1556d95`)** — `uv run --with mypy` runs in CI backend-lint
+  job. Catches column-name + rowcount bugs the pytest suite doesn't exercise.
+  Found 2 real bugs:
+  - `purge_deleted_accounts.py` used `result.rowcount` (mypy flagged —
+    `AsyncResult` has no `.rowcount`); fixed by computing `len(candidates)`.
+  - `friends.py` used `select(Friendship.id)` (mypy flagged — Friendship has
+    composite PK `(follower_id, followee_id)`, no `.id`); fixed by
+    `select(Friendship.follower_id)`.
+
+- **OnboardingResultPage i18n cleanup (`1556d95`)** — replaced
+  `as unknown as Record<string,string>` cast with the i18next idiom
+  `t('onboarding.resultArchetype', { returnObjects: true })`.
+
+**Sprint 40 audit (`swarm-audit-synthesis-2026-07-02.md`):** 5 parallel slices
+(security / code-quality / UX / perf / devops) ran in ~35 min wall-time,
+produced 72 unique findings + 6 cross-slice overlaps. Ship-ready verdict
+on auth + cookies + CSP; one launch blocker (POSTMARK_TOKEN + ENVIRONMENT
+in `/root/calisthenicstree-secrets/.env`). Sprint 41 closes 7 of 15
+Tier-1 items with local edits (uncommitted, awaiting Cameron approval).
+
+### Sprint 41 — audit fix wave 1 (uncommitted, awaiting Cameron approval)
+
+7 Tier-1 fixes + 3 Tier-2 wins staged in working tree. ruff + mypy + pytest
+all green (111 passed, 32 skipped, 58 source files mypy-clean).
+
+| # | Fix | Source | File |
+|---|---|---|---|
+| 1.5 | sitemap `lastmod` hardcoded → `datetime.now(timezone.utc).date()` | Code-quality R2 ∩ Perf R-3 | `apps/api/calisthenics_api/routes/seo.py` |
+| 1.6 | 0001 seed inserts `ON CONFLICT (id) DO NOTHING` | Code-quality O2 | `apps/api/alembic/versions/0001_initial.py` |
+| 1.7 | `clear_session_cookie` mirrors attrs (Secure/HttpOnly/SameSite on delete) | Security MED-2 | `apps/api/calisthenics_api/auth.py` + `tests/test_red7_cookies.py` |
+| 1.11 | FK indexes on `unlock_events.tree_id` + `.new_node_id` | Perf R-1 | `apps/api/alembic/versions/0011_unlock_events_fk_indexes.py` (new) |
+| 1.12 | history count via `func.count()` | Perf R-4 | `apps/api/calisthenics_api/routes/history.py` |
+| 1.13 | redundant `target_sets` query dropped | Perf R-5 | `apps/api/calisthenics_api/routes/history.py` |
+| 1.15 | stale "single-use is NOT enforced" docstring in `security.py` | Security MED-3 | `apps/api/calisthenics_api/security.py` |
+| O4 | `MovementType` / `EdgeType` / `JointPathway` → real `enum.StrEnum` | Code-quality O4 | `apps/api/calisthenics_api/db/models.py` |
+| O6 | `_SITEMAP_NODE_LIMIT` lifted to module scope | Code-quality O6 | `apps/api/calisthenics_api/routes/seo.py` |
+| O7 | `API_BASE` default + README + `.env.example` aligned | Code-quality O7 | `apps/web/src/lib/api.ts`, `README.md`, `apps/web/.env.example` |
+| R3 | hoisted 4× `import hashlib` + 1× `import httpx` + 1× `from sqlalchemy.exc import IntegrityError` in `routes/auth.py` to module scope | Code-quality R3 | `apps/api/calisthenics_api/routes/auth.py` |
+| R4 | `WorkoutLogPage` useEffect `api` dep — added `eslint-disable-next-line` with justification | Code-quality R4 | `apps/web/src/pages/WorkoutLogPage.tsx` |
+| MED-5 | `friends.py` `Path(..., pattern=_USER_ID_PATH_PATTERN)` on 3 routes — UUID-shaped only | Security MED-5 | `apps/api/calisthenics_api/routes/friends.py` |
+
+Total: 13 fixes, 12 files modified, 1 new migration. Diff stat:
+72 insertions, 49 deletions. All changes are server-side or doc-only; no
+visible UI change except real perf wins on `/users/me/history` + faster
+Google crawl on sitemap.
+
+**Recommended PR shape:** 2 PRs.
+- `fix(audit-sprint41): perf + idempotency + sitemap + auth` (squash of 12 commits).
+- `chore(tests): APIRoute narrow for mypy` (cosmetic, fold into PR 1 if desired).
+
+**Still needs Cameron decision** (not yet committed):
+- 1.2 — boot guard for `JWT_SECRET` / `MAGIC_LINK_SECRET` / `BEARER_TOKEN` defaults (security MED-1 ∩ code-quality O5). Cross-slice consensus on the fix shape; needs Cameron to choose placement (Pydantic `model_validator` vs `create_app()`) and whether to also enforce `JWT_SECRET != MAGIC_LINK_SECRET`.
+- 1.3 — SearchPage result links dead (UX #2). Needs `tree_slug` added to search response payload + frontend rewire. UX slice has wireframes queued.
+- 1.4 — `hashEmailForAnalytics` is FNV-1a not SHA-256 (code-quality R5). Privacy-review concern. Three options on the table; security slice leans server-side hash only.
