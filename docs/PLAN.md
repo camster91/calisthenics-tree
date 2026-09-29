@@ -137,6 +137,60 @@ Validate the loop with the cheapest possible UI.
 
 **Gate:** End-to-end flow works in a browser. Screenshot every screen. Show to 3 calisthenics people.
 
+
+### Phase 2.5 — Product experience + visual system refresh (September 2026)
+
+The product direction has shifted from **tree-first navigation** to a **Today-first training experience**. The DAG remains the progression engine, but the user should not have to choose a tree before they can train.
+
+**Reference direction:** BetterMe-style low-friction onboarding and daily-plan clarity, combined with the existing Calisthenics Tree placement/promotion logic and the strongest temporary-adjustment patterns from `cameron-fitness`. Visual execution should feel like a premium fitness app with Apple Fitness-inspired energy without copying Apple's UI or brand assets.
+
+#### Product hierarchy
+- **Plan → Today → Workout → Results → Skills**
+- Skill trees remain visible and important, but move behind the daily training loop.
+- The planner decides what movement categories to train today; the DAG decides which progression variation is appropriate.
+
+#### Onboarding + plan generation
+- [ ] Add goal selection: strength / muscle / skills / general fitness / balanced.
+- [ ] Add experience level and training environment.
+- [ ] Add available equipment.
+- [ ] Add realistic weekly frequency (2-5 days).
+- [ ] Add preferred session duration (15 / 20 / 30 / 45+ min).
+- [ ] Keep objective placement checks (pull-up / hang / RIR-2 push-up and future category tests) as the progression-placement layer.
+- [ ] Add a plan-build transition and plan-reveal screen that explains frequency, focus areas and current skill nodes.
+- [ ] Preserve editability: users can change schedule, equipment and goals later without erasing progression history.
+
+#### Today-first training loop
+- [ ] Home defaults to **Today's workout**, not a list of progression trees.
+- [ ] Generate balanced multi-exercise sessions from current Push / Pull / Core / Legs nodes.
+- [ ] Show estimated duration, movement count, focus areas and weekly completion before the workout starts.
+- [ ] Add temporary **Adjust today** options: short on time, low energy, different equipment, sore/painful area.
+- [ ] Temporary adjustments must not silently rewrite the saved plan or progression state.
+- [ ] Keep skill-tree exploration under a dedicated **Skills** destination.
+- [ ] Add weekly consistency and recent-unlock summaries under **Progress**.
+
+#### V3 visual system uplift
+- [ ] Expand beyond the existing black/orange palette into a controlled movement palette: Push/orange, Pull/electric blue, Core/violet, Legs/green, recovery/success green, caution/yellow.
+- [ ] Establish a display/body typography system with an Apple Fitness-like hierarchy: heavy display numerals/headlines, compact UI text, strong tabular metrics. Use licensed/available fonts only; do not bundle Apple proprietary fonts.
+- [ ] Add custom exercise illustrations or motion assets for the main workout library.
+- [ ] Add custom skill-path graphics, node artwork, unlock graphics, readiness/recovery visuals, streak/milestone assets and richer empty states.
+- [ ] Upgrade onboarding with large visual answer states and custom hero artwork.
+- [ ] Upgrade plan reveal with a distinctive hero composition and visual summary of the user's skill paths.
+- [ ] Upgrade Today with a richer workout hero, layered gradients/glow, movement artwork and stronger primary CTA hierarchy.
+- [ ] Upgrade workout screens with full-bleed movement art, set/timer visuals, tactile completion feedback and deliberate exercise transitions.
+- [ ] Upgrade Skills with premium progression maps and clearer locked/current/unlocked visual states.
+- [ ] Upgrade Progress with heatmaps, trend graphics, milestones and unlock cards.
+- [ ] Refine glass, blur, elevation, radii and motion as one coherent system rather than per-screen decoration.
+- [ ] Preserve WCAG AA contrast, reduced-motion support, 48dp+ tap targets and readable high-contrast gym mode.
+
+#### Design workflow
+- [ ] MagicPath is the current interaction/visual exploration surface for the V2/V3 mobile flow.
+- [ ] Keep the prototype state-driven and interactive rather than producing disconnected mockups.
+- [ ] Once the visual direction is approved, translate it back into the repo's token/component system before implementation.
+- [ ] Do not copy BetterMe or Apple Fitness assets, layouts or proprietary iconography 1:1; use them only as product/interaction references.
+
+**Acceptance gate:** A new user can complete onboarding, receive a plan, open Today, start and finish a multi-exercise workout, see progression impact, and explore the related skill tree without needing to understand DAG terminology. Representative mobile screens should feel visually complete with branded graphics/assets rather than placeholder line art, while remaining accessible and responsive.
+
+
 ### Phase 3 — Programmatic SEO landing pages (Weeks 9-11)
 Cheapest acquisition. Validates the funnel before paying Apple.
 
