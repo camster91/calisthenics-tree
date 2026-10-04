@@ -53,7 +53,7 @@ export default function OnboardingQ2Page() {
       <div className="space-y-10">
         <header className="space-y-3 text-center sm:text-left">
           <p className="display-eyebrow">Question 2 of 4</p>
-          <h1 className="text-balance text-4xl font-bold leading-heading tracking-tighter sm:text-5xl">
+          <h1 className="display-section text-balance text-4xl sm:text-5xl">
             {title}
           </h1>
           <p className="max-w-xl text-base leading-body text-surface-fg-muted">

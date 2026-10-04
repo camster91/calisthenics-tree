@@ -11,6 +11,7 @@ import { AlertCircle, ArrowLeft, Loader2, TrendingDown } from 'lucide-react';
 
 import { ApiError, getTendonStrain } from '../lib/api';
 import { TendonStrainCard } from '../components/workout/TendonStrainCard';
+import { EmptyState } from '../components/ui/empty-state';
 import type { TendonPathwayStatus } from '../components/workout/types';
 
 type Status = 'loading' | 'ready' | 'error';
@@ -72,7 +73,7 @@ export default function InsightsPage() {
           Back to home
         </Link>
         <p className="display-eyebrow">Tendon strain</p>
-        <h1 className="text-4xl font-bold leading-heading tracking-tighter sm:text-5xl">
+        <h1 className="display-section text-4xl sm:text-5xl">
           Insights
         </h1>
         <p className="max-w-xl text-base leading-body text-surface-fg-muted">
@@ -130,19 +131,11 @@ export default function InsightsPage() {
           )}
 
           {statuses.length === 0 ? (
-            <div className="card space-y-2 text-sm text-surface-fg-muted">
-              <p>
-                No strain data yet. After you log a few workouts, you'll see
-                per-pathway 4-week trends here.
-              </p>
-              <p className="text-xs">
-                Tendon strain is computed from each set you log:{' '}
-                <code className="rounded bg-surface px-1 font-mono">
-                  intensity × (reps or hold_secs) × rank
-                </code>
-                , summed per pathway.
-              </p>
-            </div>
+            <EmptyState
+              message="No strain data yet. Log a few workouts to see each joint's load trend here."
+              hint="Every set adds load to the joints it works (intensity × reps or seconds × rank)."
+              action={{ label: 'Start a workout', to: '/' }}
+            />
           ) : (
             <TendonStrainCard statuses={statuses} />
           )}

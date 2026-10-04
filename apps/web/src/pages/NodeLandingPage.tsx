@@ -188,7 +188,7 @@ export default function NodeLandingPage() {
           {' · Rank '}
           {node.rank_level}
         </p>
-        <h1 className="text-balance text-4xl font-bold leading-heading tracking-tighter sm:text-5xl">
+        <h1 className="display-section text-balance text-4xl sm:text-5xl">
           {node.name}
         </h1>
         <p className="max-w-2xl text-base leading-body text-surface-fg-muted">

@@ -19,6 +19,8 @@ import {
 } from '../lib/api';
 import { NodeTree } from '../components/workout/NodeTree';
 import type { WorkoutNode } from '../components/workout/types';
+import { TreeSigil } from '../components/brand/TreeSigil';
+import { MOVEMENT_COLOR, movementFor } from '../lib/movement';
 
 type Status = 'loading' | 'ready' | 'error';
 
@@ -96,6 +98,9 @@ export default function TreePage() {
     return { nodes: wnodes, edges: wedges };
   }, [tree]);
 
+  const movement = movementFor(treeId, tree?.name);
+  const accent = movement ? MOVEMENT_COLOR[movement] : 'var(--color-primary)';
+
   if (status === 'error') {
     return (
       <main
@@ -139,22 +144,41 @@ export default function TreePage() {
           All trees
         </Link>
 
-        <div className="space-y-2">
-          <p className="display-eyebrow">Progression tree</p>
-          <h1 className="text-4xl font-bold leading-heading tracking-tighter sm:text-5xl">
-            {tree.name}
-          </h1>
-          <p className="max-w-xl text-base leading-body text-surface-fg-muted">
-            {tree.description}
-          </p>
+        <div className="flex items-start gap-4">
+          {movement && (
+            <TreeSigil
+              movement={movement}
+              size={52}
+              className="mt-1"
+            />
+          )}
+          <div className="min-w-0 space-y-2">
+            <p className="display-eyebrow">Progression tree</p>
+            <h1 className="display-section text-balance text-4xl sm:text-5xl">
+              {tree.name}
+            </h1>
+            {/* Thin movement-colour rule: one colour for this whole section. */}
+            <span
+              aria-hidden
+              className="block h-0.5 w-16 rounded-full"
+              style={{ backgroundColor: accent }}
+            />
+            <p className="max-w-xl text-base leading-body text-surface-fg-muted">
+              {tree.description}
+            </p>
+          </div>
         </div>
 
         {tree.current_node_id && (
           <div
-            className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm"
+            className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm"
+            style={{
+              borderColor: `color-mix(in srgb, ${accent} 40%, transparent)`,
+              backgroundColor: `color-mix(in srgb, ${accent} 10%, transparent)`,
+            }}
             data-testid="tree-current-pill"
           >
-            <Play aria-hidden className="h-4 w-4 text-primary" />
+            <Play aria-hidden className="h-4 w-4" style={{ color: accent }} />
             <span className="text-surface-fg-muted">Current:</span>
             <span className="font-bold text-surface-fg">
               {tree.nodes.find((n) => n.node_id === tree.current_node_id)?.name}
