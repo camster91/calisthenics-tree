@@ -56,6 +56,14 @@
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Headlines default to the Saira display face, condensed. Weight and
+     tracking still come from the element's utilities (or .display-*). */
+  h1 {
+    font-family: var(--font-display);
+    font-stretch: 80%;
   }
 
   /* Skip-to-content link for keyboard / screen-reader users (a11y baseline) */
@@ -164,13 +172,20 @@
 
   /* Display text utilities — heavy weights, tight tracking, controlled
      line-height. Used for hero numerals, big section headers, rep counters. */
+  /* Brand Lock V3: Saira condensed 800, -0.02em. font-stretch drives the
+     variable `wdth` axis loaded from Google Fonts (75..100). */
   .display-hero {
-    @apply font-black leading-display tracking-tightest;
+    @apply font-display font-heavy leading-display tracking-display;
+    font-stretch: 80%;
   }
   .display-section {
-    @apply font-bold leading-heading tracking-tighter;
+    @apply font-display font-heavy leading-heading tracking-display;
+    font-stretch: 80%;
   }
+  /* Eyebrows / small h2 labels stay in the UI face. */
   .display-eyebrow {
+    font-family: var(--font-sans);
+    font-stretch: 100%;
     @apply text-xs font-semibold uppercase tracking-widest text-surface-fg-muted;
   }
 

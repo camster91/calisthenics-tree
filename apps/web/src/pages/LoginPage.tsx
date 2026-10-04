@@ -87,9 +87,24 @@ export default function LoginPage() {
       id="main"
       className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-8 px-5 py-8"
     >
-      <header className="space-y-3 text-center">
-        <p className="display-eyebrow">Sign in</p>
-        <h1 className="text-balance text-4xl font-bold leading-heading tracking-tighter">
+      <header className="flex flex-col items-center space-y-3 text-center">
+        <Link
+          to="/welcome"
+          className="mb-4 inline-flex flex-col items-center gap-3 rounded-md"
+          aria-label="Calisthenics Tree, product overview"
+        >
+          <img
+            src="/brand/logo.svg"
+            width={64}
+            height={64}
+            alt=""
+            className="h-16 w-16"
+          />
+          <span className="font-display text-2xl font-heavy leading-none tracking-display [font-stretch:80%]">
+            Calisthenics Tree
+          </span>
+        </Link>
+        <h1 className="display-section text-balance text-4xl">
           {t('auth.login')}
         </h1>
         <p className="text-base leading-body text-surface-fg-muted">

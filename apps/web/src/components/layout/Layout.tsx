@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import OfflineBanner from './OfflineBanner';
 import MobileNavBottomTabs, { MobileNavHamburger } from './MobileNav';
+import { BrandMark } from '../brand/BrandMark';
 
 /**
  * Layout — shared chrome (header + main + footer).
@@ -38,15 +39,8 @@ export default function Layout() {
         }}
       >
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 py-3">
-          <a href="/" className="flex items-center gap-2.5">
-            <span
-              aria-hidden
-              className="inline-block h-9 w-9 rounded-xl bg-primary"
-              style={{ boxShadow: 'var(--shadow-glow)' }}
-            />
-            <span className="text-base font-bold tracking-tighter text-surface-fg">
-              Calisthenics Tree
-            </span>
+          <a href="/" className="flex shrink-0 items-center rounded-md" aria-label="Calisthenics Tree, home">
+            <BrandMark size={30} />
           </a>
           {/* Sprint 42 fix (UX #1): hamburger trigger for mobile users.
               Only the trigger renders inside the header — the Sheet

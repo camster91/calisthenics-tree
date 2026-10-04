@@ -17,7 +17,8 @@ import { cn } from '../../lib/cn';
 const bigNumberVariants = cva(
   // Base — display-grade type. tabular-nums so digits don't shift width.
   [
-    'font-black leading-display tracking-tightest tabular-nums',
+    // Brand Lock V3: Saira display, condensed (wdth 80), weight 800.
+    'font-display font-heavy [font-stretch:80%] leading-display tracking-display tabular-nums',
     'select-none',
   ].join(' '),
   {

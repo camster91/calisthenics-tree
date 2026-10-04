@@ -1,15 +1,21 @@
 {
   "name": "Calisthenics Tree",
-  "short_name": "Workout",
-  "description": "A real skill tree for calisthenics. Unlock planche, front lever, handstand — progression that makes sense.",
+  "short_name": "Calisthenics",
+  "description": "Calisthenics Tree places you on the right rung of a real progression tree, moves you up when you've earned it, and tells you when to back off.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#000000",
-  "theme_color": "#FF6B1A",
+  "theme_color": "#000000",
   "categories": ["fitness", "health", "lifestyle"],
   "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
@@ -27,12 +33,6 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
-    },
-    {
-      "src": "/icons/icon-1024.png",
-      "sizes": "1024x1024",
-      "type": "image/png",
-      "purpose": "any"
     }
   ],
   "shortcuts": [
