@@ -177,7 +177,7 @@ export default function ProfilePage() {
 
       <header className="space-y-3">
         <p className="display-eyebrow">Profile</p>
-        <h1 className="text-4xl font-bold leading-heading tracking-tighter">
+        <h1 className="display-section text-4xl">
           {displayLabel}
         </h1>
         <p className="font-mono text-xs text-surface-fg-muted">{profile.email}</p>

@@ -379,7 +379,7 @@ export default function SettingsPage() {
     <div className="space-y-12 max-w-2xl">
       <header className="space-y-3">
         <p className="display-eyebrow">Settings</p>
-        <h1 className="text-balance text-4xl font-bold leading-heading tracking-tighter sm:text-5xl">
+        <h1 className="display-section text-balance text-4xl sm:text-5xl">
           {t('settings.title')}
         </h1>
         <p className="max-w-xl text-base leading-body text-surface-fg-muted">

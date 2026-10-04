@@ -23,6 +23,30 @@ import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { BigNumber } from '../components/ui/big-number';
 
+/**
+ * Decorative unlock-celebration burst behind the result. Dimmed, and
+ * faded to black at the bottom so the stat cards and copy below stay AA.
+ * Sits at z-index -1 inside the `isolate` main so it never covers content.
+ */
+function CelebrationBackdrop() {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[34rem] overflow-hidden"
+    >
+      <img
+        src="/brand/img/unlock-celebration.webp"
+        width={1400}
+        height={1871}
+        alt=""
+        decoding="async"
+        className="h-full w-full object-cover object-[50%_45%] opacity-45"
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black" />
+    </div>
+  );
+}
+
 interface LocationState {
   response: WorkoutsSyncResponse;
   exerciseName?: string;
@@ -40,15 +64,16 @@ export default function WorkoutDonePage() {
     return (
       <main
         id="main"
-        className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center gap-4 px-5 py-8"
+        className="relative isolate mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center gap-4 px-5 py-8"
       >
+        <CelebrationBackdrop />
         <div
           aria-hidden
           className="inline-flex h-24 w-24 items-center justify-center rounded-full bg-accent-success/15 text-accent-success spring-in"
         >
           <CheckCircle2 aria-hidden className="h-12 w-12" />
         </div>
-        <h1 className="text-4xl font-bold leading-heading tracking-tighter">
+        <h1 className="display-section text-4xl">
           Workout saved
         </h1>
         <p className="max-w-md text-center text-base text-surface-fg-muted">
@@ -73,11 +98,13 @@ export default function WorkoutDonePage() {
   return (
     <main
       id="main"
-      className="mx-auto flex max-w-2xl flex-col gap-6 px-5 py-8"
+      className="relative isolate mx-auto flex max-w-2xl flex-col gap-6 px-5 py-8"
       data-testid="workout-done"
     >
+      <CelebrationBackdrop />
+
       {/* Celebration hero */}
-      <header className="flex flex-col items-center gap-4 text-center">
+      <header className="flex flex-col items-center gap-4 pt-10 text-center">
         <div
           aria-hidden
           className="inline-flex h-24 w-24 items-center justify-center rounded-full bg-accent-success/15 text-accent-success spring-in"
@@ -85,8 +112,8 @@ export default function WorkoutDonePage() {
           <CheckCircle2 aria-hidden className="h-12 w-12" />
         </div>
         <div className="space-y-2">
-          <p className="display-eyebrow text-accent-success">Complete</p>
-          <h1 className="text-4xl font-bold leading-heading tracking-tighter sm:text-5xl">
+          <p className="text-sm font-semibold text-accent-success">Complete</p>
+          <h1 className="display-hero text-balance text-5xl sm:text-6xl">
             {exerciseName}
           </h1>
         </div>

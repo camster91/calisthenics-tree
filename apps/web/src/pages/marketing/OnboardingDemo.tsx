@@ -68,7 +68,7 @@ function OnboardingFrame({
         overflow: 'hidden',
         background: '#0B1220',
         fontFamily:
-          "'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+          "'Geist', system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
         color: '#F8FAFC',
       }}
     >

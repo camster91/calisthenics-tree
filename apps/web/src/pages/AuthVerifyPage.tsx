@@ -97,7 +97,7 @@ export default function AuthVerifyPage() {
     >
       <header className="space-y-3 text-center">
         <p className="display-eyebrow">Sign in</p>
-        <h1 className="text-balance text-4xl font-bold leading-heading tracking-tighter">
+        <h1 className="display-section text-balance text-4xl">
           {t('auth.verifying')}
         </h1>
       </header>

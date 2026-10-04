@@ -153,7 +153,7 @@ export default function OnboardingResultPage() {
         </div>
         <div className="space-y-2">
           <p className="display-eyebrow text-accent-success">Ready</p>
-          <h1 className="text-balance text-4xl font-bold leading-heading tracking-tighter sm:text-5xl">
+          <h1 className="display-section text-balance text-4xl sm:text-5xl">
             {t('onboarding.resultTitle')}
           </h1>
           <p className="max-w-md text-base leading-body text-surface-fg-muted">

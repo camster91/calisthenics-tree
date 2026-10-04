@@ -21,7 +21,7 @@
  */
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Flame, Mountain, Anchor, ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronRight, Loader2 } from 'lucide-react';
 
 import {
   getHealth,
@@ -30,12 +30,9 @@ import {
 } from '../lib/api';
 import { Card } from '../components/ui/card';
 import { BigNumber } from '../components/ui/big-number';
-
-const TREE_ICONS: Record<string, typeof Flame> = {
-  push_handstand_pushup_path: Mountain,
-  pull_front_lever_path: Flame,
-  core_dragon_flag_path: Anchor,
-};
+import { EmptyState } from '../components/ui/empty-state';
+import { TreeSigil } from '../components/brand/TreeSigil';
+import { MOVEMENT_COLOR, movementFor } from '../lib/movement';
 
 export default function HomePage() {
   const [health, setHealth] = useState<string>('checking…');
@@ -66,12 +63,12 @@ export default function HomePage() {
     <div className="space-y-12">
       <section className="space-y-3 text-balance">
         <p className="display-eyebrow">Your training</p>
-        <h1 className="text-5xl font-bold leading-heading tracking-tighter sm:text-6xl">
+        <h1 className="display-section text-5xl sm:text-6xl">
           Pick up where you left off.
         </h1>
         <p className="max-w-xl text-lg leading-body text-surface-fg-muted">
-          Three trees. One current node each. Log a workout to unlock the
-          next rung, or regress if the load is too high today.
+          Four trees. One current node each. Hit every target set to unlock
+          the next rung.
         </p>
       </section>
 
@@ -95,7 +92,7 @@ export default function HomePage() {
       >
         <h2
           id="progressions-heading"
-          className="text-3xl font-bold leading-heading tracking-tighter"
+          className="display-section text-3xl"
         >
           Your progressions
         </h2>
@@ -106,30 +103,20 @@ export default function HomePage() {
             Loading your trees…
           </div>
         ) : progressions.length === 0 ? (
-          <Card variant="hero" className="space-y-4">
-            <p className="display-eyebrow">No progressions yet</p>
-            <h3 className="text-2xl font-bold leading-heading tracking-tighter">
-              Start with a 30-second check-in.
-            </h3>
-            <p className="text-base leading-body text-surface-fg-muted">
-              Four questions to figure out which rung of each tree you
-              belong on today. No equipment needed.
-            </p>
-            <Link
-              to="/onboarding/q1"
-              className="btn-primary mt-2 inline-flex w-full items-center justify-center"
-              data-testid="home-empty-start-onboarding"
-            >
-              Start check-in
-              <ChevronRight aria-hidden className="h-4 w-4" />
-            </Link>
-          </Card>
+          <EmptyState
+            message="No progressions yet. Find your level to get a starting rung on each tree."
+            hint="Two quick questions and one push-up set. No equipment needed."
+            action={{
+              label: 'Find your level',
+              to: '/onboarding/q1',
+              testId: 'home-empty-start-onboarding',
+            }}
+          />
         ) : (
-          <ul className="grid gap-5 sm:grid-cols-1 lg:grid-cols-3">
+          <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {progressions.map((p, idx) => {
-              const Icon =
-                TREE_ICONS[p.tree_name.toLowerCase().replace(/\s+/g, '_')] ??
-                Flame;
+              const movement = movementFor(p.tree_id, p.tree_name);
+              const accent = movement ? MOVEMENT_COLOR[movement] : 'var(--color-primary)';
               const cn = p.current_node;
               const isHold = typeof cn.target_hold_secs === 'number';
               return (
@@ -139,18 +126,20 @@ export default function HomePage() {
                   style={{ animationDelay: `${idx * 80}ms` }}
                 >
                   <Card
-                    variant="hero"
-                    className="flex h-full flex-col gap-4"
+                    variant="default"
+                    className="relative flex h-full flex-col gap-4 overflow-hidden rounded-2xl p-5"
+                    style={{ borderColor: `color-mix(in srgb, ${accent} 30%, transparent)` }}
                     data-testid={`home-card-${p.tree_id}`}
                   >
+                    {/* Thin movement-colour rule along the top edge. */}
+                    <span
+                      aria-hidden
+                      className="absolute inset-x-0 top-0 h-0.5"
+                      style={{ backgroundColor: accent }}
+                    />
                     <div className="flex items-center gap-3">
-                      <span
-                        aria-hidden
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary"
-                      >
-                        <Icon className="h-5 w-5" />
-                      </span>
-                      <h3 className="text-lg font-bold tracking-tighter">
+                      {movement && <TreeSigil movement={movement} size={40} />}
+                      <h3 className="text-lg font-semibold">
                         {p.tree_name}
                       </h3>
                     </div>
@@ -169,7 +158,7 @@ export default function HomePage() {
                     <div className="flex items-baseline gap-3">
                       <BigNumber
                         size="xl"
-                        tone="primary"
+                        style={{ color: accent }}
                         data-testid={`home-target-${p.tree_id}`}
                       >
                         {isHold

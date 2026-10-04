@@ -82,7 +82,7 @@ function PhoneFrame({
         overflow: 'hidden',
         background: '#0B1220',
         fontFamily:
-          "'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+          "'Geist', system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
         color: '#F8FAFC',
         // 9:19.5 portrait ratio
       }}

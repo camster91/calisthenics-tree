@@ -11,15 +11,14 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowRight,
   AlertCircle,
   Loader2,
   TrendingUp,
   TrendingDown,
-  Sparkles,
 } from 'lucide-react';
 
 import { ApiError, getFeed, type FeedItem } from '../lib/api';
+import { EmptyState } from '../components/ui/empty-state';
 import { useAuth } from '../lib/auth';
 
 type Status = 'loading' | 'ready' | 'error';
@@ -83,7 +82,7 @@ export default function FeedPage() {
     >
       <header className="space-y-3">
         <p className="display-eyebrow">Activity</p>
-        <h1 className="text-4xl font-bold leading-heading tracking-tighter sm:text-5xl">
+        <h1 className="display-section text-4xl sm:text-5xl">
           Your activity
         </h1>
         <p className="max-w-xl text-base leading-body text-surface-fg-muted">
@@ -125,24 +124,10 @@ export default function FeedPage() {
       )}
 
       {status === 'ready' && items.length === 0 && (
-        <div className="card space-y-3 text-sm text-surface-fg-muted">
-          <div className="flex items-center gap-2">
-            <Sparkles aria-hidden className="h-4 w-4 text-primary" />
-            <p>Nothing yet — your activity will show up here as you train.</p>
-          </div>
-          <p className="text-xs">
-            Tip: log a workout at a node where you're close to the target
-            reps or hold time. The DAG engine decides whether you unlock
-            the next rung or hold steady.
-          </p>
-          <Link
-            to="/"
-            className="inline-flex items-center gap-1 text-primary underline"
-          >
-            Pick a workout
-            <ArrowRight aria-hidden className="h-3 w-3" />
-          </Link>
-        </div>
+        <EmptyState
+          message="Nothing yet. Your unlocks and regressions show up here as you train."
+          action={{ label: 'Pick a workout', to: '/' }}
+        />
       )}
 
       {status === 'ready' && items.length > 0 && (
