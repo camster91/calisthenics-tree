@@ -18,8 +18,9 @@
 name: Deploy
 
 on:
-  push:
-    branches: [main]
+  # Manual-only: VPS deploy secrets are not configured, so push-triggered
+  # deploys keep failing. Re-add `push: branches: [main]` after secrets
+  # are set (or after Coolify migration).
   workflow_dispatch:
 
 concurrency:
