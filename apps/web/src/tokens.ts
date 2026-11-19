@@ -50,6 +50,14 @@ export const tokens = {
       danger: '#FF453A', // Apple system red — fail / deload
       info: '#64D2FF', // Apple system teal — info / share
     },
+    // Movement palette (Brand Lock V3) — one colour per tree / section.
+    // Push doubles as brand primary; Legs doubles as success.
+    movement: {
+      push: '#FF6B1A',
+      pull: '#64D2FF',
+      core: '#BF5AF2',
+      legs: '#30D158',
+    },
     // Semantic state (aliased to accent for component code that reads these)
     danger: '#FF453A',
     success: '#30D158',
@@ -86,9 +94,12 @@ export const tokens = {
   },
 
   font: {
-    sans: "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
-    mono: "'JetBrains Mono', 'SF Mono', Menlo, monospace",
-    /** Display weights — heavier than Inter default. Apple uses 700-800 on big numerals. */
+    /** UI / body — Geist 400/500/600 with tabular figures (Brand Lock V3). */
+    sans: "'Geist', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    /** Display — Saira variable (wdth axis), set condensed at 800 for headlines + big numbers. */
+    display: "'Saira', 'Geist', system-ui, sans-serif",
+    mono: "ui-monospace, 'SF Mono', Menlo, monospace",
+    /** Display weights. Saira display uses 800 (heavy) at a condensed width. */
     weight: {
       regular: 400,
       medium: 500,
@@ -126,6 +137,7 @@ export const tokens = {
   /** Letter spacing — tighter on display, normal on body. */
   letterSpacing: {
     tightest: '-0.04em', // 8xl-9xl hero numerals
+    display: '-0.02em', // Saira condensed display headlines (Brand Lock V3)
     tighter: '-0.022em', // 3xl-6xl headings
     tight: '-0.011em', // lg-xl body headings
     normal: '0', // body

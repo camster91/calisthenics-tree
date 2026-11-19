@@ -1,0 +1,3 @@
+# The web image is built with the repo root as context (docker-compose*.yml)
+# but only copies apps/web/. Keep the static marketing site out of the context.
+marketing-site/

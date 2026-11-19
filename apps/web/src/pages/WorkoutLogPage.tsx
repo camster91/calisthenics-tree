@@ -212,7 +212,7 @@ export default function WorkoutLogPage() {
         <p className="display-eyebrow">
           {node.movement_type === 'isometric' ? 'Hold workout' : 'Reps workout'}
         </p>
-        <h1 className="text-3xl font-bold leading-heading tracking-tighter sm:text-4xl">
+        <h1 className="display-section text-3xl sm:text-4xl">
           {node.exercise_name}
         </h1>
         <div className="flex items-baseline gap-3">

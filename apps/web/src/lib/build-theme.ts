@@ -106,6 +106,11 @@ export function buildThemeBlock(): string {
     lines.push(`  ${colorVar('accent', k)}: ${v};`);
   }
 
+  // Movement palette (Brand Lock V3) — exposes `text-movement-pull` etc.
+  for (const [k, v] of Object.entries(tokens.color.movement)) {
+    lines.push(`  ${colorVar('movement', k)}: ${v};`);
+  }
+
   // Glass surfaces (rgba + backdrop-blur source) — Sprint 37
   for (const [k, v] of Object.entries(tokens.color.glass)) {
     const suffix = k === 'DEFAULT' ? '' : `-${k}`;

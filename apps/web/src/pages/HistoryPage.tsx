@@ -17,13 +17,12 @@
  * - "Promoted" badge promoted to a primary-toned pill
  */
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { CalendarDays, Flame, ChevronRight, TrendingUp } from 'lucide-react';
+import { Flame, TrendingUp } from 'lucide-react';
 
 import * as local from '../lib/local-mode';
 import { api } from '../lib/api';
-import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
+import { EmptyState } from '../components/ui/empty-state';
 import { BigNumber } from '../components/ui/big-number';
 
 interface HistoryRow {
@@ -100,7 +99,7 @@ export default function HistoryPage() {
       <div className="space-y-6">
         <header className="space-y-3">
           <p className="display-eyebrow">History</p>
-          <h1 className="text-5xl font-bold leading-heading tracking-tighter sm:text-6xl">
+          <h1 className="display-section text-5xl sm:text-6xl">
             Recent workouts
           </h1>
         </header>
@@ -129,7 +128,7 @@ export default function HistoryPage() {
     <div className="space-y-10">
       <header className="space-y-3">
         <p className="display-eyebrow">History</p>
-        <h1 className="text-5xl font-bold leading-heading tracking-tighter sm:text-6xl">
+        <h1 className="display-section text-5xl sm:text-6xl">
           Recent workouts
         </h1>
         <p className="max-w-xl text-base leading-body text-surface-fg-muted">
@@ -207,29 +206,10 @@ export default function HistoryPage() {
         </h2>
 
         {groups.length === 0 ? (
-          <Card variant="default" className="space-y-4">
-            <div className="flex items-start gap-3">
-              <CalendarDays
-                aria-hidden
-                className="mt-0.5 h-5 w-5 shrink-0 text-surface-fg-subtle"
-              />
-              <div className="space-y-1">
-                <p className="text-base font-semibold text-surface-fg">
-                  No workouts logged yet.
-                </p>
-                <p className="text-sm leading-body text-surface-fg-muted">
-                  Head home, tap a tree's <em>Start workout</em>, and log a
-                  set. Your streak starts the moment you finish one.
-                </p>
-              </div>
-            </div>
-            <Button asChild variant="default" size="lg" className="w-full">
-              <Link to="/">
-                Back to home
-                <ChevronRight aria-hidden className="h-4 w-4" />
-              </Link>
-            </Button>
-          </Card>
+          <EmptyState
+            message="No workouts logged yet. Your streak starts with the first set you finish."
+            action={{ label: 'Start a workout', to: '/' }}
+          />
         ) : (
           groups.map(({ day, rows: dayRows }, groupIdx) => (
             <div key={day} className="space-y-3">

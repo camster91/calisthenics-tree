@@ -17,6 +17,7 @@ catalog — that's the SEO-friendly behavior.
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { search, type SearchResultItem, type SearchKind } from '../lib/api';
+import { EmptyState } from '../components/ui/empty-state';
 
 const KIND_LABELS: Record<SearchKind, string> = {
   node: 'Skills',
@@ -130,7 +131,7 @@ export default function SearchPage() {
     >
       <header className="space-y-3">
         <p className="display-eyebrow">Search</p>
-        <h1 className="text-4xl font-bold leading-heading tracking-tighter sm:text-5xl">
+        <h1 className="display-section text-4xl sm:text-5xl">
           Find a skill, exercise, or person
         </h1>
         <p className="text-base leading-body text-surface-fg-muted">
@@ -185,9 +186,12 @@ export default function SearchPage() {
       )}
 
       {showEmptyReady && (
-        <p className="text-sm text-surface-fg-muted" data-testid="search-empty">
-          No matches for &ldquo;{query}&rdquo;.
-        </p>
+        <EmptyState
+          data-testid="search-empty"
+          imageSize={120}
+          message={<>No matches for &ldquo;{query}&rdquo;.</>}
+          hint="Try a movement or skill, like push, lever or handstand."
+        />
       )}
 
       {status === 'ready' && results && (
